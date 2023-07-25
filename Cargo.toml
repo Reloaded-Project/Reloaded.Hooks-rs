@@ -1,0 +1,37 @@
+[package]
+name = "reloaded-hooks"
+version = "0.1.0"
+edition = "2021"
+description = "Advanced native function hooks for x86, x64. Now in Rust, and cross platform too!"
+repository = "https://github.com/Reloaded-Project/reloaded-hooks"
+license-file = "LICENSE"
+include = ["src/**/*"]
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "staticlib", "rlib"]
+
+[dev-dependencies]
+criterion = "0.5.1"
+
+[target.'cfg(unix)'.dev-dependencies]
+pprof = { version = "0.12", features = ["flamegraph", "criterion"] }
+
+# Profile Build
+[profile.profile]
+inherits = "release"
+debug = true
+codegen-units = 1
+lto = true
+strip = false  # No stripping!!
+
+# Optimized Release Build
+[profile.release]
+codegen-units = 1
+lto = true
+strip = true  # Automatically strip symbols from the binary.
+panic = "abort"
+# Benchmark Stuff
+[[bench]]
+name = "my_benchmark"
+harness = false
