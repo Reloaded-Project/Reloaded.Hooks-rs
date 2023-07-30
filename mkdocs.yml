@@ -1,4 +1,4 @@
-site_name: Reloaded MkDocs Theme
+site_name: Reloaded Hooks NexGen
 site_url: https://github.com/Reloaded-Project/Reloaded.Hooks-rs
 
 repo_name: Reloaded-Project/Reloaded.Hooks-rs
@@ -48,6 +48,10 @@ plugins:
 
 nav:
   - Home: index.md
+  - Design Docs: 
+    - Overview: design/overview.md
+    - Interop: design/interop.md
+    - Wrapper Generation: design/wrappers.md
   - Contributing: contributing.md
   - License: Reloaded/Pages/license.md
   - How to Document: Reloaded/Pages/contributing.md
