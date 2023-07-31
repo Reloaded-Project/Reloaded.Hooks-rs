@@ -26,6 +26,12 @@ You probably forgot to clone the theme submodule to `docs/Reloaded`, try this:
 git submodule add https://github.com/Reloaded-Project/Reloaded.MkDocsMaterial.Themes.R2.git docs/Reloaded
 ```
 
+## Registering an Allocator
+
+!!! info "In a more embedded environment, you will need to register allocator before you can use the library."
+
+
+
 ## Technical Questions
 
 If you have questions/bug reports/etc. feel free to [Open an Issue](https://github.com/Reloaded-Project/Reloaded.MkDocsMaterial.Themes.R2/issues/new).

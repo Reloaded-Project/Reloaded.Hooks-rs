@@ -1,49 +1,14 @@
-# {{project-name}}
+# reloaded-hooks
 
-[![Crates.io](https://img.shields.io/crates/v/{{project-name}}.svg)](https://crates.io/crates/{{project-name}})
-[![Docs.rs](https://docs.rs/{{project-name}}/badge.svg)](https://docs.rs/{{project-name}})
-[![CI](https://github.com/{{gh_username}}/{{project-name}}/workflows/CI/badge.svg)](https://github.com/{{gh_username}}/{{project-name}}/actions)
-
------------------------
-
-## Additional Setup Required!!
-
-Additional setup might be required.  
-Once you do the stuff under this text, delete this section.  
-
-### Code Coverage
-To setup code coverage for this project. Login into [Codecov][codecov] and add this repository from your list of tracked repos.
-
-{% if mkdocs -%}
-### Setup Documentation
-
-If you don't have a `docs/Reloaded` folder, an error occurred, and you might need to add it manually as submodule:
-
-```
-git submodule add https://github.com/Reloaded-Project/Reloaded.MkDocsMaterial.Themes.R2.git docs/Reloaded
-```
-
-Once you make your first commit to GitHub, you'll need to do the following:
-- Go to `Settings -> Pages` in your repo and select `gh-pages` branch to enable GitHub Pages.
-{% endif %}
-
-{% if publish-crate-on-tag %-}
-### Setup API Key
-
-You'll need to set up an API key to publish to `crates.io` on tag.
-
-- Go to `Settings -> Secrets -> Actions` in your repo and add environment secret named `CRATES_IO_TOKEN`.  
-- Paste your API key generated in [crates.io (Account Settings -> API Tokens)][crates-io-key].  
-{% endif %}
-
------------------------
+[![Crates.io](https://img.shields.io/crates/v/reloaded-hooks.svg)](https://crates.io/crates/reloaded-hooks)
+[![Docs.rs](https://docs.rs/reloaded-hooks/badge.svg)](https://docs.rs/reloaded-hooks)
+[![CI](https://github.com/Sewer56/reloaded-hooks/workflows/CI/badge.svg)](https://github.com/Sewer56/reloaded-hooks/actions)
 
 ## About
 
-{{project_description}}
-{% if mkdocs %}
+Advanced native function hooks for x86, x64. Now in Rust, and cross platform too!
 You can learn more about this project in the [dedicated documentation page][docs].
-{% endif %}
+
 ## Development
 
 How to develop this project.
@@ -51,17 +16,14 @@ How to develop this project.
 ***Clone this Repository:***
 ```bash
 # When cloning, make sure symlinks are enabled
-git clone -c core.symlinks=true https://github.com/{{gh_username}}/{{project-name}}.git
+git clone -c core.symlinks=true https://github.com/Sewer56/reloaded-hooks.git
 ```
 
 ***Install Rust:***
 - Install the [Rust Toolchain.][rust-toolchain]  
 
-{%- if vscode -%}
 ***Setup IDE***
 - This repository is fully with VSCode. [Guidance below](#visual-studio-code-integration).
-{% endif %}
-{%- if vscode -%}
 
 ### Visual Studio Code Integration
 
@@ -93,7 +55,6 @@ The `tarpaulin-report.html` file can be opened in VSCode (`Show Preview`) for a 
 
 For GUI integration, run action `Coverage Gutter: Watch` (in `Ctrl+Shift+P` actions menu).
 
-{% if bench -%}
 ## Debugging Benchmarks
 
 If you wish to debug benchmarks in VSCode, go to `Run and Debug` Menu and generate the launch 
@@ -129,10 +90,6 @@ And run with command `my_benchmark-eced832ac8f31257.exe --bench --profile-time 1
 
 ![example](./assets/profile_example.png)
 
-{% endif -%}
-{% endif -%}
-
-{% if bench -%}
 ## Optimizing for Size when Creating C Libraries
 
 1. Add `"cdylib"` crate type to `Cargo.toml` (if not already present)
@@ -159,28 +116,21 @@ cargo +nightly bloat --profile profile -Z build-std=std,panic_abort -Z build-std
 Change `--target` if needed for your platform.  
 This should produce binaries more appropriate for dynamic linking from C.  
 
-{% endif -%}
 ## File Layout
 
-The following is the expected file layout for your project:
+Individual projects are under the `projects` folder; they contain the following:  
+- `reloaded-hooks-sys`: portable `no_std` implementation of `Reloaded.Hooks`, requiring OS integration.  
+- `reloaded-hooks`: Crate ready for use within Linux/Macos/Windows, integrating with [reloaded-memory-buffers][reloaded-memory-buffers].  
+
+The following is the expected file layout for the repository:
 
 ```
-{%- if vscode %}
-.vscode/{%- endif %}
-{%- if mkdocs %}
-docs/{%- endif %}
-src/
-Cargo.toml
+.vscode/
+docs/
 mkdocs.yml
 ```
 
-{% if mkdocs -%}
 The `docs` folder, and `mkdocs.yml` contain [MkDocs Material documentation][mkdocs-material] for your project.  
-{% endif -%}
-The `src` folder should contains all source code for your project.  
-
-`Cargo.toml` should be in the root of the project.  
-{% if xplat -%}
 
 ## Cross Platform Targeting
 
@@ -237,23 +187,23 @@ Use the provided `pwsh` scripts in `scripts` folder.
 
 These scripts can be used on any platform given the prerequisites are met.  
 If you need to test Apple stuff without an Apple machine, you're generally out of luck outside of using CI/CD for testing.  
-{% endif %}
+
 ## Contributing
 
 See [CONTRIBUTING](CONTRIBUTING.MD) for guidance on how to contribute to this project.  
 
 ## License
 
-Licensed under [{{license}}](./LICENSE), the default for Reloaded project.  
+Licensed under [GPL V3 w/ Reloaded FAQ](./LICENSE), the default for Reloaded project.  
 [Learn more about Reloaded's choice of licensing.][reloaded-license].  
 
 [codecov]: https://about.codecov.io/
 [codelldb]: https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb
 [coverage-gutters]: https://marketplace.visualstudio.com/items?itemName=ryanluker.vscode-coverage-gutters 
 [crates-io-key]: https://crates.io/settings/tokens
-{%- if mkdocs %}
-[docs]: https://{{gh_reponame}}.github.io/{{gh_reponame}}{%- endif %}
+[docs]: https://Reloaded.Hooks-rs.github.io/Reloaded.Hooks-rs
 [mkdocs-material]: https://squidfunk.github.io/mkdocs-material/
 [reloaded-license]: https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/license/
+[reloaded-memory-buffers]: https://crates.io/crates/reloaded_memory_buffers
 [rust-analyzer]: https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer
 [rust-toolchain]: https://www.rust-lang.org/tools/install

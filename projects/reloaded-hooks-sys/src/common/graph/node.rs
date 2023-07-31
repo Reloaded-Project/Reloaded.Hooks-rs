@@ -1,7 +1,12 @@
-use std::sync::Arc;
+extern crate alloc;
+use alloc::{sync::Arc, vec::Vec};
 
 /// A node in a graph.
-pub struct Node<T> {
+#[derive(Debug, PartialEq, Eq)]
+pub struct Node<T>
+where
+    T: PartialEq + Eq,
+{
     /// The value stored inside this node.
     pub value: T,
 
@@ -9,7 +14,10 @@ pub struct Node<T> {
     pub edges: Vec<Arc<Node<T>>>,
 }
 
-impl<T> Node<T> {
+impl<T> Node<T>
+where
+    T: PartialEq + Eq,
+{
     /// Creates a new node with the given value.
     pub fn new(value: T) -> Self {
         Self {
@@ -27,7 +35,6 @@ impl<T> Node<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::Arc;
 
     #[test]
     fn test_node_creation() {
