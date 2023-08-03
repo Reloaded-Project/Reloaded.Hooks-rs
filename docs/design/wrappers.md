@@ -376,7 +376,7 @@ We can determine the correct `mov` order, by processing them in reverse order of
 
 !!! note "Exact order encoded depends on algorithm implementation in code; as long as the 2 derived rules are followed."
 
-###### Handling Cycles
+###### Handling Cycles (2 Node Cycle)
 
 Suppose we have 2 calling conventions with reverse parameter order. For this example we will define 
 convention `🐱call`. `🐱call` uses the reverse register order of Microsoft compiler.
@@ -459,4 +459,70 @@ Adding instructions also means the wrapper might overflow to the next multiple o
 more instructions to be fetched when it otherwise won't happend with xchg, potentially losing any 
 benefits gained on those architectures.
 
-!!! note "The mappings done in `Reloaded.Hooks` are a 1:1 [bijective](https://www.mathsisfun.com/sets/injective-surjective-bijective.html) mapping. Therefore any cycle can be resolved by simply swapping the involved registers."
+!!! note "The mappings done in `Reloaded.Hooks` are a 1:1 [bijective][bijective] mapping. Therefore any cycle of just 2 registers can be resolved by simply swapping the involved registers."
+
+###### Handling Cycles (Multi Register Cycle)
+
+Now imagine doing a mapping which involves 3 registers, `r8` - `r10`, and all registers need to be `mov'd`.
+
+```mermaid
+flowchart TD
+    R8 --> R9
+    R9 --> R10
+    R10 --> R8
+```
+
+```asm
+mov R9, R8
+mov R10, R9
+mov R8, R10
+```
+
+To resolve this, we backup the register at the end of the cycle (in this case R10), disconnect it
+from the first register in the cycle and resolve as normal.
+
+i.e. we solve for
+
+```mermaid
+flowchart TD
+    R8 --> R9
+    R9 --> R10
+```
+
+Then write original value of R10 into R8 after this code is converted into `mov` sequences.
+
+This can be done using the following strategies:  
+- `mov` into scratch register (a callee saved register which is not a parameter qualifies).  
+- `push` + `pop` register.
+
+=== "ASM (mov scratch)"
+
+    ```asm
+    # Move value from end of cycle into callee saved register (scratch)
+    mov RBP, R10
+
+    # Original (after reorder)
+    mov R10, R9
+    mov R9, R8
+
+    # Move from callee saved register into first in cycle.
+    mov R8, RBP
+    ```
+
+=== "ASM (push+pop)"
+
+    ```asm
+    # Push value from end of cycle into stack
+    push R10
+
+    # Original (after reorder)
+    mov R10, R9
+    mov R9, R8
+
+    # Pop into intended place from stack
+    pop R8
+    ```
+
+When possible to get scratch register, use `mov`, otherwise use `push`.
+
+[bijective]: https://www.mathsisfun.com/sets/injective-surjective-bijective.html
