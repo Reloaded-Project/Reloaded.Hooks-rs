@@ -119,8 +119,10 @@ This should produce binaries more appropriate for dynamic linking from C.
 ## File Layout
 
 Individual projects are under the `projects` folder; they contain the following:  
-- `reloaded-hooks-sys`: portable `no_std` implementation of `Reloaded.Hooks`, requiring OS integration.  
-- `reloaded-hooks`: Crate ready for use within Linux/Macos/Windows, integrating with [reloaded-memory-buffers][reloaded-memory-buffers].  
+
+- `reloaded-hooks-portable`: Architecture agnostic components of `Reloaded.Hooks` that can be used to implement hooking in more than just x86.  
+- `reloaded-hooks-x86-sys`: Components of `Reloaded.Hooks` that are specific to x86 & x64. This package is written in an OS agnostic way.  
+- `reloaded-hooks-x86`: Crate ready for use within Linux/Macos/Windows, integrating with [reloaded-memory-buffers][reloaded-memory-buffers].  
 
 The following is the expected file layout for the repository:
 

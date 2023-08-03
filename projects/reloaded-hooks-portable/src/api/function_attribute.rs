@@ -1,23 +1,22 @@
 extern crate alloc;
-
 use alloc::vec::Vec;
 
-use super::register::Register;
-
 /// This struct defines the calling convention of a function.
-pub struct FunctionAttribute {
+///
+/// # Generic Parameters
+/// - `TRegister`: The type of register used by the target architecture. (Enum)
+pub struct FunctionAttribute<TRegister> {
     /// Registers in left to right parameter order passed to the custom function.
-    source_registers: Vec<Register>,
+    source_registers: Vec<TRegister>,
 
     /// The register that the function returns its value in.
-    /// This is typically rax.
-    return_register: Register,
+    /// In x86 this is typically 'eax/rax'.
+    return_register: TRegister,
 
     /// Used for allocating an extra amount of uninitialized (not zero-written) stack space
-    /// before calling the function. A 32-byte pre-alloc is required by Microsoft x64 calling
-    /// convention.
+    /// before calling the function.
     reserved_stack_space: u32,
 
     /// Specifies all the registers whose values are expected to be preserved by the function.
-    callee_saved_registers: Vec<Register>,
+    callee_saved_registers: Vec<TRegister>,
 }

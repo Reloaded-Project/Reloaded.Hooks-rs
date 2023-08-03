@@ -11,7 +11,21 @@ use crate::common::move_operation::MoveOperation;
 ///
 /// For more info about this, see `Design Docs -> Wrapper Generation`,
 /// section `Reordering Operations`.
-pub fn validate_moves<T>(moves: Vec<MoveOperation<T>>) {}
+pub fn validate_moves<T>(moves: Vec<MoveOperation<T>>) {
+    /*
+    let mut used_targets = Vec::new();
+
+    for move_op in &moves {
+        if used_targets.contains(&move_op.source) {
+            return false;
+        }
+
+        used_targets.push(move_op.target);
+    }
+
+    true
+     */
+}
 
 /// Reorders a sequence of MOV register operations to prevent
 /// them from writing invalid data.

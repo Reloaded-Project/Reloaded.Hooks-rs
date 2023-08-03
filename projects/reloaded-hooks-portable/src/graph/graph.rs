@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloc::{sync::Arc, vec::Vec};
 
-use crate::common::graph::node::Node;
+use super::node::Node;
 
 /// The graph containing all the nodes.
 #[derive(Debug, PartialEq, Eq)]
@@ -25,5 +25,14 @@ where
     /// Adds a node to the graph.
     pub fn add_node(&mut self, node: Arc<Node<T>>) {
         self.values.push(node);
+    }
+}
+
+impl<T> Default for Graph<T>
+where
+    T: PartialEq + Eq,
+{
+    fn default() -> Self {
+        Self::new()
     }
 }

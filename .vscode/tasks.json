@@ -2,7 +2,7 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "[reloaded-hooks-sys] Cargo Watch Tarpaulin (Auto Coverage on Save)",
+      "label": "[reloaded-hooks-x86-sys] Cargo Watch Tarpaulin (Auto Coverage on Save)",
       "type": "shell",
       "command": "cargo watch -x \"tarpaulin --skip-clean --out Xml --out Html --engine llvm --target-dir target/coverage-build\" -w src/",
       "group": "test",
@@ -11,11 +11,11 @@
       },
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/projects/reloaded-hooks-sys"
+        "cwd": "${workspaceFolder}/projects/reloaded-hooks-x86-sys"
       }
     },
     {
-      "label": "[reloaded-hooks-sys] Generate Code Coverage",
+      "label": "[reloaded-hooks-x86-sys] Generate Code Coverage",
       "type": "shell",
       "command": "cargo tarpaulin --out Xml --out Html --engine llvm --target-dir target/coverage-build",
       "group": "test",
@@ -24,7 +24,33 @@
       },
       "problemMatcher": [],
       "options": {
-        "cwd": "${workspaceFolder}/projects/reloaded-hooks-sys"
+        "cwd": "${workspaceFolder}/projects/reloaded-hooks-x86-sys"
+      }
+    },
+    {
+      "label": "[reloaded-hooks-portable] Cargo Watch Tarpaulin (Auto Coverage on Save)",
+      "type": "shell",
+      "command": "cargo watch -x \"tarpaulin --skip-clean --out Xml --out Html --engine llvm --target-dir target/coverage-build\" -w src/",
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/reloaded-hooks-portable"
+      }
+    },
+    {
+      "label": "[reloaded-hooks-portable] Generate Code Coverage",
+      "type": "shell",
+      "command": "cargo tarpaulin --out Xml --out Html --engine llvm --target-dir target/coverage-build",
+      "group": "test",
+      "presentation": {
+        "reveal": "always"
+      },
+      "problemMatcher": [],
+      "options": {
+        "cwd": "${workspaceFolder}/projects/reloaded-hooks-portable"
       }
     }
   ]

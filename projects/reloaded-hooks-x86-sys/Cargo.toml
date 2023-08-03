@@ -1,8 +1,8 @@
 [package]
-name = "reloaded-hooks"
+name = "reloaded-hooks-x86-sys"
 version = "0.1.0"
 edition = "2021"
-description = "Advanced native function hooks for x86, x64. Now in Rust, and cross platform too! This is the platform agnostic 'system' package."
+description = "Components of reloaded-hooks that are specific to x86 & x64. This package is written in an OS agnostic way."
 repository = "https://github.com/Reloaded-Project/reloaded-hooks"
 license-file = "LICENSE"
 include = ["src/**/*"]
