@@ -493,7 +493,7 @@ Then write original value of R10 into R8 after this code is converted into `mov`
 
 This can be done using the following strategies:  
 - `mov` into scratch register (a callee saved register which is not a parameter qualifies).  
-- `push` + `pop` register.
+- `push` + `pop` register.  
 
 === "ASM (mov scratch)"
 
