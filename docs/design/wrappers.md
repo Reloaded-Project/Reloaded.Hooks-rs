@@ -2,9 +2,9 @@
 
 !!! info "Describes how stubs for converting between different Calling Conventions (ABIs) are generated."
 
-## General Strategy
+!!! info "This page uses x86 as an example, however the same concepts apply to other architectures."
 
-!!! note "The general strategy for x86 (32-bit), prior to optimisations."
+## General Strategy
 
 - Backup Stack Frame & Non-Volatile Registers
 

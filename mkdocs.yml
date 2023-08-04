@@ -50,8 +50,12 @@ nav:
   - Home: index.md
   - Design Docs: 
     - Overview: design/overview.md
-    - Interop: design/interop.md
+    - Interop (x86): design/interop-x86.md
     - Wrapper Generation: design/wrappers.md
+  - Architectures:
+    - x86_64: arch/x86_64.md
+    - x86: arch/x86.md
+    - arm64: arch/arm64.md
   - Contributing: contributing.md
   - License: Reloaded/Pages/license.md
   - How to Document: Reloaded/Pages/contributing.md

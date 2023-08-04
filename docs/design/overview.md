@@ -68,7 +68,7 @@ to unload from the process.
 
 ## Calling Convention Inference
 
-!!! note "It is recommended library users manually specify conventions in their hook functions."
+!!! note "It is recommended library users manually specify conventions in their hook functions.""
 
 When the calling convention of `<your function>` is not specified, wrapper libraries must insert
 the appropriate default convention in their wrappers.
@@ -84,7 +84,6 @@ the appropriate default convention in their wrappers.
 - `x86_64-pc-windows-gnu`: Microsoft x64
 - `x86_64-pc-windows-msvc`: Microsoft x64
 - `x86_64-unknown-linux-gnu`: SystemV (x64)
-
 - `x86_64-apple-darwin`: SystemV (x64)
 
 ### C#
