@@ -6,13 +6,13 @@
 
 ## General Strategy
 
-- Backup Stack Frame & Non-Volatile Registers
+!!! note "Setting frame pointer (`ebp`) is not necessary, as our wrapper shouldn't use it"
+
+- Backup Non-Volatile Registers (incl. Link Register on Relevant Platforms)
 
 ```asm
+# push LR if present on platform
 push ebp
-mov ebp, esp
-
-# Save non-volatile registers
 push ebx
 push edi
 push esi
@@ -46,16 +46,15 @@ If target function returns in different register than caller expects, might need
 mov eax, ecx
 ```
 
-- Restore Stack Frame & Non-Volatile Registers
+- Restore Non-Volatile Registers
 
 ```asm
 # Restore non-volatile registers
 pop esi
 pop edi
 pop ebx
-
-push ebp
-ret
+pop ebp
+# pop LR if relevant on given platform
 ```
 
 !!! tip "The general implementation for 64-bit is the same, however the stack must be 16 byte aligned at method entry, and for MSFT convention, 32 bytes reserved on stack before call"
@@ -137,6 +136,38 @@ push dword [esp + {x}]
 call {function}
 add esp, 8
 
+ret 8
+```
+
+### Eliminate Return Address
+
+!!! note "Only applies to platforms like x86 return addresses on stack."
+
+In some cases, like converting between `stdcall` and `cdecl`; it might be possible to reuse the same
+parameters from the stack. Take into account the previous example:
+
+```asm
+# Re push parameters
+push dword [esp + {x}]
+push dword [esp + {x}]
+
+call {function}
+add esp, 8
+
+ret 8
+```
+
+Strictly speaking, to convert from `stdcall` to `cdecl`, you will only need to convert from
+caller stack cleanup to callee stack cleanup i.e. `ret 8`.
+
+In this case, re-pushing parameters is redundant, as the pushed parameters from the previous
+method call are on stack and can still be re-used.
+
+```asm
+# Pop previous return address from stack
+add esp, 4
+call {function}
+add esp, 8
 ret 8
 ```
 
@@ -492,21 +523,24 @@ flowchart TD
 Then write original value of R10 into R8 after this code is converted into `mov` sequences.
 
 This can be done using the following strategies:  
-- `mov` into scratch register (a callee saved register which is not a parameter qualifies).  
+
+- `mov` into scratch register.  
+    - For mid-function hooks (`AsmHook`) prefer callee saved register which is not a parameter.  
+    - For function hooks, use a caller saved register.  
 - `push` + `pop` register.  
 
 === "ASM (mov scratch)"
 
     ```asm
-    # Move value from end of cycle into callee saved register (scratch)
-    mov RBP, R10
+    # Move value from end of cycle into caller saved register (scratch)
+    mov RAX, R10
 
     # Original (after reorder)
     mov R10, R9
     mov R9, R8
 
-    # Move from callee saved register into first in cycle.
-    mov R8, RBP
+    # Move from caller saved register into first in cycle.
+    mov R8, RAX
     ```
 
 === "ASM (push+pop)"

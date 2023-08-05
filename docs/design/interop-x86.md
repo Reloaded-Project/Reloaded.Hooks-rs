@@ -1,6 +1,8 @@
-# Interoperability
+# Interoperability (x86)
 
 !!! note "This page just contains some small notes and tidbits regarding interoperability."
+
+!!! note "On x64 platforms [e.g. macOS & bare metal] which cannot encode an absolute jump `FF 25` [no mem in 2GB], mov into scratch register and call by reg (~12 bytes)."
 
 To ensure maximum compatibility with existing hooking systems, Reloaded.Hooks uses `5 byte relative jumps` 
 (`E9`).  
@@ -10,7 +12,7 @@ This is the most common approach in the x86 land, has low overhead and is the mo
 In the very, very, unlikely event that this is not possible (target is further than 2GB away), 
 the following strategy is used:  
 
-- If no existing hook exists, a `6 byte absolute jump` (`FF 25`) will be used.  
+- If no existing hook exists, a `6 byte absolute jump` (`FF 25`) will be used (if possible).  
 - Otherwise if there is an existing hook:  
     - If we have any allocated buffer in range, insert `5 byte` `E9` jump, and inside wrapper/stub 
       use absolute jump (`FF 25`) if needed.  

@@ -18,6 +18,11 @@ pub mod graphs {
     pub mod node;
 }
 
+/// Helper functions for the library.
+pub mod helpers {
+    pub mod alignment_space_finder;
+}
+
 /// Contains all of the structures used by the library.
 pub mod structs {
     pub mod mov_operation;
