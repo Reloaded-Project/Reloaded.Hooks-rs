@@ -6,7 +6,10 @@ extern crate alloc;
 /// - `TRegister`: The type of register used by the target architecture. (Enum)
 pub trait FunctionAttribute<TRegister> {
     /// Registers in left to right parameter order passed to the custom function.
-    fn source_registers(&self) -> &[TRegister];
+    fn register_int_parameters(&self) -> &[TRegister];
+
+    /// Float registers in left to right parameter order passed to the custom function.
+    fn register_float_parameters(&self) -> &[TRegister];
 
     /// The register that the function returns its value in.
     /// In x86 this is typically 'eax/rax'.

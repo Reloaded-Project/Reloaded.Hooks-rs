@@ -4,7 +4,14 @@
 
 /// Contains all declarations that are exposed to library users.
 pub mod api {
+    pub mod buffers {
+        pub mod buffer_abstractions;
+        pub mod default_buffer;
+        pub mod default_buffer_factory;
+    }
+
     pub mod function_attribute;
+    pub mod function_info;
 }
 
 /// Code for all the graph algorithms.
@@ -21,6 +28,10 @@ pub mod graphs {
 /// Helper functions for the library.
 pub mod helpers {
     pub mod alignment_space_finder;
+    pub mod convention_converter_helpers;
+
+    #[cfg(test)]
+    pub(crate) mod test_helpers;
 }
 
 /// Contains all of the structures used by the library.
