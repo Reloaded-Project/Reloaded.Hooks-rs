@@ -203,7 +203,7 @@ Licensed under [GPL V3 w/ Reloaded FAQ](./LICENSE), the default for Reloaded pro
 [codelldb]: https://marketplace.visualstudio.com/items?itemName=vadimcn.vscode-lldb
 [coverage-gutters]: https://marketplace.visualstudio.com/items?itemName=ryanluker.vscode-coverage-gutters 
 [crates-io-key]: https://crates.io/settings/tokens
-[docs]: https://Reloaded.Hooks-rs.github.io/Reloaded.Hooks-rs
+[docs]: https://reloaded-project.github.io/Reloaded.Hooks-rs
 [mkdocs-material]: https://squidfunk.github.io/mkdocs-material/
 [reloaded-license]: https://reloaded-project.github.io/Reloaded.MkDocsMaterial.Themes.R2/Pages/license/
 [reloaded-memory-buffers]: https://crates.io/crates/reloaded_memory_buffers
