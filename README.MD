@@ -2,7 +2,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/reloaded-hooks.svg)](https://crates.io/crates/reloaded-hooks)
 [![Docs.rs](https://docs.rs/reloaded-hooks/badge.svg)](https://docs.rs/reloaded-hooks)
-[![CI](https://github.com/Sewer56/reloaded-hooks/workflows/CI/badge.svg)](https://github.com/Sewer56/reloaded-hooks/actions)
+[![CI](https://github.com/Reloaded-Project/Reloaded.Hooks-rs/workflows/CI/badge.svg)](https://github.com/Reloaded-Project/Reloaded.Hooks-rs/actions)
 
 ## About
 
@@ -16,7 +16,7 @@ How to develop this project.
 ***Clone this Repository:***
 ```bash
 # When cloning, make sure symlinks are enabled
-git clone -c core.symlinks=true https://github.com/Sewer56/reloaded-hooks.git
+git clone -c core.symlinks=true https://github.com/Reloaded-Project/Reloaded.Hooks-rs.git
 ```
 
 ***Install Rust:***
