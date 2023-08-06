@@ -139,38 +139,6 @@ add esp, 8
 ret 8
 ```
 
-### Eliminate Return Address
-
-!!! note "Only applies to platforms like x86 return addresses on stack."
-
-In some cases, like converting between `stdcall` and `cdecl`; it might be possible to reuse the same
-parameters from the stack. Take into account the previous example:
-
-```asm
-# Re push parameters
-push dword [esp + {x}]
-push dword [esp + {x}]
-
-call {function}
-add esp, 8
-
-ret 8
-```
-
-Strictly speaking, to convert from `stdcall` to `cdecl`, you will only need to convert from
-caller stack cleanup to callee stack cleanup i.e. `ret 8`.
-
-In this case, re-pushing parameters is redundant, as the pushed parameters from the previous
-method call are on stack and can still be re-used.
-
-```asm
-# Pop previous return address from stack
-add esp, 4
-call {function}
-add esp, 8
-ret 8
-```
-
 ### Move Between Registers Instead of Push Pop
 
 !!! tip "In some cases it's possible to mov between registers, rather than doing an explicit push+pop operation"
@@ -558,5 +526,41 @@ This can be done using the following strategies:
     ```
 
 When possible to get scratch register, use `mov`, otherwise use `push`.
+
+### Idea: Eliminate Return Address
+
+!!! danger "This is a theoretical idea, not implemented in library."
+
+!!! note "Only applies to platforms like x86 return addresses on stack."
+
+In some cases, like converting between `stdcall` and `cdecl`; it might be possible to reuse the same
+parameters from the stack. Take into account the previous example:
+
+```asm
+# Re push parameters
+push dword [esp + {x}]
+push dword [esp + {x}]
+
+call {function}
+add esp, 8
+
+ret 8
+```
+
+Strictly speaking, to convert from `stdcall` to `cdecl`, you will only need to convert from
+caller stack cleanup to callee stack cleanup i.e. `ret 8`.
+
+In this case, re-pushing parameters is redundant, as the pushed parameters from the previous
+method call are on stack and can still be re-used.
+
+What we can instead do, is overwrite the return address and jump to our code.
+
+```asm
+# Pop previous return address from stack
+mov [esp], {addressPostJump} # replace return address
+jmp {function} # jump to our function
+add esp, 8 # our function returns here due to changed return address
+ret 8
+```
 
 [bijective]: https://www.mathsisfun.com/sets/injective-surjective-bijective.html
