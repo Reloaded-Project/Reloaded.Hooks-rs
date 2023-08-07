@@ -1,6 +1,7 @@
 use super::{
     mov_operation::MovOperation, pop_operation::PopOperation, push_operation::PushOperation,
-    sub_operation::SubOperation, xchg_operation::XChgOperation,
+    push_stack_operation::PushStackOperation, sub_operation::SubOperation,
+    xchg_operation::XChgOperation,
 };
 
 // The operation enum which can represent a Mov, Push, or Sub operation
@@ -8,6 +9,7 @@ use super::{
 pub enum Operation<T> {
     Mov(MovOperation<T>),
     Push(PushOperation<T>),
+    PushStack(PushStackOperation<T>),
     Sub(SubOperation<T>),
     Pop(PopOperation<T>),
     Xchg(XChgOperation<T>),

@@ -120,9 +120,11 @@ This should produce binaries more appropriate for dynamic linking from C.
 
 Individual projects are under the `projects` folder; they contain the following:  
 
-- `reloaded-hooks-portable`: Architecture agnostic components of `Reloaded.Hooks` that can be used to implement hooking in more than just x86.  
-- `reloaded-hooks-x86-sys`: Components of `Reloaded.Hooks` that are specific to x86 & x64. This package is written in an OS agnostic way.  
-- `reloaded-hooks-x86`: Crate ready for use within Linux/Macos/Windows, integrating with [reloaded-memory-buffers][reloaded-memory-buffers].  
+- `reloaded-hooks-portable`: Core engine of `Reloaded.Hooks`, platform & architecture agnostic.  
+- `reloaded-hooks-platforms-desktop`: Adds enhanced support to Linux/macOS/Windows, by integrating with [reloaded-memory-buffers][reloaded-memory-buffers].  
+- `reloaded-hooks-x86-sys`: Implements support for x86 architecture.  
+- `reloaded-hooks-x64-sys`: Implements support for x64 architecture.  
+- `reloaded-hooks`: High level API for the `Reloaded.Hooks` packages.  
 
 The following is the expected file layout for the repository:
 

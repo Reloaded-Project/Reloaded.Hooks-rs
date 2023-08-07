@@ -39,7 +39,7 @@ impl BufferFactory for DefaultBufferFactory {
         None
     }
 
-    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Option<Box<dyn Buffer + '_>> {
+    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Option<Box<dyn Buffer>> {
         for buffer in &self.buffers {
             if !buffer.locked.load(Ordering::Acquire)
                 && buffer.size == size

@@ -1,17 +1,16 @@
 [package]
-name = "reloaded-hooks-portable"
+name = "reloaded-hooks-x64-sys"
 version = "0.1.0"
 edition = "2021"
-description = "Architecture agnostic components of reloaded-hooks that can be used to implement hooking in more than just x86."
+description = "Components of reloaded-hooks that are specific to x64. This package is written in an OS agnostic way."
 repository = "https://github.com/Reloaded-Project/reloaded-hooks"
 license-file = "LICENSE"
 include = ["src/**/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-hashbrown = "0.14.0"
-nohash = "0.2.0"
-spin = "0.9.8"
+libc = "0.2.147"
+reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portable" }
 
 [dev-dependencies]
 criterion = "0.5.1"

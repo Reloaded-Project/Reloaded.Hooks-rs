@@ -10,8 +10,14 @@ pub mod api {
         pub mod default_buffer_factory;
     }
 
+    pub mod settings {
+        pub mod proximity_target;
+    }
+
     pub mod function_attribute;
     pub mod function_info;
+    pub mod init;
+    pub mod wrapper_generator;
 }
 
 /// Code for all the graph algorithms.
@@ -40,6 +46,7 @@ pub mod structs {
     pub mod operation;
     pub mod pop_operation;
     pub mod push_operation;
+    pub mod push_stack_operation;
     pub mod sub_operation;
     pub mod xchg_operation;
 }

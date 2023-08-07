@@ -1,8 +1,7 @@
 extern crate alloc;
 
-use core::any::Any;
-
 use alloc::boxed::Box;
+use core::any::Any;
 
 /// This trait defines a factory for retrieving buffers which satisfy given constraints.
 /// This factory is used by the Wrapper and Hook generator to insert new code
@@ -31,7 +30,7 @@ pub trait BufferFactory {
         target: usize,
         proximity: usize,
         alignment: u32,
-    ) -> Option<Box<dyn Buffer + '_>>;
+    ) -> Option<Box<dyn Buffer>>;
 
     /// Returns any available buffer.
     ///
@@ -47,7 +46,7 @@ pub trait BufferFactory {
     /// # Thread Safety
     ///
     /// Returned buffers must be locked and not returned to the pool until they are dropped.
-    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Option<Box<dyn Buffer + '_>>;
+    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Option<Box<dyn Buffer>>;
 }
 
 pub trait Buffer {
