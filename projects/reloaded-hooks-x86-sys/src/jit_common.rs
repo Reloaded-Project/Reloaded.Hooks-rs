@@ -4,7 +4,11 @@ use crate::jit_conversions_common::{
     convert_to_asm_register32, convert_to_asm_register64, is_allregister_64,
 };
 use crate::{jit_common::alloc::string::ToString, jit_conversions_common::is_allregister_32};
-use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
+use iced_x86::code_asm::{dword_ptr, qword_ptr, AsmRegister32, CodeAssembler};
+use iced_x86::IcedError;
+use reloaded_hooks_portable::api::jit::call_operation::CallOperation;
+use reloaded_hooks_portable::api::jit::jump_absolute_operation::JumpAbsoluteOperation;
+use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
 use reloaded_hooks_portable::api::jit::{
     compiler::JitError, mov_operation::MovOperation, operation::Operation,
     pop_operation::PopOperation, push_operation::PushOperation,
@@ -25,7 +29,14 @@ pub(crate) fn encode_instruction(
         Operation::Sub(x) => encode_sub(assembler, x),
         Operation::Pop(x) => encode_pop(assembler, x),
         Operation::Xchg(x) => encode_xchg(assembler, x),
+        Operation::Call(x) => encode_call(assembler, x),
+        Operation::JumpRelative(x) => encode_jump_relative(assembler, x),
+        Operation::JumpAbsolute(x) => encode_jump_absolute(assembler, x),
     }
+}
+
+fn convert_error(e: IcedError) -> JitError<AllRegisters> {
+    JitError::ThirdPartyAssemblerError(e.to_string())
 }
 
 fn encode_xchg(
@@ -48,7 +59,7 @@ fn encode_xchg(
             xchg.register2,
         ));
     }
-    .map_err(|e| JitError::ThirdPartyAssemblerError(e.to_string()))?;
+    .map_err(convert_error)?;
 
     Ok(())
 }
@@ -64,7 +75,7 @@ fn encode_pop(
     } else {
         return Err(JitError::InvalidRegister(pop.register));
     }
-    .map_err(|e| JitError::ThirdPartyAssemblerError(e.to_string()))?;
+    .map_err(convert_error)?;
 
     Ok(())
 }
@@ -80,7 +91,7 @@ fn encode_sub(
     } else {
         return Err(JitError::InvalidRegister(sub.register));
     }
-    .map_err(|e| JitError::ThirdPartyAssemblerError(e.to_string()))?;
+    .map_err(convert_error)?;
 
     Ok(())
 }
@@ -98,7 +109,7 @@ fn encode_push_stack(
     } else {
         return Err(JitError::InvalidRegister(push.base_register));
     }
-    .map_err(|e| JitError::ThirdPartyAssemblerError(e.to_string()))?;
+    .map_err(convert_error)?;
 
     Ok(())
 }
@@ -114,7 +125,7 @@ fn encode_push(
     } else {
         return Err(JitError::InvalidRegister(push.register));
     }
-    .map_err(|e| JitError::ThirdPartyAssemblerError(e.to_string()))?;
+    .map_err(convert_error)?;
 
     Ok(())
 }
@@ -136,7 +147,78 @@ fn encode_mov(
     } else {
         return Err(JitError::InvalidRegisterCombination(mov.source, mov.target));
     }
-    .map_err(|e| JitError::ThirdPartyAssemblerError(e.to_string()))?;
+    .map_err(convert_error)?;
+
+    Ok(())
+}
+
+fn encode_jump_relative(
+    a: &mut CodeAssembler,
+    x: &JumpRelativeOperation,
+) -> Result<(), JitError<AllRegisters>> {
+    if a.bitness() == 64 {
+        a.jmp(x.target_address as u64).map_err(convert_error)?
+    } else if a.bitness() == 32 {
+        a.jmp(x.target_address as u64).map_err(convert_error)?
+    } else {
+        return Err(JitError::ThirdPartyAssemblerError(
+            "Non 32/64bit architectures are not supported".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+fn encode_jump_absolute(
+    a: &mut CodeAssembler,
+    x: &JumpAbsoluteOperation<AllRegisters>,
+) -> Result<(), JitError<AllRegisters>> {
+    if a.bitness() == 64 {
+        let target_reg = convert_to_asm_register64(x.scratch_register)?;
+        a.mov(target_reg, x.target_address as u64)
+            .map_err(convert_error)?;
+        a.jmp(target_reg).map_err(convert_error)?;
+    } else if a.bitness() == 32 {
+        let target_reg = convert_to_asm_register32(x.scratch_register)?;
+        a.mov(target_reg, x.target_address as u32)
+            .map_err(convert_error)?;
+        a.jmp(target_reg).map_err(convert_error)?;
+    } else {
+        return Err(JitError::ThirdPartyAssemblerError(
+            "Non 32/64bit architectures are not supported".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
+fn encode_call(
+    a: &mut CodeAssembler,
+    x: &CallOperation<AllRegisters>,
+) -> Result<(), JitError<AllRegisters>> {
+    if a.bitness() == 64 {
+        if x.relative {
+            a.call(x.target_address as u64).map_err(convert_error)?
+        } else {
+            let target_reg = convert_to_asm_register64(x.scratch_register)?;
+            a.mov(target_reg, x.target_address as u64)
+                .map_err(convert_error)?;
+            a.call(target_reg).map_err(convert_error)?;
+        }
+    } else if a.bitness() == 32 {
+        if x.relative {
+            a.call(x.target_address as u64).map_err(convert_error)?
+        } else {
+            let target_reg = convert_to_asm_register32(x.scratch_register)?;
+            a.mov(target_reg, x.target_address as u32)
+                .map_err(convert_error)?;
+            a.call(target_reg).map_err(convert_error)?;
+        }
+    } else {
+        return Err(JitError::ThirdPartyAssemblerError(
+            "Non 32/64bit architectures are not supported".to_string(),
+        ));
+    }
 
     Ok(())
 }

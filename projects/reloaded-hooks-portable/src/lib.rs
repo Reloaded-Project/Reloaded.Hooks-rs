@@ -24,7 +24,10 @@ pub mod api {
 
     /// Public API related to Just In Time Compilation
     pub mod jit {
+        pub mod call_operation;
         pub mod compiler;
+        pub mod jump_absolute_operation;
+        pub mod jump_relative_operation;
         pub mod mov_operation;
         pub mod operation;
         pub mod pop_operation;

@@ -77,7 +77,7 @@ In any case, when this happens, Reloaded performs *return address patching*.
 
 Suppose a foreign hooking library hooks a function with the following prologue:
 
-```x86asm
+```asm
 55        push ebp
 89 e5     mov ebp, esp
 00 00     add [eax], al
@@ -87,7 +87,7 @@ Suppose a foreign hooking library hooks a function with the following prologue:
 
 After hooking, this code would look like:
 
-```x86asm
+```asm
 E9 XX XX XX XX  jmp 'somewhere'
 <= existing hook jumps back here when calling original (this) function
 83 ec 20        sub esp, 32 

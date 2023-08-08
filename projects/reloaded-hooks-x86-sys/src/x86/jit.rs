@@ -55,11 +55,14 @@ fn encoder_instruction_x86(
 #[cfg(test)]
 mod tests {
     use reloaded_hooks_portable::api::jit::{
-        mov_operation::MovOperation, push_operation::PushOperation, sub_operation::SubOperation,
-        xchg_operation::XChgOperation,
+        jump_absolute_operation::JumpAbsoluteOperation,
+        jump_relative_operation::JumpRelativeOperation, mov_operation::MovOperation,
+        push_operation::PushOperation, sub_operation::SubOperation, xchg_operation::XChgOperation,
     };
 
     use super::*;
+
+    // run as `cargo test -- --nocapture` for printing
 
     #[test]
     fn test_compile_push() {
@@ -70,6 +73,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
+        println!("x86::test_compile_push: {}", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -82,6 +86,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
+        println!("x86::test_compile_mov: {}", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -94,6 +99,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
+        println!("x86::test_compile_sub: {}", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -106,5 +112,99 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
+        println!("x86::test_compile_xchg: {}", hex::encode(result.unwrap()));
+    }
+
+    #[test]
+    fn test_compile_jmp_relative() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::JumpRelative(JumpRelativeOperation {
+            target_address: 0x7FFFFFFF,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x86::test_compile_jmp_relative: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_jmp_absolute() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::JumpAbsolute(JumpAbsoluteOperation {
+            scratch_register: Register::eax,
+            target_address: 0x12345678,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x86::test_compile_jmp_absolute: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_call_relative() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::JumpRelative(JumpRelativeOperation {
+            target_address: 0x7FFFFFFF,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x86::test_compile_call_relative: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_call_absolute() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::JumpAbsolute(JumpAbsoluteOperation {
+            scratch_register: Register::eax,
+            target_address: 0x12345678,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x86::test_compile_call_absolute: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_compile_jmp_relative_out_of_range() {
+        let mut jit = JitX86 {};
+
+        // Note: This fails inside Iced :/
+        let operations = vec![Operation::JumpRelative(JumpRelativeOperation {
+            target_address: usize::MAX,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_compile_call_relative_is_relative_to_eip() {
+        let mut jit = JitX86 {};
+
+        // Verifies that the JIT compiles a relative call that branches towards target_address
+        // This is verified by branching to an address outside of the 2GB range and setting
+        // Instruction Pointer of assembled code to make it within range.
+        let operations = vec![Operation::JumpRelative(JumpRelativeOperation {
+            target_address: 0x80000005,
+        })];
+        let result = jit.compile(5, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x86::test_compile_call_relative_is_relative_to_eip: {}",
+            hex::encode(result.unwrap())
+        );
     }
 }

@@ -20,6 +20,7 @@ features = ["no_std", "decoder", "encoder", "block_encoder", "op_code_info", "in
 
 [dev-dependencies]
 criterion = "0.5.1"
+hex = "0.4.3"
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.12", features = ["flamegraph", "criterion"] }

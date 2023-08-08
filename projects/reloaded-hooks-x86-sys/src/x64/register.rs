@@ -1,8 +1,9 @@
 /// Defines a full size x64 register, used in specifying custom calling conventions.
 #[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
 pub enum Register {
     /// Accumulator register, used in arithmetic operations.
+    #[default]
     rax,
     /// Base register, used as a pointer to data.
     rbx,

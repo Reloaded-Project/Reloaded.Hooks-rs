@@ -1,10 +1,11 @@
 use super::{
-    mov_operation::MovOperation, pop_operation::PopOperation, push_operation::PushOperation,
+    call_operation::CallOperation, jump_absolute_operation::JumpAbsoluteOperation,
+    jump_relative_operation::JumpRelativeOperation, mov_operation::MovOperation,
+    pop_operation::PopOperation, push_operation::PushOperation,
     push_stack_operation::PushStackOperation, sub_operation::SubOperation,
     xchg_operation::XChgOperation,
 };
 
-// The operation enum which can represent a Mov, Push, or Sub operation
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Operation<T> {
     Mov(MovOperation<T>),
@@ -13,6 +14,9 @@ pub enum Operation<T> {
     Sub(SubOperation<T>),
     Pop(PopOperation<T>),
     Xchg(XChgOperation<T>),
+    Call(CallOperation<T>),
+    JumpRelative(JumpRelativeOperation),
+    JumpAbsolute(JumpAbsoluteOperation<T>),
 }
 
 pub fn transform_op<TOldRegister, TNewRegister, TConvertRegister>(
@@ -47,6 +51,18 @@ where
 
             #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
             scratch: inner_op.scratch.map(&f),
+        }),
+        Operation::Call(inner_op) => Operation::Call(CallOperation {
+            relative: inner_op.relative,
+            scratch_register: f(inner_op.scratch_register),
+            target_address: inner_op.target_address,
+        }),
+        Operation::JumpRelative(inner_op) => Operation::JumpRelative(JumpRelativeOperation {
+            target_address: inner_op.target_address,
+        }),
+        Operation::JumpAbsolute(inner_op) => Operation::JumpAbsolute(JumpAbsoluteOperation {
+            scratch_register: f(inner_op.scratch_register),
+            target_address: inner_op.target_address,
         }),
     }
 }
