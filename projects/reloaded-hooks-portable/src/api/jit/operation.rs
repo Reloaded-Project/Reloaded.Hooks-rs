@@ -1,7 +1,9 @@
 use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
+    call_rip_relative_operation::CallIpRelativeOperation,
     jump_absolute_operation::JumpAbsoluteOperation, jump_relative_operation::JumpRelativeOperation,
-    mov_operation::MovOperation, pop_operation::PopOperation, push_operation::PushOperation,
+    jump_rip_relative_operation::JumpIpRelativeOperation, mov_operation::MovOperation,
+    pop_operation::PopOperation, push_operation::PushOperation,
     push_stack_operation::PushStackOperation, sub_operation::SubOperation,
     xchg_operation::XChgOperation,
 };
@@ -18,6 +20,10 @@ pub enum Operation<T> {
     CallRelative(CallRelativeOperation),
     JumpRelative(JumpRelativeOperation),
     JumpAbsolute(JumpAbsoluteOperation<T>),
+
+    // Only possible on some architectures.
+    CallIpRelative(CallIpRelativeOperation),
+    JumpIpRelative(JumpIpRelativeOperation),
 }
 
 pub fn transform_op<TOldRegister, TNewRegister, TConvertRegister>(
@@ -53,20 +59,18 @@ where
             #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
             scratch: inner_op.scratch.map(&f),
         }),
-        Operation::CallRelative(inner_op) => Operation::CallRelative(CallRelativeOperation {
-            target_address: inner_op.target_address,
-        }),
+        Operation::CallRelative(inner_op) => Operation::CallRelative(inner_op),
         Operation::CallAbsolute(inner_op) => Operation::CallAbsolute(CallAbsoluteOperation {
             scratch_register: f(inner_op.scratch_register),
             target_address: inner_op.target_address,
         }),
 
-        Operation::JumpRelative(inner_op) => Operation::JumpRelative(JumpRelativeOperation {
-            target_address: inner_op.target_address,
-        }),
+        Operation::JumpRelative(inner_op) => Operation::JumpRelative(inner_op),
         Operation::JumpAbsolute(inner_op) => Operation::JumpAbsolute(JumpAbsoluteOperation {
             scratch_register: f(inner_op.scratch_register),
             target_address: inner_op.target_address,
         }),
+        Operation::CallIpRelative(inner_op) => Operation::CallIpRelative(inner_op),
+        Operation::JumpIpRelative(inner_op) => Operation::JumpIpRelative(inner_op),
     }
 }

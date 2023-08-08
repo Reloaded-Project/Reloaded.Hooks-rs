@@ -17,6 +17,7 @@ the following strategy is used:
     - If we have any allocated buffer in range, insert `5 byte` `E9` jump, and inside wrapper/stub 
       use absolute jump (`FF 25`) if needed.  
     - Otherwise (if possible), use [available free space from function alignment](#fallback-strategy-free-space-from-function-alignment) to store a `FF 25` absolute jump.  
+        - If on x64, use `RIP relative jmp` if possible.  
     - Otherwise patch directly with absolute jump `FF 25`, and attempt 
       [return address patching](#fallback-strategy-return-address-patching).  
 

@@ -8,8 +8,10 @@ use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
 use iced_x86::IcedError;
 use reloaded_hooks_portable::api::jit::call_absolute_operation::CallAbsoluteOperation;
 use reloaded_hooks_portable::api::jit::call_relative_operation::CallRelativeOperation;
+use reloaded_hooks_portable::api::jit::call_rip_relative_operation::CallIpRelativeOperation;
 use reloaded_hooks_portable::api::jit::jump_absolute_operation::JumpAbsoluteOperation;
 use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
+use reloaded_hooks_portable::api::jit::jump_rip_relative_operation::JumpIpRelativeOperation;
 use reloaded_hooks_portable::api::jit::{
     compiler::JitError, mov_operation::MovOperation, operation::Operation,
     pop_operation::PopOperation, push_operation::PushOperation,
@@ -22,6 +24,7 @@ use crate::all_registers::AllRegisters;
 pub(crate) fn encode_instruction(
     assembler: &mut CodeAssembler,
     operation: &Operation<AllRegisters>,
+    address: usize,
 ) -> Result<(), JitError<AllRegisters>> {
     match operation {
         Operation::Mov(x) => encode_mov(assembler, x),
@@ -34,6 +37,10 @@ pub(crate) fn encode_instruction(
         Operation::CallAbsolute(x) => encode_call_absolute(assembler, x),
         Operation::JumpRelative(x) => encode_jump_relative(assembler, x),
         Operation::JumpAbsolute(x) => encode_jump_absolute(assembler, x),
+
+        // x64 only
+        Operation::CallIpRelative(x) => encode_call_ip_relative(assembler, x, address),
+        Operation::JumpIpRelative(x) => encode_jump_ip_relative(assembler, x, address),
     }
 }
 
@@ -213,5 +220,53 @@ fn encode_call_absolute(
         ));
     }
 
+    Ok(())
+}
+
+fn encode_jump_ip_relative(
+    a: &mut CodeAssembler,
+    x: &JumpIpRelativeOperation,
+    address: usize,
+) -> Result<(), JitError<AllRegisters>> {
+    if a.bitness() == 32 {
+        return Err(JitError::ThirdPartyAssemblerError(
+            "Jump IP Relative is only Supported on 64-bit!".to_string(),
+        ));
+    }
+
+    let isns = a.instructions();
+    let current_ip = if !isns.is_empty() {
+        isns.last().unwrap().next_ip()
+    } else {
+        address as u64
+    };
+
+    let relative_offset = x.target_address.wrapping_sub(current_ip as usize);
+    a.jmp(qword_ptr(iced_x86::Register::RIP) + relative_offset as i32)
+        .map_err(convert_error)?;
+    Ok(())
+}
+
+fn encode_call_ip_relative(
+    a: &mut CodeAssembler,
+    x: &CallIpRelativeOperation,
+    address: usize,
+) -> Result<(), JitError<AllRegisters>> {
+    if a.bitness() == 32 {
+        return Err(JitError::ThirdPartyAssemblerError(
+            "Call IP Relative is only Supported on 64-bit!".to_string(),
+        ));
+    }
+
+    let isns = a.instructions();
+    let current_ip = if !isns.is_empty() {
+        isns.last().unwrap().next_ip()
+    } else {
+        address as u64
+    };
+
+    let relative_offset = x.target_address.wrapping_sub(current_ip as usize);
+    a.call(qword_ptr(iced_x86::Register::RIP) + relative_offset as i32)
+        .map_err(convert_error)?;
     Ok(())
 }

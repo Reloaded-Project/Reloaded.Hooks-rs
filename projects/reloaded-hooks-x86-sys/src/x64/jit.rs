@@ -28,7 +28,7 @@ impl Jit<Register> for JitX64 {
 
         // Encode every instruction.
         for operation in operations {
-            encoder_instruction_x64(&mut a, operation)?;
+            encoder_instruction_x64(&mut a, operation, address)?;
         }
 
         // Assemble those damn instructions
@@ -43,12 +43,13 @@ impl Jit<Register> for JitX64 {
 fn encoder_instruction_x64(
     assembler: &mut CodeAssembler,
     operation: &Operation<Register>,
+    address: usize,
 ) -> Result<(), JitError<Register>> {
     let all_register_op = transform_op(operation.clone(), |x: Register| {
         map_register_x64_to_allregisters(x)
     });
 
-    encode_instruction(assembler, &all_register_op)
+    encode_instruction(assembler, &all_register_op, address)
         .map_err(|x| transform_err(x, map_allregisters_to_x64))
 }
 
@@ -57,8 +58,10 @@ mod tests {
     use reloaded_hooks_portable::api::jit::{
         call_absolute_operation::CallAbsoluteOperation,
         call_relative_operation::CallRelativeOperation,
+        call_rip_relative_operation::CallIpRelativeOperation,
         jump_absolute_operation::JumpAbsoluteOperation,
-        jump_relative_operation::JumpRelativeOperation, mov_operation::MovOperation,
+        jump_relative_operation::JumpRelativeOperation,
+        jump_rip_relative_operation::JumpIpRelativeOperation, mov_operation::MovOperation,
         push_operation::PushOperation, sub_operation::SubOperation, xchg_operation::XChgOperation,
     };
 
@@ -193,7 +196,7 @@ mod tests {
     }
 
     #[test]
-    fn test_compile_jmp_relative_is_relative_to_eip() {
+    fn test_compile_jmp_relative_is_relative_to_rip() {
         let mut jit = JitX64 {};
 
         // Verifies that the JIT compiles a relative jmp that branches towards target_address
@@ -205,7 +208,7 @@ mod tests {
         let result = jit.compile(5, &operations);
         assert!(result.is_ok());
         println!(
-            "x64::test_compile_call_relative_is_relative_to_eip: {}",
+            "x64::test_compile_call_relative_is_relative_to_rip: {}",
             hex::encode(result.unwrap())
         );
     }
@@ -224,7 +227,7 @@ mod tests {
     }
 
     #[test]
-    fn test_compile_call_relative_is_relative_to_eip() {
+    fn test_compile_call_relative_is_relative_to_rip() {
         let mut jit = JitX64 {};
 
         // Verifies that the JIT compiles a relative call that branches towards target_address
@@ -236,7 +239,105 @@ mod tests {
         let result = jit.compile(5, &operations);
         assert!(result.is_ok());
         println!(
-            "x64::test_compile_call_relative_is_relative_to_eip: {}",
+            "x64::test_compile_call_relative_is_relative_to_rip: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_call_rip_relative() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Operation::CallIpRelative(CallIpRelativeOperation {
+            target_address: 0x16,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x64::test_compile_call_rip_relative: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_jmp_rip_relative() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Operation::JumpIpRelative(JumpIpRelativeOperation {
+            target_address: 0x16,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x64::test_compile_jmp_rip_relative: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_call_rip_relative_backwards() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Operation::CallIpRelative(CallIpRelativeOperation {
+            target_address: 16,
+        })];
+        let result = jit.compile(20, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x64::test_compile_call_rip_relative_backwards: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_jmp_rip_relative_backwards() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Operation::JumpIpRelative(JumpIpRelativeOperation {
+            target_address: 16,
+        })];
+        let result = jit.compile(20, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x64::test_compile_jmp_rip_relative_backwards: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_call_rip_relative_two_instructions() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![
+            Operation::Sub(SubOperation {
+                register: Register::rax,
+                operand: 10,
+            }),
+            Operation::CallIpRelative(CallIpRelativeOperation { target_address: 16 }),
+        ];
+        let result = jit.compile(20, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x64::test_compile_call_rip_relative_two_instructions: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_jmp_rip_relative_backwards_two_instructions() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![
+            Operation::Sub(SubOperation {
+                register: Register::rax,
+                operand: 10,
+            }),
+            Operation::JumpIpRelative(JumpIpRelativeOperation { target_address: 16 }),
+        ];
+        let result = jit.compile(20, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x64::test_compile_jmp_rip_relative_two_instructions: {}",
             hex::encode(result.unwrap())
         );
     }

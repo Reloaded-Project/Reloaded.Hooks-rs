@@ -43,6 +43,6 @@ pub struct XChgOperation<T> {
     pub register2: T,
 
     #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
-    /// A scratch register to use (applies only to architectures without explicit ).
+    /// A scratch register to use (applies only to architectures without explicit xchg instruction).
     pub scratch: Option<T>,
 }

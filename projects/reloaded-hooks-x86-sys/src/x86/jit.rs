@@ -28,7 +28,7 @@ impl Jit<Register> for JitX86 {
 
         // Encode every instruction.
         for operation in operations {
-            encoder_instruction_x86(&mut a, operation)?;
+            encoder_instruction_x86(&mut a, operation, address)?;
         }
 
         // Assemble those damn instructions
@@ -43,12 +43,13 @@ impl Jit<Register> for JitX86 {
 fn encoder_instruction_x86(
     assembler: &mut CodeAssembler,
     operation: &Operation<Register>,
+    address: usize,
 ) -> Result<(), JitError<Register>> {
     let all_register_op = transform_op(operation.clone(), |x: Register| {
         map_register_x86_to_allregisters(x)
     });
 
-    encode_instruction(assembler, &all_register_op)
+    encode_instruction(assembler, &all_register_op, address)
         .map_err(|x| transform_err(x, map_allregisters_to_x86))
 }
 
