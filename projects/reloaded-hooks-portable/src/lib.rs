@@ -4,6 +4,8 @@
 
 /// Contains all declarations that are exposed to library users.
 pub mod api {
+
+    /// APIs for allocating buffers in given proximity.
     pub mod buffers {
         pub mod buffer_abstractions;
         pub mod default_buffer;
@@ -14,9 +16,26 @@ pub mod api {
         pub mod proximity_target;
     }
 
+    /// Platform and architecture specific integrations
+    pub mod integration {
+        pub mod architecture_details;
+        pub mod platform_functions;
+    }
+
+    /// Public API related to Just In Time Compilation
+    pub mod jit {
+        pub mod compiler;
+        pub mod mov_operation;
+        pub mod operation;
+        pub mod pop_operation;
+        pub mod push_operation;
+        pub mod push_stack_operation;
+        pub mod sub_operation;
+        pub mod xchg_operation;
+    }
+
     pub mod function_attribute;
     pub mod function_info;
-    pub mod init;
     pub mod wrapper_generator;
 }
 
@@ -38,15 +57,4 @@ pub mod helpers {
 
     #[cfg(test)]
     pub(crate) mod test_helpers;
-}
-
-/// Contains all of the structures used by the library.
-pub mod structs {
-    pub mod mov_operation;
-    pub mod operation;
-    pub mod pop_operation;
-    pub mod push_operation;
-    pub mod push_stack_operation;
-    pub mod sub_operation;
-    pub mod xchg_operation;
 }

@@ -1,5 +1,3 @@
-use crate::api::init::get_architecture_details;
-
 /// Represents a target address within memory for allocation nearness.
 ///
 /// This is used for the allocation of wrappers and other native/interop components.
@@ -22,27 +20,18 @@ impl ProximityTarget {
     // Default expected size of assembled item.
     const DEFAULT_ITEM_SIZE: u32 = 128; // default for most platforms
 
-    /// Creates a new `ProximityTarget` with a specified target address.
+    /// Creates a `ProximityTarget`.
     ///
     /// # Arguments
-    ///
-    /// * `target_address` - The address near which the allocation should be.
-    pub fn new(target_address: usize) -> Self {
-        let arch = get_architecture_details();
-
+    /// - `target_address` - The address near which the allocation should be.
+    /// - `item_size` - The size of the memory region to allocate.
+    /// - `requested_proximity` - The requested proximity to the target address.
+    pub fn new(target_address: usize, item_size: u32, requested_proximity: usize) -> Self {
         ProximityTarget {
             target_address,
-            item_size: Self::DEFAULT_ITEM_SIZE,
-            requested_proximity: arch.max_relative_jump_distance,
+            item_size,
+            requested_proximity,
         }
-    }
-
-    /// Creates a `ProximityTarget` with default values.
-    ///
-    /// This typically refers to an address of a default function
-    /// in absence of platform-specific information.
-    pub fn with_defaults() -> Self {
-        Self::new(Self::default_target_address())
     }
 
     /// Creates a `ProximityTarget` with default values, and a requested proximity

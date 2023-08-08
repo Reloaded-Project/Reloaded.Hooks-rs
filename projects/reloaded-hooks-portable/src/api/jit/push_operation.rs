@@ -19,7 +19,7 @@
 /// as follows:
 ///
 /// ```
-/// use reloaded_hooks_portable::structs::push_operation::PushOperation;
+/// use reloaded_hooks_portable::api::jit::push_operation::PushOperation;
 /// let push_eax = PushOperation { register: "eax" };
 /// ```
 ///
@@ -30,8 +30,8 @@
 /// represented as:
 ///
 /// ```
-/// use reloaded_hooks_portable::structs::sub_operation::SubOperation;
-/// use reloaded_hooks_portable::structs::mov_operation::MovOperation;
+/// use reloaded_hooks_portable::api::jit::sub_operation::SubOperation;
+/// use reloaded_hooks_portable::api::jit::mov_operation::MovOperation;
 ///
 /// let sub_sp = SubOperation { register: "sp", operand: 4 }; // assuming 4 bytes per register
 /// let mov_into_stack = MovOperation { source: "r1", target: "[sp]" };

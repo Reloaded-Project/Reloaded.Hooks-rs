@@ -9,7 +9,7 @@
 /// For instance, in Intel syntax, a move operation might look like this:
 ///
 /// ```
-/// use reloaded_hooks_portable::structs::mov_operation::MovOperation;
+/// use reloaded_hooks_portable::api::jit::mov_operation::MovOperation;
 ///
 /// let move_op = MovOperation {
 ///     source: "eax",

@@ -122,8 +122,7 @@ Individual projects are under the `projects` folder; they contain the following:
 
 - `reloaded-hooks-portable`: Core engine of `Reloaded.Hooks`, platform & architecture agnostic.  
 - `reloaded-hooks-platforms-desktop`: Adds enhanced support to Linux/macOS/Windows, by integrating with [reloaded-memory-buffers][reloaded-memory-buffers].  
-- `reloaded-hooks-x86-sys`: Implements support for x86 architecture.  
-- `reloaded-hooks-x64-sys`: Implements support for x64 architecture.  
+- `reloaded-hooks-x86-sys`: Implements support for x86 & AMD64 architecture.  
 - `reloaded-hooks`: High level API for the `Reloaded.Hooks` packages.  
 
 The following is the expected file layout for the repository:

@@ -19,7 +19,7 @@
 /// as follows:
 ///
 /// ```
-/// use reloaded_hooks_portable::structs::pop_operation::PopOperation;
+/// use reloaded_hooks_portable::api::jit::pop_operation::PopOperation;
 /// let pop_eax = PopOperation { register: "eax" };
 /// ```
 ///
@@ -30,8 +30,8 @@
 /// represented as:
 ///
 /// ```
-/// use reloaded_hooks_portable::structs::mov_operation::MovOperation;
-/// use reloaded_hooks_portable::structs::sub_operation::SubOperation;
+/// use reloaded_hooks_portable::api::jit::mov_operation::MovOperation;
+/// use reloaded_hooks_portable::api::jit::sub_operation::SubOperation;
 ///
 /// let mov_from_stack = MovOperation { source: "[sp]", target: "r1" };
 /// let add_sp = SubOperation { register: "sp", operand: -4 }; // assuming 4 bytes per register

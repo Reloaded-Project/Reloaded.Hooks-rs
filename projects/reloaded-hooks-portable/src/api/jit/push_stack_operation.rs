@@ -16,7 +16,7 @@
 /// modeled using `PushStackOperation` as follows:
 ///
 /// ```
-/// use reloaded_hooks_portable::structs::push_stack_operation::PushStackOperation;
+/// use reloaded_hooks_portable::api::jit::push_stack_operation::PushStackOperation;
 /// let push_offset_from_esp = PushStackOperation { base_register: "esp", offset: 8 };
 /// ```
 ///

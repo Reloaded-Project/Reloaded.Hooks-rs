@@ -4,10 +4,8 @@ use core::cell::RefCell;
 use core::hash::BuildHasherDefault;
 use core::hash::Hash;
 
-use crate::{
-    graphs::{graph::Graph, node::Node},
-    structs::mov_operation::MovOperation,
-};
+use crate::api::jit::mov_operation::MovOperation;
+use crate::graphs::{graph::Graph, node::Node};
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 use hashbrown::HashMap;
@@ -63,8 +61,9 @@ pub fn build_graph<T: Eq + Clone + Hash>(moves: &Vec<MovOperation<T>>) -> Graph<
 
 #[cfg(test)]
 mod tests {
+    use crate::api::jit::mov_operation::MovOperation;
+
     use super::*;
-    use crate::structs::mov_operation::MovOperation;
 
     #[test]
     fn test_build_graph_empty() {

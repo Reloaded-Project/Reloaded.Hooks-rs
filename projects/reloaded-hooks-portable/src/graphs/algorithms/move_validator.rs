@@ -5,7 +5,7 @@ use core::hash::{BuildHasherDefault, Hash};
 use hashbrown::HashSet;
 use nohash::NoHashHasher;
 
-use crate::structs::mov_operation::MovOperation;
+use crate::api::jit::mov_operation::MovOperation;
 
 /// Validates an existing sequence of MOV register operations
 /// to ensure that a serues if MOV operations from register
@@ -43,8 +43,9 @@ where
 
 #[cfg(test)]
 pub mod tests {
-    use crate::graphs::algorithms::move_validator::validate_moves;
-    use crate::structs::mov_operation::MovOperation;
+    use crate::{
+        api::jit::mov_operation::MovOperation, graphs::algorithms::move_validator::validate_moves,
+    };
 
     #[test]
     fn valid_when_no_overwrites() {

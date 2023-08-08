@@ -1,5 +1,6 @@
 /// Defines a full size x86 register, used in specifying custom calling conventions.
 #[allow(non_camel_case_types)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Register {
     /// Accumulator register, used in arithmetic operations.
     eax,
@@ -17,19 +18,6 @@ pub enum Register {
     ebp,
     /// Stack Pointer, points to the top of the stack.
     esp,
-
-    /// Code Segment, points to the segment containing the current instruction.
-    cs,
-    /// Data Segment, typically points to the segment where variables are defined.
-    ds,
-    /// Extra Segment, additional segment register.
-    es,
-    /// FS segment register, often used for specific purposes by an operating system.
-    fs,
-    /// GS segment register, often used for specific purposes by an operating system.
-    gs,
-    /// Stack Segment, points to the segment of the current stack frame.
-    ss,
 
     /// x87 Floating-point stack registers:
     /// unsupported in this library; just here for completion

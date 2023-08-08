@@ -16,7 +16,7 @@
 /// as follows:
 ///
 /// ```
-/// use reloaded_hooks_portable::structs::xchg_operation::XChgOperation;
+/// use reloaded_hooks_portable::api::jit::xchg_operation::XChgOperation;
 /// let xchg = XChgOperation
 /// {
 ///     register1: "eax",

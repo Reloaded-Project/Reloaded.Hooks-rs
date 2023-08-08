@@ -6,14 +6,14 @@ use core::hash::{BuildHasherDefault, Hash};
 use hashbrown::HashSet;
 use nohash::NoHashHasher;
 
+use crate::api::jit::mov_operation::MovOperation;
+use crate::api::jit::operation::Operation;
+use crate::api::jit::pop_operation::PopOperation;
+use crate::api::jit::push_operation::PushOperation;
+use crate::api::jit::xchg_operation::XChgOperation;
 use crate::graphs::algorithms::move_graph_builder;
 use crate::graphs::algorithms::move_validator::validate_moves;
 use crate::graphs::node::Node;
-use crate::structs::mov_operation::MovOperation;
-use crate::structs::operation::Operation;
-use crate::structs::pop_operation::PopOperation;
-use crate::structs::push_operation::PushOperation;
-use crate::structs::xchg_operation::XChgOperation;
 
 /// Reorders a sequence of MOV register operations to prevent
 /// them from writing invalid data.
@@ -160,12 +160,13 @@ fn unwind<T: Eq + Clone + Hash>(
 
 #[cfg(test)]
 pub mod tests {
-    use crate::graphs::algorithms::move_optimizer::optimize_moves;
-    use crate::structs::mov_operation::MovOperation;
-    use crate::structs::operation::Operation;
-    use crate::structs::pop_operation::PopOperation;
-    use crate::structs::push_operation::PushOperation;
-    use crate::structs::xchg_operation::XChgOperation;
+    use crate::{
+        api::jit::{
+            mov_operation::MovOperation, operation::Operation, pop_operation::PopOperation,
+            push_operation::PushOperation, xchg_operation::XChgOperation,
+        },
+        graphs::algorithms::move_optimizer::optimize_moves,
+    };
 
     #[test]
     fn when_valid_moves_no_action() {
