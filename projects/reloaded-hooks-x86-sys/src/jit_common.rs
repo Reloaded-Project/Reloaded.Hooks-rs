@@ -4,9 +4,10 @@ use crate::jit_conversions_common::{
     convert_to_asm_register32, convert_to_asm_register64, is_allregister_64,
 };
 use crate::{jit_common::alloc::string::ToString, jit_conversions_common::is_allregister_32};
-use iced_x86::code_asm::{dword_ptr, qword_ptr, AsmRegister32, CodeAssembler};
+use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
 use iced_x86::IcedError;
-use reloaded_hooks_portable::api::jit::call_operation::CallOperation;
+use reloaded_hooks_portable::api::jit::call_absolute_operation::CallAbsoluteOperation;
+use reloaded_hooks_portable::api::jit::call_relative_operation::CallRelativeOperation;
 use reloaded_hooks_portable::api::jit::jump_absolute_operation::JumpAbsoluteOperation;
 use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
 use reloaded_hooks_portable::api::jit::{
@@ -29,7 +30,8 @@ pub(crate) fn encode_instruction(
         Operation::Sub(x) => encode_sub(assembler, x),
         Operation::Pop(x) => encode_pop(assembler, x),
         Operation::Xchg(x) => encode_xchg(assembler, x),
-        Operation::Call(x) => encode_call(assembler, x),
+        Operation::CallRelative(x) => encode_call_relative(assembler, x),
+        Operation::CallAbsolute(x) => encode_call_absolute(assembler, x),
         Operation::JumpRelative(x) => encode_jump_relative(assembler, x),
         Operation::JumpAbsolute(x) => encode_jump_absolute(assembler, x),
     }
@@ -156,16 +158,7 @@ fn encode_jump_relative(
     a: &mut CodeAssembler,
     x: &JumpRelativeOperation,
 ) -> Result<(), JitError<AllRegisters>> {
-    if a.bitness() == 64 {
-        a.jmp(x.target_address as u64).map_err(convert_error)?
-    } else if a.bitness() == 32 {
-        a.jmp(x.target_address as u64).map_err(convert_error)?
-    } else {
-        return Err(JitError::ThirdPartyAssemblerError(
-            "Non 32/64bit architectures are not supported".to_string(),
-        ));
-    }
-
+    a.jmp(x.target_address as u64).map_err(convert_error)?;
     Ok(())
 }
 
@@ -192,28 +185,28 @@ fn encode_jump_absolute(
     Ok(())
 }
 
-fn encode_call(
+fn encode_call_relative(
     a: &mut CodeAssembler,
-    x: &CallOperation<AllRegisters>,
+    x: &CallRelativeOperation,
+) -> Result<(), JitError<AllRegisters>> {
+    a.call(x.target_address as u64).map_err(convert_error)?;
+    Ok(())
+}
+
+fn encode_call_absolute(
+    a: &mut CodeAssembler,
+    x: &CallAbsoluteOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 64 {
-        if x.relative {
-            a.call(x.target_address as u64).map_err(convert_error)?
-        } else {
-            let target_reg = convert_to_asm_register64(x.scratch_register)?;
-            a.mov(target_reg, x.target_address as u64)
-                .map_err(convert_error)?;
-            a.call(target_reg).map_err(convert_error)?;
-        }
+        let target_reg = convert_to_asm_register64(x.scratch_register)?;
+        a.mov(target_reg, x.target_address as u64)
+            .map_err(convert_error)?;
+        a.call(target_reg).map_err(convert_error)?;
     } else if a.bitness() == 32 {
-        if x.relative {
-            a.call(x.target_address as u64).map_err(convert_error)?
-        } else {
-            let target_reg = convert_to_asm_register32(x.scratch_register)?;
-            a.mov(target_reg, x.target_address as u32)
-                .map_err(convert_error)?;
-            a.call(target_reg).map_err(convert_error)?;
-        }
+        let target_reg = convert_to_asm_register32(x.scratch_register)?;
+        a.mov(target_reg, x.target_address as u32)
+            .map_err(convert_error)?;
+        a.call(target_reg).map_err(convert_error)?;
     } else {
         return Err(JitError::ThirdPartyAssemblerError(
             "Non 32/64bit architectures are not supported".to_string(),

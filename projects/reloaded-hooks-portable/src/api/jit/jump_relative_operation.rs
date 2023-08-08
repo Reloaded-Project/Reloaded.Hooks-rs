@@ -5,12 +5,12 @@
 /// # Example
 ///
 /// ```
-/// use reloaded_hooks_portable::api::jit::jump_operation::JumpRelative;
+/// use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
 ///
-/// let jump_op = JumpRelative { target_offset: 0xDEADBEEF };
+/// let jump_op = JumpRelativeOperation { target_address: 0xDEADBEEF };
 ///
-/// // This might represent an assembly instruction like: JMP 0xDEADBEEF (relative to current instruction address)
-/// println!("JMP +{:X}", jump_op.target_offset);
+/// // This might represent an assembly instruction like: JMP offsetof(0xDEADBEEF) (relative to current instruction address)
+/// println!("JMP RelativeOffsetOf(+{:X})", jump_op.target_address);
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct JumpRelativeOperation {
