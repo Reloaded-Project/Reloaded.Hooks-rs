@@ -32,6 +32,7 @@ pub mod api {
         pub mod jump_relative_operation;
         pub mod jump_rip_relative_operation;
         pub mod mov_operation;
+        pub mod mov_from_stack_operation;
         pub mod operation;
         pub mod pop_operation;
         pub mod push_operation;

@@ -12,6 +12,7 @@ use reloaded_hooks_portable::api::jit::call_rip_relative_operation::CallIpRelati
 use reloaded_hooks_portable::api::jit::jump_absolute_operation::JumpAbsoluteOperation;
 use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
 use reloaded_hooks_portable::api::jit::jump_rip_relative_operation::JumpIpRelativeOperation;
+use reloaded_hooks_portable::api::jit::mov_from_stack_operation::MovFromStackOperation;
 use reloaded_hooks_portable::api::jit::{
     compiler::JitError, mov_operation::MovOperation, operation::Operation,
     pop_operation::PopOperation, push_operation::PushOperation,
@@ -28,6 +29,7 @@ pub(crate) fn encode_instruction(
 ) -> Result<(), JitError<AllRegisters>> {
     match operation {
         Operation::Mov(x) => encode_mov(assembler, x),
+        Operation::MovFromStack(x) => encode_mov_from_stack(assembler, x),
         Operation::Push(x) => encode_push(assembler, x),
         Operation::PushStack(x) => encode_push_stack(assembler, x),
         Operation::Sub(x) => encode_sub(assembler, x),
@@ -105,15 +107,35 @@ fn encode_sub(
     Ok(())
 }
 
+fn encode_mov_from_stack(
+    a: &mut CodeAssembler,
+    x: &MovFromStackOperation<AllRegisters>,
+) -> Result<(), JitError<AllRegisters>> {
+    if a.bitness() == 32 {
+        let ptr = dword_ptr(iced_x86::Register::ESP) + x.stack_offset;
+        a.mov(convert_to_asm_register32(x.target)?, ptr)
+    } else if a.bitness() == 64 {
+        let ptr = qword_ptr(iced_x86::Register::RSP) + x.stack_offset;
+        a.mov(convert_to_asm_register64(x.target)?, ptr)
+    } else {
+        return Err(JitError::ThirdPartyAssemblerError(
+            "Non 32/64bit architectures are not supported".to_string(),
+        ));
+    }
+    .map_err(convert_error)?;
+
+    Ok(())
+}
+
 fn encode_push_stack(
     a: &mut CodeAssembler,
     push: &PushStackOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if is_allregister_32(&push.base_register) {
-        let ptr = dword_ptr(convert_to_asm_register32(push.base_register)? + push.offset as i32);
+        let ptr = dword_ptr(convert_to_asm_register32(push.base_register)?) + push.offset as i32;
         a.push(ptr)
     } else if is_allregister_64(&push.base_register) {
-        let ptr = qword_ptr(convert_to_asm_register64(push.base_register)? + push.offset as i32);
+        let ptr = qword_ptr(convert_to_asm_register64(push.base_register)?) + push.offset as i32;
         a.push(ptr)
     } else {
         return Err(JitError::InvalidRegister(push.base_register));

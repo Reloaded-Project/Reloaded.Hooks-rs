@@ -61,7 +61,8 @@ mod tests {
         call_rip_relative_operation::CallIpRelativeOperation,
         jump_absolute_operation::JumpAbsoluteOperation,
         jump_relative_operation::JumpRelativeOperation,
-        jump_rip_relative_operation::JumpIpRelativeOperation, mov_operation::MovOperation,
+        jump_rip_relative_operation::JumpIpRelativeOperation,
+        mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
         push_operation::PushOperation, sub_operation::SubOperation, xchg_operation::XChgOperation,
     };
 
@@ -338,6 +339,22 @@ mod tests {
         assert!(result.is_ok());
         println!(
             "x64::test_compile_jmp_rip_relative_two_instructions: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_mov_from_stack() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Operation::MovFromStack(MovFromStackOperation {
+            stack_offset: 4,
+            target: Register::rax,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x64::test_compile_mov_from_stack: {}",
             hex::encode(result.unwrap())
         );
     }

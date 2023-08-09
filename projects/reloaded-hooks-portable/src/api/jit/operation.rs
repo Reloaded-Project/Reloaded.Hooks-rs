@@ -2,7 +2,8 @@ use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
     call_rip_relative_operation::CallIpRelativeOperation,
     jump_absolute_operation::JumpAbsoluteOperation, jump_relative_operation::JumpRelativeOperation,
-    jump_rip_relative_operation::JumpIpRelativeOperation, mov_operation::MovOperation,
+    jump_rip_relative_operation::JumpIpRelativeOperation,
+    mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
     pop_operation::PopOperation, push_operation::PushOperation,
     push_stack_operation::PushStackOperation, sub_operation::SubOperation,
     xchg_operation::XChgOperation,
@@ -11,6 +12,7 @@ use super::{
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Operation<T> {
     Mov(MovOperation<T>),
+    MovFromStack(MovFromStackOperation<T>),
     Push(PushOperation<T>),
     PushStack(PushStackOperation<T>),
     Sub(SubOperation<T>),
@@ -72,5 +74,9 @@ where
         }),
         Operation::CallIpRelative(inner_op) => Operation::CallIpRelative(inner_op),
         Operation::JumpIpRelative(inner_op) => Operation::JumpIpRelative(inner_op),
+        Operation::MovFromStack(inner_op) => Operation::MovFromStack(MovFromStackOperation {
+            stack_offset: inner_op.stack_offset,
+            target: f(inner_op.target),
+        }),
     }
 }

@@ -7,6 +7,15 @@ use thiserror_no_std::Error;
 
 use super::operation::Operation;
 
+/// Lists the supported features of the JIT
+pub enum JitCapabilities {
+    /// Can encode call that is relative to the instruction pointer.
+    CanEncodeIPRelativeCall,
+
+    /// Can encode jump that is relative to the instruction pointer.
+    CanEncodeIPRelativeJump,
+}
+
 /// The trait for a Just In Time Compiler used for emitting
 /// wrappers assembled for a given address.
 pub trait Jit<TRegister> {

@@ -59,7 +59,8 @@ mod tests {
         call_absolute_operation::CallAbsoluteOperation,
         call_relative_operation::CallRelativeOperation,
         jump_absolute_operation::JumpAbsoluteOperation,
-        jump_relative_operation::JumpRelativeOperation, mov_operation::MovOperation,
+        jump_relative_operation::JumpRelativeOperation,
+        mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
         push_operation::PushOperation, sub_operation::SubOperation, xchg_operation::XChgOperation,
     };
 
@@ -238,6 +239,22 @@ mod tests {
         assert!(result.is_ok());
         println!(
             "x86::test_compile_call_relative_is_relative_to_eip: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_mov_from_stack() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MovFromStack(MovFromStackOperation {
+            stack_offset: 4,
+            target: Register::eax,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x86::test_compile_mov_from_stack: {}",
             hex::encode(result.unwrap())
         );
     }
