@@ -10,6 +10,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use super::buffer_abstractions::{Buffer, BufferFactory};
 use super::default_buffer::{AllocatedBuffer, LockedBuffer};
 
+// TODO: Fix alignment here.
 pub struct DefaultBufferFactory {
     buffers: Vec<Arc<AllocatedBuffer>>,
 }
