@@ -33,6 +33,21 @@ The `reloaded-hooks-rs` code is not hardwired to any platform. For other platfor
 [pending] struct and provide appropriate function pointers; which would possibly make the library work 
 even in bare metal or embedded environments.
 
+## Architecture Support
+
+!!! info "Lists the currently available library features for different architectures."
+
+| Feature                                                                                           | x86 & x64 | ARM64 |
+| ------------------------------------------------------------------------------------------------- | --------- | ----- |
+| [Basic Function Hooking](./arch/overview.md#basic-function-hooking)                               | ✅         | ❌     |
+| [Code Relocation](./arch/overview.md#code-relocation)                                             | ✅         | ❌     |
+| [Hook Stacking](./arch/overview.md#hook-stacking)                                                 | ✅         | ❌     |
+| [Calling Convention Wrapper Generation](./arch/overview.md#calling-convention-wrapper-generation) | ✅         | ❌     |
+| [Optimized Wrapper Generation](./arch/overview.md#optimized-wrapper-generation)                   | ✅         | ❌     |
+
+Bootstrapping a new architecture is not a difficult job!!  
+Please see [Architecture Support Overview](./arch/overview.md) for porting guidance.
+
 ## Feature Support
 
 - Supports common OSes/platforms.  

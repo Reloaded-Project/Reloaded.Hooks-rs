@@ -59,6 +59,8 @@ and do a short relative jump to it.
 
 #### Fallback Strategy: Return Address Patching
 
+!!! warning "This feature will not be ported over from legacy `Reloaded.Hooks`, until an edge case is found th at requires this."
+
 !!! note "This section explains how Reloaded handles an edge case within an already super rare case."
 
 For any of this to take place, the following conditions must be true:  

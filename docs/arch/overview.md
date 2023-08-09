@@ -1,0 +1,111 @@
+# Architecture Overview
+
+Lists currently supported architectures.
+
+## Feature Support
+
+!!! info "Lists the currently available library features for different architectures."
+
+| Feature                                                                         | x86 & x64 | ARM64 |
+| ------------------------------------------------------------------------------- | --------- | ----- |
+| [Basic Function Hooking](#basic-function-hooking)                               | ✅         | ❌     |
+| [Code Relocation](#code-relocation)                                             | ✅*         | ❌     |
+| [Hook Stacking](#hook-stacking)                                             | ✅         | ❌     |
+| [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ❌     |
+| [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ❌     |
+| [Optimized Wrapper Generation](#optimized-wrapper-generation)             | ✅         | ❌     |
+
+* Only guaranteed for platforms supporting [Targeted Memory Allocation](../platform/overview.md).
+
+## Basic Function Hooking
+
+!!! info "The ability to hook/detour existing application functions."
+
+### Implementing This
+
+To implement this, you implement a code writer by inheriting the `Jit<TRegister>` trait; and 
+implement the following instructions:  
+
+- `JumpRelativeOperation`.  
+- `JumpAbsoluteOperation` [needed if platform doesn't support [Targeted Memory Allocation](../platform/overview.md)].  
+
+Your *Platform* must also support [Permission Change](../platform/overview.md#required-permission-change), if it is
+applicable to your platform.
+
+## Code Relocation
+
+!!! info "Code relocation is the ability to rewrite existing code such that "
+
+Suppose the following x86 code, which was optimised away to accept first parameter in `ecx` register:  
+
+```c
+int DoMathWithTwoNumbers(int operation@ecx, int a, int b) {
+
+    if (operation <= 0) {
+        return a + b;
+    }
+
+    // Omitted Code Here
+}
+```
+
+In this case it's possible that there's a jump in the very beginning of the function:  
+
+```asm
+DoMathWithTwoNumbers:
+    cmp ecx, 0
+    jg skipAdd # It's greater than 0
+
+    mov eax, [esp + {wordSize * 1}] ; Left Parameter
+    mov ecx, [esp + {wordSize * 2}] ; Right Parameter
+    add eax, ecx
+    ret
+
+    ; Some Omitted Code Here
+    
+skipAdd:
+    ; Omitted Code Here
+```
+
+In a scenario like this, the hooking library would overwrite the `cmp` and `jg` instruction when
+it assembles the [hook entry ('enter hook')](../design/overview.md#key); and when the original
+function is called again by your hook the, 'wrapper' would now contain this `jg` instruction.
+
+Because `jg` is an instruction relative to the current instruction address, the library must be able
+to patch and 'relocate' the function to a new address.
+
+!!! note "Basic code relocation support is needed to [stack hooks](#hook-stacking)."
+
+To implement relocation for an architecture, set ``
+
+## Hook Stacking
+
+!!! info "Hook stacking is the ability to hook a function multiple times."
+
+In practice, this is usually supported for all cases.
+
+## Calling Convention Wrapper Generation
+
+To implement this, you implement a code writer by inheriting the `Jit<TRegister>` trait; and 
+implement the following instructions:  
+
+- *All Instructions* (see: `enum Operation<T>`).  
+
+## Optimized Wrapper Generation
+
+!!! info "If this is satisfied, wrappers generate optimal machine code."
+
+For example, the `reloaded-hooks` wrapper generator might generate the following sequence of pushes for ARM64:
+
+```asm
+push x0
+push x1
+```
+
+A clever ARM64 compiler however would be able to translate this to:
+
+```asm
+stp x0, x1, [sp, #-16]!
+```
+
+When the code emitter can recognise these patterns, it is considered optimal.
