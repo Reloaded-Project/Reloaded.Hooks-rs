@@ -43,7 +43,7 @@ even in bare metal or embedded environments.
 | [Code Relocation](./arch/overview.md#code-relocation)                                             | ✅         | ❌     |
 | [Hook Stacking](./arch/overview.md#hook-stacking)                                                 | ✅         | ❌     |
 | [Calling Convention Wrapper Generation](./arch/overview.md#calling-convention-wrapper-generation) | ✅         | ❌     |
-| [Optimized Wrapper Generation](./arch/overview.md#optimized-wrapper-generation)                   | ✅         | ❌     |
+| [Optimal Wrapper Generation](./arch/overview.md#optimal-wrapper-generation)                       | ✅         | ❌     |
 
 Bootstrapping a new architecture is not a difficult job!!  
 Please see [Architecture Support Overview](./arch/overview.md) for porting guidance.

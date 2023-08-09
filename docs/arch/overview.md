@@ -9,11 +9,11 @@ Lists currently supported architectures.
 | Feature                                                                         | x86 & x64 | ARM64 |
 | ------------------------------------------------------------------------------- | --------- | ----- |
 | [Basic Function Hooking](#basic-function-hooking)                               | ✅         | ❌     |
-| [Code Relocation](#code-relocation)                                             | ✅*         | ❌     |
-| [Hook Stacking](#hook-stacking)                                             | ✅         | ❌     |
+| [Code Relocation](#code-relocation)                                             | ✅*        | ❌     |
+| [Hook Stacking](#hook-stacking)                                                 | ✅         | ❌     |
 | [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ❌     |
 | [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ❌     |
-| [Optimized Wrapper Generation](#optimized-wrapper-generation)             | ✅         | ❌     |
+| [Optimal Wrapper Generation](#optimal-wrapper-generation)                       | ✅         | ❌     |
 
 * Only guaranteed for platforms supporting [Targeted Memory Allocation](../platform/overview.md).
 
@@ -93,7 +93,9 @@ implement the following instructions:
 
 ## Optimized Wrapper Generation
 
-!!! info "If this is satisfied, wrappers generate optimal machine code."
+!!! info "If this is checked, it means the wrappers generate optimal code (to best of knowledge)."
+
+!!! note "While the wrapper generator does most optimisations themselves, in some cases, it may be possible to perform additional optimisations in the JIT/Code Writer side."
 
 For example, the `reloaded-hooks` wrapper generator might generate the following sequence of pushes for ARM64:
 
@@ -108,4 +110,4 @@ A clever ARM64 compiler however would be able to translate this to:
 stp x0, x1, [sp, #-16]!
 ```
 
-When the code emitter can recognise these patterns, it is considered optimal.
+When the code emitter can recognise these patterns, and optimise further, the box is checked.

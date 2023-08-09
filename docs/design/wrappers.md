@@ -179,6 +179,8 @@ For completeness, it should be noted that in the opposite direction `stdcall tar
 as one that would be used in entry point of a hook ([ReverseWrapper](./overview.md#reversewrappers)),
 no optimisation is needed here, as all registers are directly pushed without any extra steps.
 
+!!! tip "In the backend, the wrapper generator keeps track of current stack pointer (assuming start is '0'); and uses that information to match the push and pop operations accordingly 😉"
+
 #### With Register to Register
 
 !!! info "In x64, and more advanced x86 scenarios where both to/from calling convention have register parameters, mov optimisation is not trivial."
