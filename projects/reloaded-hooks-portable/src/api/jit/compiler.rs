@@ -5,6 +5,8 @@ use core::fmt::Debug;
 
 use thiserror_no_std::Error;
 
+use crate::api::traits::register_info::RegisterInfo;
+
 use super::operation::Operation;
 
 /// Lists the supported features of the JIT
@@ -18,7 +20,7 @@ pub enum JitCapabilities {
 
 /// The trait for a Just In Time Compiler used for emitting
 /// wrappers assembled for a given address.
-pub trait Jit<TRegister> {
+pub trait Jit<TRegister: RegisterInfo> {
     /// Compiles the specified sequence of operations into a sequence of bytes.
     fn compile(
         &mut self,

@@ -1,7 +1,7 @@
 use crate::api::{
     function_attribute::{FunctionAttribute, StackCleanup, StackParameterOrder},
     function_info::{FunctionInfo, ParameterType},
-    traits::register_size::RegisterInfo,
+    traits::register_info::RegisterInfo,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

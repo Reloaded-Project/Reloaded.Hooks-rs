@@ -42,7 +42,7 @@ pub mod api {
 
     /// Traits implemented by consumers.
     pub mod traits {
-        pub mod register_size;
+        pub mod register_info;
     }
 
     pub mod function_attribute;

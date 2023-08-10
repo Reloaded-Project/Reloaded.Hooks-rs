@@ -1,9 +1,6 @@
 extern crate alloc;
 
-use crate::jit_conversions_common::{
-    convert_to_asm_register32, convert_to_asm_register64, is_allregister_64,
-};
-use crate::{jit_common::alloc::string::ToString, jit_conversions_common::is_allregister_32};
+use crate::jit_common::alloc::string::ToString;
 use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
 use iced_x86::IcedError;
 use reloaded_hooks_portable::api::jit::call_absolute_operation::CallAbsoluteOperation;
@@ -54,16 +51,10 @@ fn encode_xchg(
     a: &mut CodeAssembler,
     xchg: &XChgOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
-    if is_allregister_32(&xchg.register1) && is_allregister_32(&xchg.register2) {
-        a.xchg(
-            convert_to_asm_register32(xchg.register1)?,
-            convert_to_asm_register32(xchg.register2)?,
-        )
-    } else if is_allregister_64(&xchg.register1) && is_allregister_64(&xchg.register2) {
-        a.xchg(
-            convert_to_asm_register64(xchg.register1)?,
-            convert_to_asm_register64(xchg.register2)?,
-        )
+    if xchg.register1.is_32() && xchg.register2.is_32() {
+        a.xchg(xchg.register1.to_iced_32()?, xchg.register2.to_iced_32()?)
+    } else if xchg.register1.is_64() && xchg.register2.is_64() {
+        a.xchg(xchg.register1.to_iced_64()?, xchg.register2.to_iced_64()?)
     } else {
         return Err(JitError::InvalidRegisterCombination(
             xchg.register1,
@@ -79,10 +70,10 @@ fn encode_pop(
     a: &mut CodeAssembler,
     pop: &PopOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
-    if is_allregister_32(&pop.register) {
-        a.pop(convert_to_asm_register32(pop.register)?)
-    } else if is_allregister_64(&pop.register) {
-        a.pop(convert_to_asm_register64(pop.register)?)
+    if pop.register.is_32() {
+        a.pop(pop.register.to_iced_32()?)
+    } else if pop.register.is_64() {
+        a.pop(pop.register.to_iced_64()?)
     } else {
         return Err(JitError::InvalidRegister(pop.register));
     }
@@ -95,10 +86,10 @@ fn encode_sub(
     a: &mut CodeAssembler,
     sub: &SubOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
-    if is_allregister_32(&sub.register) {
-        a.sub(convert_to_asm_register32(sub.register)?, sub.operand)
-    } else if is_allregister_64(&sub.register) {
-        a.sub(convert_to_asm_register64(sub.register)?, sub.operand)
+    if sub.register.is_32() {
+        a.sub(sub.register.to_iced_32()?, sub.operand)
+    } else if sub.register.is_64() {
+        a.sub(sub.register.to_iced_64()?, sub.operand)
     } else {
         return Err(JitError::InvalidRegister(sub.register));
     }
@@ -113,10 +104,10 @@ fn encode_mov_from_stack(
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 32 {
         let ptr = dword_ptr(iced_x86::Register::ESP) + x.stack_offset;
-        a.mov(convert_to_asm_register32(x.target)?, ptr)
+        a.mov(x.target.to_iced_32()?, ptr)
     } else if a.bitness() == 64 {
         let ptr = qword_ptr(iced_x86::Register::RSP) + x.stack_offset;
-        a.mov(convert_to_asm_register64(x.target)?, ptr)
+        a.mov(x.target.to_iced_64()?, ptr)
     } else {
         return Err(JitError::ThirdPartyAssemblerError(
             "Non 32/64bit architectures are not supported".to_string(),
@@ -131,23 +122,23 @@ fn encode_push_stack(
     a: &mut CodeAssembler,
     push: &PushStackOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
-    if is_allregister_32(&push.base_register) {
+    if push.base_register.is_32() {
         if push.item_size != 4 {
             return Err(JitError::ThirdPartyAssemblerError(
                 "Pushing float registers not implemented right now.".to_string(),
             ));
         }
 
-        let ptr = dword_ptr(convert_to_asm_register32(push.base_register)?) + push.offset as i32;
+        let ptr = dword_ptr(push.base_register.to_iced_32()?) + push.offset as i32;
         a.push(ptr)
-    } else if is_allregister_64(&push.base_register) {
+    } else if push.base_register.is_64() {
         if push.item_size != 8 {
             return Err(JitError::ThirdPartyAssemblerError(
                 "Pushing float registers not implemented right now.".to_string(),
             ));
         }
 
-        let ptr = qword_ptr(convert_to_asm_register64(push.base_register)?) + push.offset as i32;
+        let ptr = qword_ptr(push.base_register.to_iced_64()?) + push.offset as i32;
         a.push(ptr)
     } else {
         return Err(JitError::InvalidRegister(push.base_register));
@@ -161,11 +152,15 @@ fn encode_push(
     a: &mut CodeAssembler,
     push: &PushOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
-    if is_allregister_32(&push.register) {
-        a.push(convert_to_asm_register32(push.register)?)
-    } else if is_allregister_64(&push.register) {
-        a.push(convert_to_asm_register64(push.register)?)
-    } else {
+    if push.register.is_32() {
+        a.push(push.register.to_iced_32()?)
+    } else if push.register.is_64() {
+        a.push(push.register.to_iced_64()?)
+    }
+    //else if is_allregister_xmm(&push.register) {
+    //    push_xmm_to_stack(a, push)
+    //}
+    else {
         return Err(JitError::InvalidRegister(push.register));
     }
     .map_err(convert_error)?;
@@ -173,20 +168,24 @@ fn encode_push(
     Ok(())
 }
 
+/*
+fn push_xmm_to_stack(
+    a: &mut CodeAssembler,
+    push: &PushOperation<AllRegisters>,
+) -> Result<(), JitError<AllRegisters>> {
+    let sp = get_stack_pointer(a)?;
+    a.sub(sp, )
+}
+*/
+
 fn encode_mov(
     a: &mut CodeAssembler,
     mov: &MovOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
-    if is_allregister_32(&mov.target) && is_allregister_32(&mov.source) {
-        a.mov(
-            convert_to_asm_register32(mov.target)?,
-            convert_to_asm_register32(mov.source)?,
-        )
-    } else if is_allregister_64(&mov.target) && is_allregister_64(&mov.source) {
-        a.mov(
-            convert_to_asm_register64(mov.target)?,
-            convert_to_asm_register64(mov.source)?,
-        )
+    if mov.target.is_32() && mov.source.is_32() {
+        a.mov(mov.target.to_iced_32()?, mov.source.to_iced_32()?)
+    } else if mov.target.is_64() && mov.source.is_64() {
+        a.mov(mov.target.to_iced_64()?, mov.source.to_iced_64()?)
     } else {
         return Err(JitError::InvalidRegisterCombination(mov.source, mov.target));
     }
@@ -208,12 +207,12 @@ fn encode_jump_absolute(
     x: &JumpAbsoluteOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 64 {
-        let target_reg = convert_to_asm_register64(x.scratch_register)?;
+        let target_reg = x.scratch_register.to_iced_64()?;
         a.mov(target_reg, x.target_address as u64)
             .map_err(convert_error)?;
         a.jmp(target_reg).map_err(convert_error)?;
     } else if a.bitness() == 32 {
-        let target_reg = convert_to_asm_register32(x.scratch_register)?;
+        let target_reg = x.scratch_register.to_iced_32()?;
         a.mov(target_reg, x.target_address as u32)
             .map_err(convert_error)?;
         a.jmp(target_reg).map_err(convert_error)?;
@@ -239,12 +238,12 @@ fn encode_call_absolute(
     x: &CallAbsoluteOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 64 {
-        let target_reg = convert_to_asm_register64(x.scratch_register)?;
+        let target_reg = x.scratch_register.to_iced_64()?;
         a.mov(target_reg, x.target_address as u64)
             .map_err(convert_error)?;
         a.call(target_reg).map_err(convert_error)?;
     } else if a.bitness() == 32 {
-        let target_reg = convert_to_asm_register32(x.scratch_register)?;
+        let target_reg = x.scratch_register.to_iced_32()?;
         a.mov(target_reg, x.target_address as u32)
             .map_err(convert_error)?;
         a.call(target_reg).map_err(convert_error)?;
@@ -303,4 +302,16 @@ fn encode_call_ip_relative(
     a.call(qword_ptr(iced_x86::Register::RIP) + relative_offset as i32)
         .map_err(convert_error)?;
     Ok(())
+}
+
+fn get_stack_pointer(a: &mut CodeAssembler) -> Result<iced_x86::Register, JitError<AllRegisters>> {
+    if a.bitness() == 32 {
+        return Ok(iced_x86::Register::ESP);
+    } else if a.bitness() == 64 {
+        return Ok(iced_x86::Register::RSP);
+    } else {
+        return Err(JitError::ThirdPartyAssemblerError(
+            "Non 32/64bit architectures are not supported".to_string(),
+        ));
+    }
 }

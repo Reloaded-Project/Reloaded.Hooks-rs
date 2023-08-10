@@ -3,7 +3,7 @@ use crate::api::{
         mov_operation::MovOperation, operation::Operation, pop_operation::PopOperation,
         push_operation::PushOperation,
     },
-    traits::register_size::RegisterInfo,
+    traits::register_info::RegisterInfo,
 };
 
 use super::optimize_parameters_common::{find_pop_for_given_push, replace_optimized_operation};

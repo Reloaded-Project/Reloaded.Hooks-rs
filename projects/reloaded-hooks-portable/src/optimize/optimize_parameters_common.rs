@@ -1,4 +1,4 @@
-use crate::api::{jit::operation::Operation, traits::register_size::RegisterInfo};
+use crate::api::{jit::operation::Operation, traits::register_info::RegisterInfo};
 
 /// Replaces an existing pair of push+pop operations with an optimized single operation.
 /// The entries at push_index and pop_index are removed from the slice, and the optimized
@@ -80,7 +80,7 @@ pub mod tests {
                 pop_operation::PopOperation, push_operation::PushOperation,
                 push_stack_operation::PushStackOperation,
             },
-            traits::register_size::RegisterInfo,
+            traits::register_info::RegisterInfo,
         },
         helpers::test_helpers::MockRegister::*,
         optimize::optimize_parameters_common::{

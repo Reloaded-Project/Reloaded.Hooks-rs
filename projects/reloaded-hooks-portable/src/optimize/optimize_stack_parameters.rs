@@ -6,7 +6,7 @@ use crate::api::{
         mov_from_stack_operation::MovFromStackOperation, operation::Operation,
         pop_operation::PopOperation, push_stack_operation::PushStackOperation,
     },
-    traits::register_size::RegisterInfo,
+    traits::register_info::RegisterInfo,
 };
 
 /// Optimizes the parameters that are passed via the stack.

@@ -1,4 +1,4 @@
-use reloaded_hooks_portable::api::traits::register_size::RegisterInfo;
+use reloaded_hooks_portable::api::traits::register_info::RegisterInfo;
 
 /// Defines a full size x64 register, used in specifying custom calling conventions.
 #[allow(non_camel_case_types)]

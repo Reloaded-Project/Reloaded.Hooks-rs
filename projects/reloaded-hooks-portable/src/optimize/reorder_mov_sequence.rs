@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use crate::{
     api::{
         jit::{mov_operation::MovOperation, operation::Operation},
-        traits::register_size::RegisterInfo,
+        traits::register_info::RegisterInfo,
     },
     graphs::algorithms::move_optimizer::optimize_moves,
 };

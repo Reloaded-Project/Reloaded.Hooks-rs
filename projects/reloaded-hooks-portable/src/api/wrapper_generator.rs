@@ -12,12 +12,14 @@ use super::{
     integration::platform_functions::PlatformFunctions,
     jit::{compiler::Jit, operation::Operation},
     settings::proximity_target::ProximityTarget,
+    traits::register_info::RegisterInfo,
 };
 
 /// Options and additional context necessary for the wrapper generator.
 #[derive(Clone, Copy)]
 pub struct WrapperGenerationOptions<'a, T, TRegister, TJit>
 where
+    TRegister: RegisterInfo,
     T: FunctionInfo,
     TJit: Jit<TRegister>,
 {
@@ -43,6 +45,7 @@ where
 impl<'a, TFunctionInfo, TRegister, TJit>
     WrapperGenerationOptions<'a, TFunctionInfo, TRegister, TJit>
 where
+    TRegister: RegisterInfo,
     TFunctionInfo: FunctionInfo,
     TJit: Jit<TRegister>,
 {
@@ -83,7 +86,7 @@ where
 /// - `options` - The parameters for this wrapper generation task.
 #[allow(warnings)]
 pub fn generate_wrapper<
-    TRegister,
+    TRegister: RegisterInfo,
     TFunctionAttribute: FunctionAttribute<TRegister>,
     TJit: Jit<TRegister>,
     TFunctionInfo: FunctionInfo,
