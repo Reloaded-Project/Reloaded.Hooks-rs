@@ -183,4 +183,81 @@ impl RegisterInfo for Register {
     fn is_stack_pointer(&self) -> bool {
         self == &Register::rsp
     }
+
+    fn register_type(&self) -> usize {
+        match self {
+            Register::rax
+            | Register::rbx
+            | Register::rcx
+            | Register::rdx
+            | Register::rsi
+            | Register::rdi
+            | Register::rbp
+            | Register::rsp
+            | Register::r8
+            | Register::r9
+            | Register::r10
+            | Register::r11
+            | Register::r12
+            | Register::r13
+            | Register::r14
+            | Register::r15 => 0,
+            Register::st0
+            | Register::st1
+            | Register::st2
+            | Register::st3
+            | Register::st4
+            | Register::st5
+            | Register::st6
+            | Register::st7 => 1,
+            Register::xmm0
+            | Register::xmm1
+            | Register::xmm2
+            | Register::xmm3
+            | Register::xmm4
+            | Register::xmm5
+            | Register::xmm6
+            | Register::xmm7
+            | Register::xmm8
+            | Register::xmm9
+            | Register::xmm10
+            | Register::xmm11
+            | Register::xmm12
+            | Register::xmm13
+            | Register::xmm14
+            | Register::xmm15
+            | Register::ymm0
+            | Register::ymm1
+            | Register::ymm2
+            | Register::ymm3
+            | Register::ymm4
+            | Register::ymm5
+            | Register::ymm6
+            | Register::ymm7
+            | Register::ymm8
+            | Register::ymm9
+            | Register::ymm10
+            | Register::ymm11
+            | Register::ymm12
+            | Register::ymm13
+            | Register::ymm14
+            | Register::ymm15
+            | Register::zmm0
+            | Register::zmm1
+            | Register::zmm2
+            | Register::zmm3
+            | Register::zmm4
+            | Register::zmm5
+            | Register::zmm6
+            | Register::zmm7
+            | Register::zmm8
+            | Register::zmm9
+            | Register::zmm10
+            | Register::zmm11
+            | Register::zmm12
+            | Register::zmm13
+            | Register::zmm14
+            | Register::zmm15 => 2,
+        }
+    }
 }

@@ -35,6 +35,21 @@ impl RegisterInfo for MockRegister {
     fn is_stack_pointer(&self) -> bool {
         self == &MockRegister::SP
     }
+
+    fn register_type(&self) -> usize {
+        match self {
+            MockRegister::R1 => 0,
+            MockRegister::R2 => 0,
+            MockRegister::R3 => 0,
+            MockRegister::R4 => 0,
+            MockRegister::SP => 0,
+
+            MockRegister::F1 => 1,
+            MockRegister::F2 => 1,
+            MockRegister::F3 => 1,
+            MockRegister::F4 => 1,
+        }
+    }
 }
 
 pub struct MockFunctionAttribute {
