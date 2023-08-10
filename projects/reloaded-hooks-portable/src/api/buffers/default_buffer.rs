@@ -16,6 +16,13 @@ pub struct AllocatedBuffer {
     pub(crate) locked: AtomicBool,
 }
 
+impl AllocatedBuffer {
+    /// Returns the number of bytes remaining in the buffer.
+    pub fn remaining_bytes(&self) -> u32 {
+        self.size - *self.write_offset.borrow()
+    }
+}
+
 pub struct LockedBuffer {
     pub(crate) buffer: Arc<AllocatedBuffer>,
 }

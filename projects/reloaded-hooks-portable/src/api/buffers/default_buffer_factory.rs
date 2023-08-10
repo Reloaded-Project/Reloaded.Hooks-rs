@@ -10,7 +10,6 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use super::buffer_abstractions::{Buffer, BufferFactory};
 use super::default_buffer::{AllocatedBuffer, LockedBuffer};
 
-// TODO: Fix alignment here.
 pub struct DefaultBufferFactory {
     buffers: Vec<Arc<AllocatedBuffer>>,
 }
@@ -42,17 +41,29 @@ impl BufferFactory for DefaultBufferFactory {
 
     fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Option<Box<dyn Buffer>> {
         for buffer in &self.buffers {
-            if !buffer.locked.load(Ordering::Acquire)
-                && buffer.size == size
-                && buffer.layout.align() == alignment as usize
-                && buffer
-                    .locked
-                    .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
-                    == Ok(false)
+            // Try to lock the buffer temporarily, to ensure thread safety.
+            if buffer
+                .locked
+                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
+                == Ok(false)
             {
-                return Some(Box::new(LockedBuffer {
-                    buffer: buffer.clone(),
-                }));
+                let current_address =
+                    (buffer.ptr.as_ptr() as usize) + *buffer.write_offset.borrow() as usize;
+                let adjustment = align_offset(current_address, alignment as usize);
+                let aligned_offset = *buffer.write_offset.borrow() + adjustment as u32;
+                let new_bytes_remaining = buffer.size - aligned_offset;
+
+                if new_bytes_remaining >= size {
+                    // Adjust the write_offset of buffer to ensure alignment
+                    *buffer.write_offset.borrow_mut() += adjustment as u32;
+
+                    return Some(Box::new(LockedBuffer {
+                        buffer: buffer.clone(),
+                    }));
+                } else {
+                    // Buffer is not eligible, unlock it
+                    buffer.locked.store(false, Ordering::Release);
+                }
             }
         }
 
@@ -74,6 +85,11 @@ impl BufferFactory for DefaultBufferFactory {
             Some(Box::new(LockedBuffer { buffer }))
         }
     }
+}
+
+/// Returns the required number of bytes to align 'address' to 'alignment'.
+fn align_offset(address: usize, alignment: usize) -> usize {
+    (alignment - (address % alignment)) % alignment
 }
 
 #[cfg(test)]
