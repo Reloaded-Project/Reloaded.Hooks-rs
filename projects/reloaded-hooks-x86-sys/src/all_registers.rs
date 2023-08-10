@@ -336,6 +336,7 @@ impl AllRegisters {
         }
     }
 
+    #[allow(dead_code)]
     pub(crate) fn as_iced_st(&self) -> Result<AsmRegisterSt, JitError<AllRegisters>> {
         match *self {
             AllRegisters::st0 => Ok(iced_x86::code_asm::registers::st0),

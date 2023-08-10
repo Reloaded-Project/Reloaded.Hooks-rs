@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use crate::jit_common::alloc::string::ToString;
-use iced_x86::code_asm::{dword_ptr, qword_ptr, AsmRegister32, CodeAssembler};
+use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
 use iced_x86::IcedError;
 use reloaded_hooks_portable::api::jit::call_absolute_operation::CallAbsoluteOperation;
 use reloaded_hooks_portable::api::jit::call_relative_operation::CallRelativeOperation;
@@ -74,13 +74,60 @@ fn encode_pop(
     pop: &PopOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if pop.register.is_32() {
-        a.pop(pop.register.as_iced_32()?)
+        a.pop(pop.register.as_iced_32()?).map_err(convert_error)?;
     } else if pop.register.is_64() {
-        a.pop(pop.register.as_iced_64()?)
+        a.pop(pop.register.as_iced_64()?).map_err(convert_error)?;
+    } else if pop.register.is_xmm() {
+        if a.bitness() == 32 {
+            a.movdqu(pop.register.as_iced_xmm()?, dword_ptr(iced_regs::esp))
+                .map_err(convert_error)?;
+            a.add(iced_regs::esp, pop.register.size() as i32)
+                .map_err(convert_error)?;
+        } else if a.bitness() == 64 {
+            a.movdqu(pop.register.as_iced_xmm()?, dword_ptr(iced_regs::rsp))
+                .map_err(convert_error)?;
+            a.add(iced_regs::rsp, pop.register.size() as i32)
+                .map_err(convert_error)?;
+        } else {
+            return Err(JitError::ThirdPartyAssemblerError(
+                ARCH_NOT_SUPPORTED.to_string(),
+            ));
+        }
+    } else if pop.register.is_ymm() {
+        if a.bitness() == 32 {
+            a.vmovdqu(pop.register.as_iced_ymm()?, dword_ptr(iced_regs::esp))
+                .map_err(convert_error)?;
+            a.add(iced_regs::esp, pop.register.size() as i32)
+                .map_err(convert_error)?;
+        } else if a.bitness() == 64 {
+            a.vmovdqu(pop.register.as_iced_ymm()?, dword_ptr(iced_regs::rsp))
+                .map_err(convert_error)?;
+            a.add(iced_regs::rsp, pop.register.size() as i32)
+                .map_err(convert_error)?;
+        } else {
+            return Err(JitError::ThirdPartyAssemblerError(
+                ARCH_NOT_SUPPORTED.to_string(),
+            ));
+        }
+    } else if pop.register.is_zmm() {
+        if a.bitness() == 32 {
+            a.vmovdqu64(pop.register.as_iced_zmm()?, dword_ptr(iced_regs::esp))
+                .map_err(convert_error)?;
+            a.add(iced_regs::esp, pop.register.size() as i32)
+                .map_err(convert_error)?;
+        } else if a.bitness() == 64 {
+            a.vmovdqu8(pop.register.as_iced_zmm()?, dword_ptr(iced_regs::rsp))
+                .map_err(convert_error)?;
+            a.add(iced_regs::rsp, pop.register.size() as i32)
+                .map_err(convert_error)?;
+        } else {
+            return Err(JitError::ThirdPartyAssemblerError(
+                ARCH_NOT_SUPPORTED.to_string(),
+            ));
+        }
     } else {
         return Err(JitError::InvalidRegister(pop.register));
     }
-    .map_err(convert_error)?;
 
     Ok(())
 }

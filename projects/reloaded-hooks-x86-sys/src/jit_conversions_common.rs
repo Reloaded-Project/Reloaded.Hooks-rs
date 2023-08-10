@@ -1,8 +1,3 @@
-use iced_x86::code_asm::{
-    AsmRegister32, AsmRegister64, AsmRegisterSt, AsmRegisterXmm, AsmRegisterYmm, AsmRegisterZmm,
-};
-use reloaded_hooks_portable::api::jit::compiler::JitError;
-
 use crate::all_registers::AllRegisters;
 
 pub(crate) fn map_register_x86_to_allregisters(reg: crate::x86::Register) -> AllRegisters {

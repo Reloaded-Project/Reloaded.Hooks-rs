@@ -71,7 +71,8 @@ mod tests {
         jump_relative_operation::JumpRelativeOperation,
         jump_rip_relative_operation::JumpIpRelativeOperation,
         mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
-        push_operation::PushOperation, sub_operation::SubOperation, xchg_operation::XChgOperation,
+        pop_operation::PopOperation, push_operation::PushOperation, sub_operation::SubOperation,
+        xchg_operation::XChgOperation,
     };
 
     use super::*;
@@ -87,7 +88,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!("x64::test_compile_push: {}", hex::encode(result.unwrap()));
+        assert_eq!("50", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -99,10 +100,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_push_xmm: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("4883ec10f30f7f0424", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -114,10 +112,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_push_ymm: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("4883ec20c5fe7f0424", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -129,10 +124,46 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_push_zmm: {}",
-            hex::encode(result.unwrap())
+        assert_eq!(
+            "4883ec4062f17f487f0424",
+            hex::encode(result.as_ref().unwrap())
         );
+    }
+
+    #[test]
+    fn test_compile_pop_xmm() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Operation::Pop(PopOperation {
+            register: Register::xmm0,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("f30f6f04244883c410", hex::encode(result.unwrap()));
+    }
+
+    #[test]
+    fn test_compile_pop_ymm() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Operation::Pop(PopOperation {
+            register: Register::ymm0,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("c5fe6f04244883c420", hex::encode(result.unwrap()));
+    }
+
+    #[test]
+    fn test_compile_pop_zmm() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Operation::Pop(PopOperation {
+            register: Register::zmm0,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("62f17f486f04244883c440", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -145,7 +176,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!("x64::test_compile_mov: {}", hex::encode(result.unwrap()));
+        assert_eq!("4889c3", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -158,7 +189,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!("x64::test_compile_sub: {}", hex::encode(result.unwrap()));
+        assert_eq!("482d0a000000", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -171,7 +202,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!("x64::test_compile_xchg: {}", hex::encode(result.unwrap()));
+        assert_eq!("4887d8", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -183,10 +214,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_jmp_relative: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("e9faffff7f", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -199,9 +227,9 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_jmp_absolute: {}",
-            hex::encode(result.unwrap())
+        assert_eq!(
+            "48b87856341200000000ffe0",
+            hex::encode(result.as_ref().unwrap())
         );
     }
 
@@ -214,10 +242,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_call_relative: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("e8faffff7f", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -230,10 +255,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_call_absolute: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("48b87856341200000000ffd0", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -261,10 +283,7 @@ mod tests {
         })];
         let result = jit.compile(5, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_call_relative_is_relative_to_rip: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("e9fbffff7f", hex::encode(result.as_ref().unwrap()));
     }
 
     #[test]
@@ -273,7 +292,7 @@ mod tests {
         let mut jit = JitX64 {};
 
         // Note: This fails inside Iced :/
-        let operations = vec![Operation::JumpRelative(JumpRelativeOperation {
+        let operations = vec![Operation::CallRelative(CallRelativeOperation {
             target_address: usize::MAX,
         })];
         let result = jit.compile(0, &operations);
@@ -287,15 +306,12 @@ mod tests {
         // Verifies that the JIT compiles a relative call that branches towards target_address
         // This is verified by branching to an address outside of the 2GB range and setting
         // Instruction Pointer of assembled code to make it within range.
-        let operations = vec![Operation::JumpRelative(JumpRelativeOperation {
+        let operations = vec![Operation::CallRelative(CallRelativeOperation {
             target_address: 0x80000005,
         })];
         let result = jit.compile(5, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_call_relative_is_relative_to_rip: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("e8fbffff7f", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -307,10 +323,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_call_rip_relative: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("ff1510000000", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -322,10 +335,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_jmp_rip_relative: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("ff2510000000", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -337,10 +347,7 @@ mod tests {
         })];
         let result = jit.compile(20, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_call_rip_relative_backwards: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("ff15e2ffffff", hex::encode(result.as_ref().unwrap()))
     }
 
     #[test]
@@ -352,10 +359,7 @@ mod tests {
         })];
         let result = jit.compile(20, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_jmp_rip_relative_backwards: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("ff25e2ffffff", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -371,10 +375,7 @@ mod tests {
         ];
         let result = jit.compile(20, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_call_rip_relative_two_instructions: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("482d0a000000ff15f0ffffff", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -390,9 +391,9 @@ mod tests {
         ];
         let result = jit.compile(20, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_jmp_rip_relative_two_instructions: {}",
-            hex::encode(result.unwrap())
+        assert_eq!(
+            "482d0a000000ff25f0ffffff",
+            hex::encode(result.as_ref().unwrap())
         );
     }
 
@@ -406,9 +407,6 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        println!(
-            "x64::test_compile_mov_from_stack: {}",
-            hex::encode(result.unwrap())
-        );
+        assert_eq!("488b442404", hex::encode(result.as_ref().unwrap()));
     }
 }

@@ -15,12 +15,12 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CallRelativeOperation {
     /// The target address to call.
-    pub target_address: isize,
+    pub target_address: usize,
 }
 
 impl CallRelativeOperation {
     /// Creates a new relative call operation.
-    pub fn new(target_address: isize) -> Self {
+    pub fn new(target_address: usize) -> Self {
         CallRelativeOperation { target_address }
     }
 }
