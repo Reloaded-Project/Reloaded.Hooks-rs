@@ -1,9 +1,10 @@
 use std::rc::Rc;
 
 use reloaded_hooks_portable::api::jit::compiler::Jit;
+use reloaded_hooks_portable::api::jit::mov_operation::MovOperation;
 use reloaded_hooks_portable::api::jit::{
-    compiler::JitError, mov_from_stack_operation::MovOperation, operation::Operation,
-    push_operation::PushOperation, sub_operation::SubOperation, xchg_operation::XChgOperation,
+    compiler::JitError, operation::Operation, push_operation::PushOperation,
+    sub_operation::SubOperation, xchg_operation::XChgOperation,
 };
 use reloaded_hooks_x86_sys::x64;
 use reloaded_hooks_x86_sys::x64::jit::JitX64;

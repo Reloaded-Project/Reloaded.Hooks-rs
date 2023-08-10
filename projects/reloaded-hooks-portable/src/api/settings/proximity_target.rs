@@ -50,11 +50,4 @@ impl ProximityTarget {
             requested_proximity,
         }
     }
-
-    fn default_target_address() -> usize {
-        // There is no cross-platform approach to finding the address of a main module
-        // such as the .exe file. On certain platforms, we can do this, but not on others.
-        // For now, this is an estimate.
-        Self::default_target_address as *const fn() as usize
-    }
 }

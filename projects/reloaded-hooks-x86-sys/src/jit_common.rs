@@ -132,9 +132,21 @@ fn encode_push_stack(
     push: &PushStackOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if is_allregister_32(&push.base_register) {
+        if push.item_size != 4 {
+            return Err(JitError::ThirdPartyAssemblerError(
+                "Pushing float registers not implemented right now.".to_string(),
+            ));
+        }
+
         let ptr = dword_ptr(convert_to_asm_register32(push.base_register)?) + push.offset as i32;
         a.push(ptr)
     } else if is_allregister_64(&push.base_register) {
+        if push.item_size != 8 {
+            return Err(JitError::ThirdPartyAssemblerError(
+                "Pushing float registers not implemented right now.".to_string(),
+            ));
+        }
+
         let ptr = qword_ptr(convert_to_asm_register64(push.base_register)?) + push.offset as i32;
         a.push(ptr)
     } else {

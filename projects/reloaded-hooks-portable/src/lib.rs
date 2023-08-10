@@ -31,14 +31,19 @@ pub mod api {
         pub mod jump_absolute_operation;
         pub mod jump_relative_operation;
         pub mod jump_rip_relative_operation;
-        pub mod mov_operation;
         pub mod mov_from_stack_operation;
+        pub mod mov_operation;
         pub mod operation;
         pub mod pop_operation;
         pub mod push_operation;
         pub mod push_stack_operation;
         pub mod sub_operation;
         pub mod xchg_operation;
+    }
+
+    /// Traits implemented by consumers.
+    pub mod traits {
+        pub mod register_size;
     }
 
     pub mod function_attribute;
@@ -64,4 +69,9 @@ pub mod helpers {
 
     #[cfg(test)]
     pub(crate) mod test_helpers;
+}
+
+/// Code optimization algorithms.
+pub mod optimize {
+    pub mod optimize_stack_parameters;
 }

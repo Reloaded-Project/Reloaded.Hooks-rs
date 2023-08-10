@@ -9,7 +9,7 @@ use super::{
     xchg_operation::XChgOperation,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Operation<T> {
     Mov(MovOperation<T>),
     MovFromStack(MovFromStackOperation<T>),
@@ -46,6 +46,7 @@ where
         Operation::PushStack(inner_op) => Operation::PushStack(PushStackOperation {
             base_register: f(inner_op.base_register),
             offset: inner_op.offset,
+            item_size: inner_op.item_size,
         }),
         Operation::Sub(inner_op) => Operation::Sub(SubOperation {
             register: f(inner_op.register),

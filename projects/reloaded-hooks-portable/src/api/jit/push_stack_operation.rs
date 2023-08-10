@@ -17,7 +17,7 @@
 ///
 /// ```
 /// use reloaded_hooks_portable::api::jit::push_stack_operation::PushStackOperation;
-/// let push_offset_from_esp = PushStackOperation { base_register: "esp", offset: 8 };
+/// let push_offset_from_esp = PushStackOperation { base_register: "esp", offset: 8, item_size: 4 };
 /// ```
 ///
 /// # Note
@@ -35,5 +35,8 @@ pub struct PushStackOperation<T> {
     pub base_register: T,
 
     /// The offset from the base register.
-    pub offset: isize, // using isize to allow for both positive and negative offsets
+    pub offset: isize,
+
+    /// Size of the item to re-push to stack.
+    pub item_size: usize,
 }

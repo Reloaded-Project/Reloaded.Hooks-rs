@@ -1,6 +1,7 @@
 use crate::api::{
     function_attribute::{FunctionAttribute, StackCleanup, StackParameterOrder},
     function_info::{FunctionInfo, ParameterType},
+    traits::register_size::RegisterInfo,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -13,6 +14,27 @@ pub enum MockRegister {
     F2,
     F3,
     F4,
+    SP,
+}
+
+impl RegisterInfo for MockRegister {
+    fn size_in_bytes(&self) -> usize {
+        match self {
+            MockRegister::R1 => 4,
+            MockRegister::R2 => 4,
+            MockRegister::R3 => 4,
+            MockRegister::R4 => 4,
+            MockRegister::F1 => 4,
+            MockRegister::F2 => 4,
+            MockRegister::F3 => 4,
+            MockRegister::F4 => 4,
+            MockRegister::SP => 4,
+        }
+    }
+
+    fn is_stack_pointer(&self) -> bool {
+        self == &MockRegister::SP
+    }
 }
 
 pub struct MockFunctionAttribute {
