@@ -89,6 +89,51 @@ mod tests {
     }
 
     #[test]
+    fn test_compile_push_xmm() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::Push(PushOperation {
+            register: Register::xmm0,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x86::test_compile_push_xmm: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_push_ymm() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::Push(PushOperation {
+            register: Register::ymm0,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x86::test_compile_push_ymm: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
+    fn test_compile_push_zmm() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::Push(PushOperation {
+            register: Register::zmm0,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        println!(
+            "x86::test_compile_push_zmm: {}",
+            hex::encode(result.unwrap())
+        );
+    }
+
+    #[test]
     fn test_compile_mov() {
         let mut jit = JitX86 {};
 

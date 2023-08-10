@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use crate::jit_common::alloc::string::ToString;
-use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
+use iced_x86::code_asm::{dword_ptr, qword_ptr, AsmRegister32, CodeAssembler};
 use iced_x86::IcedError;
 use reloaded_hooks_portable::api::jit::call_absolute_operation::CallAbsoluteOperation;
 use reloaded_hooks_portable::api::jit::call_relative_operation::CallRelativeOperation;
@@ -18,6 +18,9 @@ use reloaded_hooks_portable::api::jit::{
 };
 
 use crate::all_registers::AllRegisters;
+use iced_x86::code_asm::registers as iced_regs;
+
+const ARCH_NOT_SUPPORTED: &str = "Non 32/64bit architectures are not supported";
 
 pub(crate) fn encode_instruction(
     assembler: &mut CodeAssembler,
@@ -52,9 +55,9 @@ fn encode_xchg(
     xchg: &XChgOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if xchg.register1.is_32() && xchg.register2.is_32() {
-        a.xchg(xchg.register1.to_iced_32()?, xchg.register2.to_iced_32()?)
+        a.xchg(xchg.register1.as_iced_32()?, xchg.register2.as_iced_32()?)
     } else if xchg.register1.is_64() && xchg.register2.is_64() {
-        a.xchg(xchg.register1.to_iced_64()?, xchg.register2.to_iced_64()?)
+        a.xchg(xchg.register1.as_iced_64()?, xchg.register2.as_iced_64()?)
     } else {
         return Err(JitError::InvalidRegisterCombination(
             xchg.register1,
@@ -71,9 +74,9 @@ fn encode_pop(
     pop: &PopOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if pop.register.is_32() {
-        a.pop(pop.register.to_iced_32()?)
+        a.pop(pop.register.as_iced_32()?)
     } else if pop.register.is_64() {
-        a.pop(pop.register.to_iced_64()?)
+        a.pop(pop.register.as_iced_64()?)
     } else {
         return Err(JitError::InvalidRegister(pop.register));
     }
@@ -87,9 +90,9 @@ fn encode_sub(
     sub: &SubOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if sub.register.is_32() {
-        a.sub(sub.register.to_iced_32()?, sub.operand)
+        a.sub(sub.register.as_iced_32()?, sub.operand)
     } else if sub.register.is_64() {
-        a.sub(sub.register.to_iced_64()?, sub.operand)
+        a.sub(sub.register.as_iced_64()?, sub.operand)
     } else {
         return Err(JitError::InvalidRegister(sub.register));
     }
@@ -104,13 +107,13 @@ fn encode_mov_from_stack(
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 32 {
         let ptr = dword_ptr(iced_x86::Register::ESP) + x.stack_offset;
-        a.mov(x.target.to_iced_32()?, ptr)
+        a.mov(x.target.as_iced_32()?, ptr)
     } else if a.bitness() == 64 {
         let ptr = qword_ptr(iced_x86::Register::RSP) + x.stack_offset;
-        a.mov(x.target.to_iced_64()?, ptr)
+        a.mov(x.target.as_iced_64()?, ptr)
     } else {
         return Err(JitError::ThirdPartyAssemblerError(
-            "Non 32/64bit architectures are not supported".to_string(),
+            ARCH_NOT_SUPPORTED.to_string(),
         ));
     }
     .map_err(convert_error)?;
@@ -129,7 +132,7 @@ fn encode_push_stack(
             ));
         }
 
-        let ptr = dword_ptr(push.base_register.to_iced_32()?) + push.offset as i32;
+        let ptr = dword_ptr(push.base_register.as_iced_32()?) + push.offset as i32;
         a.push(ptr)
     } else if push.base_register.is_64() {
         if push.item_size != 8 {
@@ -138,7 +141,7 @@ fn encode_push_stack(
             ));
         }
 
-        let ptr = qword_ptr(push.base_register.to_iced_64()?) + push.offset as i32;
+        let ptr = qword_ptr(push.base_register.as_iced_64()?) + push.offset as i32;
         a.push(ptr)
     } else {
         return Err(JitError::InvalidRegister(push.base_register));
@@ -153,39 +156,72 @@ fn encode_push(
     push: &PushOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if push.register.is_32() {
-        a.push(push.register.to_iced_32()?)
+        a.push(push.register.as_iced_32()?).map_err(convert_error)?;
     } else if push.register.is_64() {
-        a.push(push.register.to_iced_64()?)
-    }
-    //else if is_allregister_xmm(&push.register) {
-    //    push_xmm_to_stack(a, push)
-    //}
-    else {
+        a.push(push.register.as_iced_64()?).map_err(convert_error)?;
+    } else if push.register.is_xmm() {
+        if a.bitness() == 32 {
+            a.sub(iced_regs::esp, push.register.size() as i32)
+                .map_err(convert_error)?;
+            a.movdqu(dword_ptr(iced_regs::esp), push.register.as_iced_xmm()?)
+                .map_err(convert_error)?;
+        } else if a.bitness() == 64 {
+            a.sub(iced_regs::rsp, push.register.size() as i32)
+                .map_err(convert_error)?;
+            a.movdqu(dword_ptr(iced_regs::rsp), push.register.as_iced_xmm()?)
+                .map_err(convert_error)?;
+        } else {
+            return Err(JitError::ThirdPartyAssemblerError(
+                ARCH_NOT_SUPPORTED.to_string(),
+            ));
+        }
+    } else if push.register.is_ymm() {
+        if a.bitness() == 32 {
+            a.sub(iced_regs::esp, push.register.size() as i32)
+                .map_err(convert_error)?;
+            a.vmovdqu(dword_ptr(iced_regs::esp), push.register.as_iced_ymm()?)
+                .map_err(convert_error)?;
+        } else if a.bitness() == 64 {
+            a.sub(iced_regs::rsp, push.register.size() as i32)
+                .map_err(convert_error)?;
+            a.vmovdqu(dword_ptr(iced_regs::rsp), push.register.as_iced_ymm()?)
+                .map_err(convert_error)?;
+        } else {
+            return Err(JitError::ThirdPartyAssemblerError(
+                ARCH_NOT_SUPPORTED.to_string(),
+            ));
+        }
+    } else if push.register.is_zmm() {
+        if a.bitness() == 32 {
+            a.sub(iced_regs::esp, push.register.size() as i32)
+                .map_err(convert_error)?;
+            a.vmovdqu64(dword_ptr(iced_regs::esp), push.register.as_iced_zmm()?)
+                .map_err(convert_error)?;
+        } else if a.bitness() == 64 {
+            a.sub(iced_regs::rsp, push.register.size() as i32)
+                .map_err(convert_error)?;
+            a.vmovdqu8(dword_ptr(iced_regs::rsp), push.register.as_iced_zmm()?)
+                .map_err(convert_error)?;
+        } else {
+            return Err(JitError::ThirdPartyAssemblerError(
+                ARCH_NOT_SUPPORTED.to_string(),
+            ));
+        }
+    } else {
         return Err(JitError::InvalidRegister(push.register));
     }
-    .map_err(convert_error)?;
 
     Ok(())
 }
-
-/*
-fn push_xmm_to_stack(
-    a: &mut CodeAssembler,
-    push: &PushOperation<AllRegisters>,
-) -> Result<(), JitError<AllRegisters>> {
-    let sp = get_stack_pointer(a)?;
-    a.sub(sp, )
-}
-*/
 
 fn encode_mov(
     a: &mut CodeAssembler,
     mov: &MovOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if mov.target.is_32() && mov.source.is_32() {
-        a.mov(mov.target.to_iced_32()?, mov.source.to_iced_32()?)
+        a.mov(mov.target.as_iced_32()?, mov.source.as_iced_32()?)
     } else if mov.target.is_64() && mov.source.is_64() {
-        a.mov(mov.target.to_iced_64()?, mov.source.to_iced_64()?)
+        a.mov(mov.target.as_iced_64()?, mov.source.as_iced_64()?)
     } else {
         return Err(JitError::InvalidRegisterCombination(mov.source, mov.target));
     }
@@ -207,18 +243,18 @@ fn encode_jump_absolute(
     x: &JumpAbsoluteOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 64 {
-        let target_reg = x.scratch_register.to_iced_64()?;
+        let target_reg = x.scratch_register.as_iced_64()?;
         a.mov(target_reg, x.target_address as u64)
             .map_err(convert_error)?;
         a.jmp(target_reg).map_err(convert_error)?;
     } else if a.bitness() == 32 {
-        let target_reg = x.scratch_register.to_iced_32()?;
+        let target_reg = x.scratch_register.as_iced_32()?;
         a.mov(target_reg, x.target_address as u32)
             .map_err(convert_error)?;
         a.jmp(target_reg).map_err(convert_error)?;
     } else {
         return Err(JitError::ThirdPartyAssemblerError(
-            "Non 32/64bit architectures are not supported".to_string(),
+            ARCH_NOT_SUPPORTED.to_string(),
         ));
     }
 
@@ -238,18 +274,18 @@ fn encode_call_absolute(
     x: &CallAbsoluteOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 64 {
-        let target_reg = x.scratch_register.to_iced_64()?;
+        let target_reg = x.scratch_register.as_iced_64()?;
         a.mov(target_reg, x.target_address as u64)
             .map_err(convert_error)?;
         a.call(target_reg).map_err(convert_error)?;
     } else if a.bitness() == 32 {
-        let target_reg = x.scratch_register.to_iced_32()?;
+        let target_reg = x.scratch_register.as_iced_32()?;
         a.mov(target_reg, x.target_address as u32)
             .map_err(convert_error)?;
         a.call(target_reg).map_err(convert_error)?;
     } else {
         return Err(JitError::ThirdPartyAssemblerError(
-            "Non 32/64bit architectures are not supported".to_string(),
+            ARCH_NOT_SUPPORTED.to_string(),
         ));
     }
 
@@ -302,16 +338,4 @@ fn encode_call_ip_relative(
     a.call(qword_ptr(iced_x86::Register::RIP) + relative_offset as i32)
         .map_err(convert_error)?;
     Ok(())
-}
-
-fn get_stack_pointer(a: &mut CodeAssembler) -> Result<iced_x86::Register, JitError<AllRegisters>> {
-    if a.bitness() == 32 {
-        return Ok(iced_x86::Register::ESP);
-    } else if a.bitness() == 64 {
-        return Ok(iced_x86::Register::RSP);
-    } else {
-        return Err(JitError::ThirdPartyAssemblerError(
-            "Non 32/64bit architectures are not supported".to_string(),
-        ));
-    }
 }

@@ -299,7 +299,7 @@ impl AllRegisters {
         )
     }
 
-    pub(crate) fn to_iced_32(&self) -> Result<AsmRegister32, JitError<AllRegisters>> {
+    pub(crate) fn as_iced_32(&self) -> Result<AsmRegister32, JitError<AllRegisters>> {
         match *self {
             AllRegisters::eax => Ok(iced_x86::code_asm::registers::eax),
             AllRegisters::ebx => Ok(iced_x86::code_asm::registers::ebx),
@@ -313,7 +313,7 @@ impl AllRegisters {
         }
     }
 
-    pub(crate) fn to_iced_64(&self) -> Result<AsmRegister64, JitError<AllRegisters>> {
+    pub(crate) fn as_iced_64(&self) -> Result<AsmRegister64, JitError<AllRegisters>> {
         match *self {
             AllRegisters::rax => Ok(iced_x86::code_asm::registers::rax),
             AllRegisters::rbx => Ok(iced_x86::code_asm::registers::rbx),
@@ -336,7 +336,7 @@ impl AllRegisters {
         }
     }
 
-    pub(crate) fn to_iced_st(&self) -> Result<AsmRegisterSt, JitError<AllRegisters>> {
+    pub(crate) fn as_iced_st(&self) -> Result<AsmRegisterSt, JitError<AllRegisters>> {
         match *self {
             AllRegisters::st0 => Ok(iced_x86::code_asm::registers::st0),
             AllRegisters::st1 => Ok(iced_x86::code_asm::registers::st1),
@@ -350,7 +350,7 @@ impl AllRegisters {
         }
     }
 
-    pub(crate) fn to_iced_xmm(&self) -> Result<AsmRegisterXmm, JitError<AllRegisters>> {
+    pub(crate) fn as_iced_xmm(&self) -> Result<AsmRegisterXmm, JitError<AllRegisters>> {
         match *self {
             AllRegisters::xmm0 => Ok(iced_x86::code_asm::registers::xmm0),
             AllRegisters::xmm1 => Ok(iced_x86::code_asm::registers::xmm1),
@@ -372,7 +372,7 @@ impl AllRegisters {
         }
     }
 
-    pub(crate) fn to_iced_ymm(&self) -> Result<AsmRegisterYmm, JitError<AllRegisters>> {
+    pub(crate) fn as_iced_ymm(&self) -> Result<AsmRegisterYmm, JitError<AllRegisters>> {
         match *self {
             AllRegisters::ymm0 => Ok(iced_x86::code_asm::registers::ymm0),
             AllRegisters::ymm1 => Ok(iced_x86::code_asm::registers::ymm1),
@@ -394,7 +394,7 @@ impl AllRegisters {
         }
     }
 
-    pub(crate) fn to_iced_zmm(&self) -> Result<AsmRegisterZmm, JitError<AllRegisters>> {
+    pub(crate) fn as_iced_zmm(&self) -> Result<AsmRegisterZmm, JitError<AllRegisters>> {
         match *self {
             AllRegisters::zmm0 => Ok(iced_x86::code_asm::registers::zmm0),
             AllRegisters::zmm1 => Ok(iced_x86::code_asm::registers::zmm1),
