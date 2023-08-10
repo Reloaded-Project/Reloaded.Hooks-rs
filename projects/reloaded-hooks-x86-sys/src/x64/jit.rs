@@ -38,6 +38,14 @@ impl Jit<Register> for JitX64 {
 
         Ok(Rc::from(result))
     }
+
+    fn code_alignment() -> u32 {
+        16
+    }
+
+    fn max_relative_jump_distance() -> usize {
+        i32::MAX as usize
+    }
 }
 
 fn encoder_instruction_x64(

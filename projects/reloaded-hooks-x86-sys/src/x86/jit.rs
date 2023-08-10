@@ -38,6 +38,14 @@ impl Jit<Register> for JitX86 {
 
         Ok(Rc::from(result))
     }
+
+    fn code_alignment() -> u32 {
+        16
+    }
+
+    fn max_relative_jump_distance() -> usize {
+        i32::MAX as usize
+    }
 }
 
 fn encoder_instruction_x86(
@@ -45,7 +53,7 @@ fn encoder_instruction_x86(
     operation: &Operation<Register>,
     address: usize,
 ) -> Result<(), JitError<Register>> {
-    let all_register_op = transform_op(operation.clone(), |x: Register| {
+    let all_register_op = transform_op(*operation, |x: Register| {
         map_register_x86_to_allregisters(x)
     });
 

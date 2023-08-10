@@ -25,6 +25,16 @@ pub trait Jit<TRegister> {
         address: usize,
         operations: &[Operation<TRegister>],
     ) -> Result<Rc<[u8]>, JitError<TRegister>>;
+
+    /// Required alignment of code for the current architecture.
+    ///
+    /// # Remarks
+    /// This is usually 4 bytes on most architectures, and 16 bytes on x86.
+    fn code_alignment() -> u32;
+
+    /// Maximum distance of relative jump assembly instruction.
+    /// This affects wrapper generation, and parameters passed into JIT.
+    fn max_relative_jump_distance() -> usize;
 }
 
 /// Errors that can occur during JIT compilation.

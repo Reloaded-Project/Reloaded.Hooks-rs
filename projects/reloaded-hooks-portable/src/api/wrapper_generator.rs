@@ -9,9 +9,7 @@ use super::{
     buffers::buffer_abstractions::Buffer,
     function_attribute::FunctionAttribute,
     function_info::FunctionInfo,
-    integration::{
-        architecture_details::ArchitectureDetails, platform_functions::PlatformFunctions,
-    },
+    integration::platform_functions::PlatformFunctions,
     jit::{compiler::Jit, operation::Operation},
     settings::proximity_target::ProximityTarget,
 };
@@ -35,9 +33,6 @@ where
     /// Dynamically compiles the specified sequence of instructions
     pub jit: TJit,
 
-    /// The details of the architecture in question
-    pub architecture_details: &'a ArchitectureDetails,
-
     /// The platform_functions.
     pub platform_functions: &'a PlatformFunctions,
 
@@ -60,7 +55,7 @@ where
             self.proximity_target.item_size,
             self.proximity_target.target_address,
             self.proximity_target.requested_proximity,
-            self.architecture_details.code_alignment,
+            <TJit as Jit<TRegister>>::code_alignment(),
         );
 
         let has_buf_in_range = buf_opt.is_some();
@@ -69,7 +64,7 @@ where
             None => buffer_factory
                 .get_any_buffer(
                     self.proximity_target.item_size,
-                    self.architecture_details.code_alignment,
+                    <TJit as Jit<TRegister>>::code_alignment(),
                 )
                 .unwrap(),
         };

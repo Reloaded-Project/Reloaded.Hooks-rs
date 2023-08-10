@@ -18,7 +18,6 @@ pub mod api {
 
     /// Platform and architecture specific integrations
     pub mod integration {
-        pub mod architecture_details;
         pub mod platform_functions;
     }
 
