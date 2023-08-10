@@ -21,6 +21,7 @@ use crate::graphs::node::Node;
 /// # Parameter
 ///
 /// - `moves`: The sequence of MOV register operations to create a valid order for.
+/// - `scratch_registers`: The scratch registers to use for reordering, used in case of cycles.
 ///
 /// # About
 ///

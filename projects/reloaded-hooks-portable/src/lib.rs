@@ -75,4 +75,5 @@ pub mod optimize {
     pub mod optimize_parameters_common;
     pub mod optimize_reg_parameters;
     pub mod optimize_stack_parameters;
+    pub mod reorder_mov_sequence;
 }
