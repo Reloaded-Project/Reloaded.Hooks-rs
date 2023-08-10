@@ -1,6 +1,5 @@
 extern crate alloc;
 
-use alloc::vec::Vec;
 use core::hash::{BuildHasherDefault, Hash};
 use hashbrown::HashSet;
 use nohash::NoHashHasher;
@@ -19,7 +18,7 @@ use crate::api::jit::mov_operation::MovOperation;
 ///
 /// For more info about this, see `Design Docs -> Wrapper Generation`,
 /// section `Reordering Operations`.
-pub fn validate_moves<T>(moves: &Vec<MovOperation<T>>) -> bool
+pub fn validate_moves<T>(moves: &[MovOperation<T>]) -> bool
 where
     T: Eq + PartialEq + Hash + Clone,
 {

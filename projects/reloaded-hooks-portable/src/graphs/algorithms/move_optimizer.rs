@@ -26,7 +26,7 @@ use crate::graphs::node::Node;
 ///
 /// For more info about this, see `Design Docs -> Wrapper Generation`,
 /// section `Reordering Operations`.
-pub fn optimize_moves<T>(moves: &Vec<MovOperation<T>>, scratch_registers: &[T]) -> Vec<Operation<T>>
+pub fn optimize_moves<T>(moves: &[MovOperation<T>], scratch_registers: &[T]) -> Vec<Operation<T>>
 where
     T: Eq + PartialEq + Hash + Clone,
 {

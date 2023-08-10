@@ -27,7 +27,7 @@ type NodeMap<T> = HashMap<T, Rc<RefCell<Node<T>>>, BuildHasherDefault<NoHashHash
 ///
 /// Would be represented as
 /// ebx -> eax -> ecx
-pub fn build_graph<T: Eq + Clone + Hash>(moves: &Vec<MovOperation<T>>) -> Graph<T> {
+pub fn build_graph<T: Eq + Clone + Hash>(moves: &[MovOperation<T>]) -> Graph<T> {
     let mut graph = Graph::<T>::new();
     let mut nodes: NodeMap<T> =
         HashMap::with_capacity_and_hasher(moves.len(), BuildHasherDefault::default());
