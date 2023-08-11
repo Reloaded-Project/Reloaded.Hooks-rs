@@ -43,7 +43,126 @@ pub(crate) fn encode_instruction(
         // x64 only
         Operation::CallIpRelative(x) => encode_call_ip_relative(assembler, x, address),
         Operation::JumpIpRelative(x) => encode_jump_ip_relative(assembler, x, address),
+
+        // Optimised Functions
+        Operation::MultiPush(x) => encode_multi_push(assembler, x),
+        Operation::MultiPop(x) => encode_multi_pop(assembler, x),
     }
+}
+
+macro_rules! multi_push_item {
+    ($a:expr, $reg:expr, $offset:expr, $convert_method:ident, $op:ident) => {
+        match $a.bitness() {
+            32 => {
+                $a.$op(dword_ptr(iced_regs::esp) + $offset, $reg.$convert_method()?)
+                    .map_err(convert_error)?;
+            }
+            64 => {
+                $a.$op(dword_ptr(iced_regs::rsp) + $offset, $reg.$convert_method()?)
+                    .map_err(convert_error)?;
+            }
+            _ => {
+                return Err(JitError::ThirdPartyAssemblerError(
+                    ARCH_NOT_SUPPORTED.to_string(),
+                ));
+            }
+        }
+    };
+}
+
+fn encode_multi_push(
+    a: &mut CodeAssembler,
+    ops: &[PushOperation<AllRegisters>],
+) -> Result<(), JitError<AllRegisters>> {
+    // Calculate space to reserve.
+    let mut space_needed = 0;
+
+    for x in ops {
+        space_needed += x.register.size();
+    }
+
+    // Reserve the space.
+    a.sub(iced_regs::esp, space_needed as i32)
+        .map_err(convert_error)?;
+
+    // Push the items.
+    let mut current_offset = 0;
+    for x in ops.iter().rev() {
+        // Loop through the operations in reverse
+        if x.register.is_32() {
+            multi_push_item!(a, x.register, current_offset, as_iced_32, mov);
+        } else if x.register.is_64() {
+            multi_push_item!(a, x.register, current_offset, as_iced_64, mov);
+        } else if x.register.is_xmm() {
+            multi_push_item!(a, x.register, current_offset, as_iced_xmm, movdqu);
+        } else if x.register.is_ymm() {
+            multi_push_item!(a, x.register, current_offset, as_iced_ymm, vmovdqu);
+        } else if x.register.is_zmm() {
+            multi_push_item!(a, x.register, current_offset, as_iced_zmm, vmovdqu8);
+        } else {
+            return Err(JitError::InvalidRegister(x.register));
+        }
+
+        // Move to the next offset.
+        current_offset += x.register.size();
+    }
+
+    Ok(())
+}
+
+macro_rules! multi_pop_item {
+    ($a:expr, $reg:expr, $offset:expr, $convert_method:ident, $op:ident) => {
+        match $a.bitness() {
+            32 => {
+                $a.$op($reg.$convert_method()?, dword_ptr(iced_regs::esp) + $offset)
+                    .map_err(convert_error)?;
+            }
+            64 => {
+                $a.$op($reg.$convert_method()?, dword_ptr(iced_regs::rsp) + $offset)
+                    .map_err(convert_error)?;
+            }
+            _ => {
+                return Err(JitError::ThirdPartyAssemblerError(
+                    ARCH_NOT_SUPPORTED.to_string(),
+                ));
+            }
+        }
+    };
+}
+
+fn encode_multi_pop(
+    a: &mut CodeAssembler,
+    ops: &[PopOperation<AllRegisters>],
+) -> Result<(), JitError<AllRegisters>> {
+    // Note: It is important that we do MOV in ascending address order, to help CPU caching :wink:
+
+    // Start from the top of the reserved space.
+    let mut current_offset = 0;
+    for x in ops {
+        if x.register.is_32() {
+            multi_pop_item!(a, x.register, current_offset, as_iced_32, mov);
+        } else if x.register.is_64() {
+            multi_pop_item!(a, x.register, current_offset, as_iced_64, mov);
+        } else if x.register.is_xmm() {
+            multi_pop_item!(a, x.register, current_offset, as_iced_xmm, movdqu);
+        } else if x.register.is_ymm() {
+            multi_pop_item!(a, x.register, current_offset, as_iced_ymm, vmovdqu);
+        } else if x.register.is_zmm() {
+            multi_pop_item!(a, x.register, current_offset, as_iced_zmm, vmovdqu8);
+        } else {
+            return Err(JitError::InvalidRegister(x.register));
+        }
+
+        // Move to the next offset.
+        current_offset += x.register.size();
+    }
+
+    // Release the space.
+    let total_space = ops.iter().map(|x| x.register.size()).sum::<usize>();
+    a.add(iced_regs::esp, total_space as i32)
+        .map_err(convert_error)?;
+
+    Ok(())
 }
 
 fn convert_error(e: IcedError) -> JitError<AllRegisters> {
@@ -69,6 +188,26 @@ fn encode_xchg(
     Ok(())
 }
 
+macro_rules! encode_xmm_pop {
+    ($a:expr, $reg:expr, $reg_type:ident, $op:ident) => {
+        if $a.bitness() == 32 {
+            $a.$op($reg.$reg_type()?, dword_ptr(iced_regs::esp))
+                .map_err(convert_error)?;
+            $a.add(iced_regs::esp, $reg.size() as i32)
+                .map_err(convert_error)?;
+        } else if $a.bitness() == 64 {
+            $a.$op($reg.$reg_type()?, dword_ptr(iced_regs::rsp))
+                .map_err(convert_error)?;
+            $a.add(iced_regs::rsp, $reg.size() as i32)
+                .map_err(convert_error)?;
+        } else {
+            return Err(JitError::ThirdPartyAssemblerError(
+                ARCH_NOT_SUPPORTED.to_string(),
+            ));
+        }
+    };
+}
+
 fn encode_pop(
     a: &mut CodeAssembler,
     pop: &PopOperation<AllRegisters>,
@@ -78,53 +217,11 @@ fn encode_pop(
     } else if pop.register.is_64() {
         a.pop(pop.register.as_iced_64()?).map_err(convert_error)?;
     } else if pop.register.is_xmm() {
-        if a.bitness() == 32 {
-            a.movdqu(pop.register.as_iced_xmm()?, dword_ptr(iced_regs::esp))
-                .map_err(convert_error)?;
-            a.add(iced_regs::esp, pop.register.size() as i32)
-                .map_err(convert_error)?;
-        } else if a.bitness() == 64 {
-            a.movdqu(pop.register.as_iced_xmm()?, dword_ptr(iced_regs::rsp))
-                .map_err(convert_error)?;
-            a.add(iced_regs::rsp, pop.register.size() as i32)
-                .map_err(convert_error)?;
-        } else {
-            return Err(JitError::ThirdPartyAssemblerError(
-                ARCH_NOT_SUPPORTED.to_string(),
-            ));
-        }
+        encode_xmm_pop!(a, pop.register, as_iced_xmm, movdqu);
     } else if pop.register.is_ymm() {
-        if a.bitness() == 32 {
-            a.vmovdqu(pop.register.as_iced_ymm()?, dword_ptr(iced_regs::esp))
-                .map_err(convert_error)?;
-            a.add(iced_regs::esp, pop.register.size() as i32)
-                .map_err(convert_error)?;
-        } else if a.bitness() == 64 {
-            a.vmovdqu(pop.register.as_iced_ymm()?, dword_ptr(iced_regs::rsp))
-                .map_err(convert_error)?;
-            a.add(iced_regs::rsp, pop.register.size() as i32)
-                .map_err(convert_error)?;
-        } else {
-            return Err(JitError::ThirdPartyAssemblerError(
-                ARCH_NOT_SUPPORTED.to_string(),
-            ));
-        }
+        encode_xmm_pop!(a, pop.register, as_iced_ymm, vmovdqu);
     } else if pop.register.is_zmm() {
-        if a.bitness() == 32 {
-            a.vmovdqu64(pop.register.as_iced_zmm()?, dword_ptr(iced_regs::esp))
-                .map_err(convert_error)?;
-            a.add(iced_regs::esp, pop.register.size() as i32)
-                .map_err(convert_error)?;
-        } else if a.bitness() == 64 {
-            a.vmovdqu8(pop.register.as_iced_zmm()?, dword_ptr(iced_regs::rsp))
-                .map_err(convert_error)?;
-            a.add(iced_regs::rsp, pop.register.size() as i32)
-                .map_err(convert_error)?;
-        } else {
-            return Err(JitError::ThirdPartyAssemblerError(
-                ARCH_NOT_SUPPORTED.to_string(),
-            ));
-        }
+        encode_xmm_pop!(a, pop.register, as_iced_zmm, vmovdqu8);
     } else {
         return Err(JitError::InvalidRegister(pop.register));
     }
@@ -198,6 +295,26 @@ fn encode_push_stack(
     Ok(())
 }
 
+macro_rules! encode_xmm_push {
+    ($a:expr, $reg:expr, $reg_type:ident, $op:ident) => {
+        if $a.bitness() == 32 {
+            $a.sub(iced_regs::esp, $reg.size() as i32)
+                .map_err(convert_error)?;
+            $a.$op(dword_ptr(iced_regs::esp), $reg.$reg_type()?)
+                .map_err(convert_error)?;
+        } else if $a.bitness() == 64 {
+            $a.sub(iced_regs::rsp, $reg.size() as i32)
+                .map_err(convert_error)?;
+            $a.$op(dword_ptr(iced_regs::rsp), $reg.$reg_type()?)
+                .map_err(convert_error)?;
+        } else {
+            return Err(JitError::ThirdPartyAssemblerError(
+                ARCH_NOT_SUPPORTED.to_string(),
+            ));
+        }
+    };
+}
+
 fn encode_push(
     a: &mut CodeAssembler,
     push: &PushOperation<AllRegisters>,
@@ -207,53 +324,11 @@ fn encode_push(
     } else if push.register.is_64() {
         a.push(push.register.as_iced_64()?).map_err(convert_error)?;
     } else if push.register.is_xmm() {
-        if a.bitness() == 32 {
-            a.sub(iced_regs::esp, push.register.size() as i32)
-                .map_err(convert_error)?;
-            a.movdqu(dword_ptr(iced_regs::esp), push.register.as_iced_xmm()?)
-                .map_err(convert_error)?;
-        } else if a.bitness() == 64 {
-            a.sub(iced_regs::rsp, push.register.size() as i32)
-                .map_err(convert_error)?;
-            a.movdqu(dword_ptr(iced_regs::rsp), push.register.as_iced_xmm()?)
-                .map_err(convert_error)?;
-        } else {
-            return Err(JitError::ThirdPartyAssemblerError(
-                ARCH_NOT_SUPPORTED.to_string(),
-            ));
-        }
+        encode_xmm_push!(a, push.register, as_iced_xmm, movdqu);
     } else if push.register.is_ymm() {
-        if a.bitness() == 32 {
-            a.sub(iced_regs::esp, push.register.size() as i32)
-                .map_err(convert_error)?;
-            a.vmovdqu(dword_ptr(iced_regs::esp), push.register.as_iced_ymm()?)
-                .map_err(convert_error)?;
-        } else if a.bitness() == 64 {
-            a.sub(iced_regs::rsp, push.register.size() as i32)
-                .map_err(convert_error)?;
-            a.vmovdqu(dword_ptr(iced_regs::rsp), push.register.as_iced_ymm()?)
-                .map_err(convert_error)?;
-        } else {
-            return Err(JitError::ThirdPartyAssemblerError(
-                ARCH_NOT_SUPPORTED.to_string(),
-            ));
-        }
+        encode_xmm_push!(a, push.register, as_iced_ymm, vmovdqu);
     } else if push.register.is_zmm() {
-        if a.bitness() == 32 {
-            a.sub(iced_regs::esp, push.register.size() as i32)
-                .map_err(convert_error)?;
-            a.vmovdqu64(dword_ptr(iced_regs::esp), push.register.as_iced_zmm()?)
-                .map_err(convert_error)?;
-        } else if a.bitness() == 64 {
-            a.sub(iced_regs::rsp, push.register.size() as i32)
-                .map_err(convert_error)?;
-            a.vmovdqu8(dword_ptr(iced_regs::rsp), push.register.as_iced_zmm()?)
-                .map_err(convert_error)?;
-        } else {
-            return Err(JitError::ThirdPartyAssemblerError(
-                ARCH_NOT_SUPPORTED.to_string(),
-            ));
-        }
+        encode_xmm_push!(a, push.register, as_iced_zmm, vmovdqu8);
     } else {
         return Err(JitError::InvalidRegister(push.register));
     }

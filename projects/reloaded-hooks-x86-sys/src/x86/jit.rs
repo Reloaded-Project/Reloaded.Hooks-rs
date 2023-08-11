@@ -53,7 +53,7 @@ fn encode_instruction_x86(
     operation: &Operation<Register>,
     address: usize,
 ) -> Result<(), JitError<Register>> {
-    let all_register_op = transform_op(*operation, |x: Register| {
+    let all_register_op = transform_op(operation.clone(), |x: Register| {
         map_register_x86_to_allregisters(x)
     });
 
@@ -122,7 +122,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        assert_eq!("83ec4062f1fe487f0424", hex::encode(result.unwrap()));
+        assert_eq!("83ec4062f17f487f0424", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -158,7 +158,7 @@ mod tests {
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        assert_eq!("62f1fe486f042483c440", hex::encode(result.unwrap()));
+        assert_eq!("62f17f486f042483c440", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -317,5 +317,255 @@ mod tests {
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("8b442404", hex::encode(result.unwrap()));
+    }
+
+    #[test]
+    fn compile_multi_push_basic_regs_only() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MultiPush(vec![
+            PushOperation {
+                register: Register::eax,
+            },
+            PushOperation {
+                register: Register::ebx,
+            },
+            PushOperation {
+                register: Register::ecx,
+            },
+        ])];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+
+        // The expected output is a placeholder. You'll need to replace it with the correct hex string.
+        assert_eq!(
+            "83ec0c890c24895c240489442408",
+            hex::encode(result.as_ref().unwrap())
+        );
+    }
+
+    #[test]
+    fn compile_multi_push_xmm_only() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MultiPush(vec![
+            PushOperation {
+                register: Register::xmm0,
+            },
+            PushOperation {
+                register: Register::xmm1,
+            },
+            PushOperation {
+                register: Register::xmm2,
+            },
+        ])];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+
+        // The expected output is a placeholder. You'll need to replace it with the correct hex string.
+        assert_eq!(
+            "83ec30f30f7f1424f30f7f4c2410f30f7f442420",
+            hex::encode(result.as_ref().unwrap())
+        );
+    }
+
+    #[test]
+    fn compile_multi_push_ymm_only() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MultiPush(vec![
+            PushOperation {
+                register: Register::ymm0,
+            },
+            PushOperation {
+                register: Register::ymm1,
+            },
+            PushOperation {
+                register: Register::ymm2,
+            },
+        ])];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+
+        // The expected output is a placeholder. You'll need to replace it with the correct hex string.
+        assert_eq!(
+            "83ec60c5fe7f1424c5fe7f4c2420c5fe7f442440",
+            hex::encode(result.as_ref().unwrap())
+        );
+    }
+
+    #[test]
+    fn compile_multi_push_zmm_only() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MultiPush(vec![
+            PushOperation {
+                register: Register::zmm0,
+            },
+            PushOperation {
+                register: Register::zmm1,
+            },
+            PushOperation {
+                register: Register::zmm2,
+            },
+        ])];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+
+        // The expected output is a placeholder. You'll need to replace it with the correct hex string.
+        assert_eq!(
+            "81ecc000000062f17f487f142462f17f487f4c240162f17f487f442402",
+            hex::encode(result.as_ref().unwrap())
+        );
+    }
+
+    #[test]
+    fn compile_multi_push_mixed() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MultiPush(vec![
+            PushOperation {
+                register: Register::eax,
+            },
+            PushOperation {
+                register: Register::xmm0,
+            },
+            PushOperation {
+                register: Register::ymm1,
+            },
+        ])];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+
+        // The expected output is a placeholder. You'll need to replace it with the correct hex string.
+        assert_eq!(
+            "83ec34c5fe7f0c24f30f7f44242089442430",
+            hex::encode(result.as_ref().unwrap())
+        );
+    }
+
+    #[test]
+    fn compile_multi_pop_basic_regs_only() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MultiPop(vec![
+            PopOperation {
+                register: Register::eax,
+            },
+            PopOperation {
+                register: Register::ebx,
+            },
+            PopOperation {
+                register: Register::ecx,
+            },
+        ])];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+
+        // The expected output is a placeholder. You'll need to replace it with the correct hex string.
+        assert_eq!(
+            "8b04248b5c24048b4c240883c40c",
+            hex::encode(result.as_ref().unwrap())
+        );
+    }
+
+    #[test]
+    fn compile_multi_pop_xmm_only() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MultiPop(vec![
+            PopOperation {
+                register: Register::xmm0,
+            },
+            PopOperation {
+                register: Register::xmm1,
+            },
+            PopOperation {
+                register: Register::xmm2,
+            },
+        ])];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+
+        // The expected output is a placeholder. You'll need to replace it with the correct hex string.
+        assert_eq!(
+            "f30f6f0424f30f6f4c2410f30f6f54242083c430",
+            hex::encode(result.as_ref().unwrap())
+        );
+    }
+
+    #[test]
+    fn compile_multi_pop_ymm_only() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MultiPop(vec![
+            PopOperation {
+                register: Register::ymm0,
+            },
+            PopOperation {
+                register: Register::ymm1,
+            },
+            PopOperation {
+                register: Register::ymm2,
+            },
+        ])];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+
+        // The expected output is a placeholder. You'll need to replace it with the correct hex string.
+        assert_eq!(
+            "c5fe6f0424c5fe6f4c2420c5fe6f54244083c460",
+            hex::encode(result.as_ref().unwrap())
+        );
+    }
+
+    #[test]
+    fn compile_multi_pop_zmm_only() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MultiPop(vec![
+            PopOperation {
+                register: Register::zmm0,
+            },
+            PopOperation {
+                register: Register::zmm1,
+            },
+            PopOperation {
+                register: Register::zmm2,
+            },
+        ])];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+
+        // The expected output is a placeholder. You'll need to replace it with the correct hex string.
+        assert_eq!(
+            "62f17f486f042462f17f486f4c240162f17f486f54240281c4c0000000",
+            hex::encode(result.as_ref().unwrap())
+        );
+    }
+
+    #[test]
+    fn compile_multi_pop_mixed() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Operation::MultiPop(vec![
+            PopOperation {
+                register: Register::eax,
+            },
+            PopOperation {
+                register: Register::xmm0,
+            },
+            PopOperation {
+                register: Register::ymm1,
+            },
+        ])];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+
+        // The expected output is a placeholder. You'll need to replace it with the correct hex string.
+        assert_eq!(
+            "8b0424f30f6f442404c5fe6f4c241483c434",
+            hex::encode(result.as_ref().unwrap())
+        );
     }
 }
