@@ -32,7 +32,7 @@ pub enum Operation<T> {
     JumpIpRelative(JumpIpRelativeOperation),
 
     // Opt-in for architectures that support it or can optimise for this use case.
-    // These are opt-in and controlled by JitCapabilities.CanMultiPush
+    // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
     MultiPush(Vec<PushOperation<T>>),
     MultiPop(Vec<PopOperation<T>>),
 }

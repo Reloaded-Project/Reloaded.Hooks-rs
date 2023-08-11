@@ -9,7 +9,7 @@ use crate::{
 use alloc::{rc::Rc, string::ToString};
 use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::{
-    compiler::{transform_err, Jit, JitError},
+    compiler::{transform_err, Jit, JitCapabilities, JitError},
     operation::{transform_op, Operation},
 };
 
@@ -45,6 +45,14 @@ impl Jit<Register> for JitX86 {
 
     fn max_relative_jump_distance() -> usize {
         i32::MAX as usize
+    }
+
+    fn get_jit_capabilities() -> &'static [JitCapabilities] {
+        &[
+            JitCapabilities::CanEncodeIPRelativeCall,
+            JitCapabilities::CanEncodeIPRelativeJump,
+            JitCapabilities::CanMultiPush,
+        ]
     }
 }
 

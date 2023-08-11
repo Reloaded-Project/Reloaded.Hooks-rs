@@ -1,23 +1,23 @@
 extern crate alloc;
 
+use super::operation::Operation;
+use crate::api::traits::register_info::RegisterInfo;
 use alloc::{rc::Rc, string::String};
 use core::fmt::Debug;
-
 use thiserror_no_std::Error;
-
-use crate::api::traits::register_info::RegisterInfo;
-
-use super::operation::Operation;
 
 /// Lists the supported features of the JIT
 pub enum JitCapabilities {
     /// Can encode call that is relative to the instruction pointer.
+    /// This controls whether [CallIpRelativeOperation](super::call_rip_relative_operation::CallIpRelativeOperation) is emitted.
     CanEncodeIPRelativeCall,
 
     /// Can encode jump that is relative to the instruction pointer.
+    /// This controls whether [JumpIpRelativeOperation](super::jump_rip_relative_operation::JumpIpRelativeOperation) is emitted.
     CanEncodeIPRelativeJump,
 
     /// Can encode multiple push/pop operations at once.
+    /// This controls whetehr [MultiPush](super::push_operation::PushOperation) and [MultiPop](super::pop_operation::PopOperation) are emitted.
     CanMultiPush,
 }
 
@@ -40,6 +40,10 @@ pub trait Jit<TRegister: RegisterInfo> {
     /// Maximum distance of relative jump assembly instruction.
     /// This affects wrapper generation, and parameters passed into JIT.
     fn max_relative_jump_distance() -> usize;
+
+    /// Returns the functionalities supported by this JIT.
+    /// These functionalities affect code generation performed by this library.
+    fn get_jit_capabilities() -> &'static [JitCapabilities];
 }
 
 /// Errors that can occur during JIT compilation.
