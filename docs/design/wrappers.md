@@ -61,9 +61,9 @@ pop ebp
 
 ## Optimization
 
-### Align Wrappers to 16 Byte Addresses
+### Align Wrappers to Architecture Recommended Alignment
 
-!!! tip "This optimizes CPU instruction fetch, which operates on 16 byte boundaries."
+!!! tip "This optimizes CPU instruction fetch, which (on x86) operates on 16 byte boundaries."
 
 So we align our wrappers to these boundaries.
 

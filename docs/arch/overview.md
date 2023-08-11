@@ -9,13 +9,12 @@ Lists currently supported architectures.
 | Feature                                                                         | x86 & x64 | ARM64 |
 | ------------------------------------------------------------------------------- | --------- | ----- |
 | [Basic Function Hooking](#basic-function-hooking)                               | ✅         | ❌     |
-| [Code Relocation](#code-relocation)                                             | ✅*        | ❌     |
+| [Code Relocation](#code-relocation)                                             | ✅ ^1      | ❌     |
 | [Hook Stacking](#hook-stacking)                                                 | ✅         | ❌     |
-| [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ❌     |
 | [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ❌     |
 | [Optimal Wrapper Generation](#optimal-wrapper-generation)                       | ✅         | ❌     |
 
-* Only guaranteed for platforms supporting [Targeted Memory Allocation](../platform/overview.md).
+^1 Only guaranteed for platforms supporting [Targeted Memory Allocation](../platform/overview.md).
 
 ## Basic Function Hooking
 
@@ -89,7 +88,7 @@ In practice, this is usually supported for all cases.
 To implement this, you implement a code writer by inheriting the `Jit<TRegister>` trait; and 
 implement the following instructions:  
 
-- *All Instructions* (see: `enum Operation<T>`).  
+- *All Non-Optional Instructions* (see: `enum Operation<T>`).  
 
 ## Optimized Wrapper Generation
 

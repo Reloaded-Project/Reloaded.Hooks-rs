@@ -4,6 +4,8 @@
 
 !!! info "ARM64 is not currently implemented."
 
+- Code Alignment: 4 bytes
+
 ## Registers
 
 | Register    | ARM64 (System V)                                                           | Volatile/Non-Volatile |

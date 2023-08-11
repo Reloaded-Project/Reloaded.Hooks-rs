@@ -7,13 +7,13 @@ hide:
 	<h1>Reloaded Hooks NextGen</h1>
 	<img src="Reloaded/Images/Reloaded-Icon.png" width="150" align="center" />
 	<br/> <br/>
-    Cross Platform, Portable implementation of Reloaded.Hooks.<br/>
+    Cross Platform, Cross Architecture re-implementation of Reloaded.Hooks.<br/>
     🦀 Now in Crab 🦀
 </div>
 
 ## About
 
-reloaded-hooks-rs is an enhanced port of the original [Reloaded.Hooks][Reloaded.Hooks] to Rust
+reloaded-hooks-rs is an enhanced port of the original [Reloaded.Hooks][Reloaded.Hooks] (<= 4.3.0) to Rust.
 
 This library is written as `no_std`. Currently support for `Windows`, `Linux` and `macOS` is provided 
 out of the box. That said, a lot of functionality is platform & architecture agnostic, hopefully making 
@@ -40,13 +40,15 @@ even in bare metal or embedded environments.
 | Feature                                                                                           | x86 & x64 | ARM64 |
 | ------------------------------------------------------------------------------------------------- | --------- | ----- |
 | [Basic Function Hooking](./arch/overview.md#basic-function-hooking)                               | ✅         | ❌     |
-| [Code Relocation](./arch/overview.md#code-relocation)                                             | ✅         | ❌     |
+| [Code Relocation](./arch/overview.md#code-relocation)                                             | ✅ ^1      | ❌     |
 | [Hook Stacking](./arch/overview.md#hook-stacking)                                                 | ✅         | ❌     |
 | [Calling Convention Wrapper Generation](./arch/overview.md#calling-convention-wrapper-generation) | ✅         | ❌     |
 | [Optimal Wrapper Generation](./arch/overview.md#optimal-wrapper-generation)                       | ✅         | ❌     |
 
 Bootstrapping a new architecture is not a difficult job!!  
 Please see [Architecture Support Overview](./arch/overview.md) for porting guidance.
+
+^1 Only guaranteed for platforms supporting [Targeted Memory Allocation](./platform/overview.md).
 
 ## Feature Support
 
