@@ -1,3 +1,7 @@
+extern crate alloc;
+
+use alloc::vec::Vec;
+
 use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
     call_rip_relative_operation::CallIpRelativeOperation,
@@ -9,7 +13,7 @@ use super::{
     xchg_operation::XChgOperation,
 };
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Operation<T> {
     Mov(MovOperation<T>),
     MovFromStack(MovFromStackOperation<T>),
@@ -26,9 +30,15 @@ pub enum Operation<T> {
     // Only possible on some architectures.
     CallIpRelative(CallIpRelativeOperation),
     JumpIpRelative(JumpIpRelativeOperation),
+
+    // Opt-in for architectures that support it or can optimise for this use case.
+    // These are not emitted by the JIT by default; but they can be created by
+    // helper functions that exist inside the JIT.
+    MultiPush(Vec<PushOperation<T>>), // New variant for multiple push operations
+    MultiPop(Vec<PopOperation<T>>),   // New variant for multiple push operations
 }
 
-pub fn transform_op<TOldRegister, TNewRegister, TConvertRegister>(
+pub fn transform_op<TOldRegister: Clone, TNewRegister, TConvertRegister>(
     op: Operation<TOldRegister>,
     f: TConvertRegister,
 ) -> Operation<TNewRegister>
@@ -79,5 +89,21 @@ where
             stack_offset: inner_op.stack_offset,
             target: f(inner_op.target),
         }),
+        Operation::MultiPush(inner_ops) => Operation::MultiPush(
+            inner_ops
+                .iter()
+                .map(|op| PushOperation {
+                    register: f(op.register.clone()),
+                })
+                .collect(),
+        ),
+        Operation::MultiPop(inner_ops) => Operation::MultiPop(
+            inner_ops
+                .iter()
+                .map(|op| PopOperation {
+                    register: f(op.register.clone()),
+                })
+                .collect(),
+        ),
     }
 }

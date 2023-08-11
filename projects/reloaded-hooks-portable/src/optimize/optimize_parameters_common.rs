@@ -11,17 +11,19 @@ use crate::api::{jit::operation::Operation, traits::register_info::RegisterInfo}
 /// - `pop_index` - The index of the pop operation to remove.
 /// - `new_operation` - The new operation to replace the push+pop with.
 ///                     This replaces item at push_index
-pub(crate) fn replace_optimized_operation<'a, TRegister: Copy>(
+pub(crate) fn replace_optimized_operation<'a, TRegister: Clone>(
     operations: &'a mut [Operation<TRegister>],
     push_index: usize,
     pop_index: usize,
     new_operation: &Operation<TRegister>,
 ) -> &'a mut [Operation<TRegister>] {
     // Replace the push operation with the new optimized operation.
-    operations[push_index] = *new_operation;
+    operations[push_index] = new_operation.clone();
 
-    // Copy the items after pop_index backwards by one position to remove the pop operation.
-    operations.copy_within(pop_index + 1.., pop_index);
+    // Manually shift the elements to the left starting from pop_index
+    for x in pop_index..operations.len() - 1 {
+        operations[x] = operations[x + 1].clone();
+    }
 
     // Return a slice that excludes the last (removed) element
     let num_items = operations.len();
