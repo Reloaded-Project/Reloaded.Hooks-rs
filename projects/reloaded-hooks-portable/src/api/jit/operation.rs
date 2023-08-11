@@ -32,10 +32,9 @@ pub enum Operation<T> {
     JumpIpRelative(JumpIpRelativeOperation),
 
     // Opt-in for architectures that support it or can optimise for this use case.
-    // These are not emitted by the JIT by default; but they can be created by
-    // helper functions that exist inside the JIT.
-    MultiPush(Vec<PushOperation<T>>), // New variant for multiple push operations
-    MultiPop(Vec<PopOperation<T>>),   // New variant for multiple push operations
+    // These are opt-in and controlled by JitCapabilities.CanMultiPush
+    MultiPush(Vec<PushOperation<T>>),
+    MultiPop(Vec<PopOperation<T>>),
 }
 
 pub fn transform_op<TOldRegister: Clone, TNewRegister, TConvertRegister>(

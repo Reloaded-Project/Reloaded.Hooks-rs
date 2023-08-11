@@ -16,6 +16,9 @@ pub enum JitCapabilities {
 
     /// Can encode jump that is relative to the instruction pointer.
     CanEncodeIPRelativeJump,
+
+    /// Can encode multiple push/pop operations at once.
+    CanMultiPush,
 }
 
 /// The trait for a Just In Time Compiler used for emitting
