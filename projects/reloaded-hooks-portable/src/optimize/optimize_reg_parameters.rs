@@ -94,6 +94,11 @@ fn encode_push_pop_to_mov<TRegister: Clone + RegisterInfo>(
     push: &PushOperation<TRegister>,
     pop: &PopOperation<TRegister>,
 ) -> Option<MovOperation<TRegister>> {
+    // This encode is only possible if both registers have the same 'type' according to JIT.
+    if pop.register.register_type() != push.register.register_type() {
+        return None;
+    }
+
     Some(MovOperation {
         source: push.register.clone(),
         target: pop.register.clone(),
