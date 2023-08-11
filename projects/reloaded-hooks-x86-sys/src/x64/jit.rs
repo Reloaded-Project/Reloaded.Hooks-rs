@@ -28,7 +28,7 @@ impl Jit<Register> for JitX64 {
 
         // Encode every instruction.
         for operation in operations {
-            encoder_instruction_x64(&mut a, operation, address)?;
+            encode_instruction_x64(&mut a, operation, address)?;
         }
 
         // Assemble those damn instructions
@@ -48,7 +48,7 @@ impl Jit<Register> for JitX64 {
     }
 }
 
-fn encoder_instruction_x64(
+fn encode_instruction_x64(
     assembler: &mut CodeAssembler,
     operation: &Operation<Register>,
     address: usize,
