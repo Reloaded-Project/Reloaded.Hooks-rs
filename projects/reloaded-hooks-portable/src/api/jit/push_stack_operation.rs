@@ -1,3 +1,5 @@
+use derive_new::new;
+
 /// Represents a push stack operation which pushes a value onto the stack from an address
 /// relative to a given register (often the stack pointer).
 ///
@@ -29,7 +31,7 @@
 ///
 /// In the real world, you should use enums or more specific types instead of strings for `base_register`,
 /// the code above shows strings for clarity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct PushStackOperation<T> {
     /// The base register from which the offset is calculated.
     pub base_register: T,

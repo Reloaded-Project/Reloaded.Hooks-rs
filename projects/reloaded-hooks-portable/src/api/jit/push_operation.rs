@@ -1,3 +1,5 @@
+use derive_new::new;
+
 /// Represents a push operation which pushes a register onto the stack and increments
 /// the current stack pointer.
 ///
@@ -50,7 +52,7 @@
 ///
 /// In the real world, you should use enums instead of strings for source and target 😉,
 /// the code above shows strings for clarity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct PushOperation<T> {
     /// The register to push onto the stack.
     pub register: T,

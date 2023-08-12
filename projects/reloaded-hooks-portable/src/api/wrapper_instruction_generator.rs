@@ -7,10 +7,16 @@ use super::{
     jit::{
         compiler::{Jit, JitCapabilities},
         operation::Operation,
+        pop_operation::PopOperation,
         push_operation::PushOperation,
+        sub_operation::SubOperation,
     },
     traits::register_info::RegisterInfo,
 };
+
+type Sub<T> = SubOperation<T>;
+type Push<T> = PushOperation<T>;
+type Pop<T> = PopOperation<T>;
 
 /// Options and additional context necessary for the wrapper generator.
 #[derive(Clone, Copy)]
@@ -60,19 +66,17 @@ pub fn generate_wrapper_instructions<
     to_convention: TFunctionAttribute,
     options: WrapperInstructionGeneratorOptions<TFunctionInfo>,
 ) -> Vec<Operation<TRegister>> {
-    let mut assembly = Vec::<Operation<TRegister>>::new();
+    let mut ops = Vec::<Operation<TRegister>>::new();
 
     let mut stack_pointer = 0;
 
     // Backup Always Saved Registers (LR)
     for register in from_convention.always_saved_registers() {
-        assembly.push(Operation::Push(PushOperation {
-            register: register.clone(),
-        }));
+        ops.push(Push::new(register.clone()).into());
         stack_pointer += register.size_in_bytes();
     }
 
     // Return Result
     todo!("rest of code");
-    assembly
+    ops
 }

@@ -1,3 +1,5 @@
+use derive_new::new;
+
 /// Represents a pop operation which retrieves a value from the top of the stack,
 /// stores it in a register and decrements the current stack pointer.
 ///
@@ -50,7 +52,7 @@
 ///
 /// In the real world, you should use enums instead of strings for source and target 😉,
 /// the code above shows strings for clarity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct SubOperation<T> {
     /// The register from which the value will be subtracted.
     pub register: T,

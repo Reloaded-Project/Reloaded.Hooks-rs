@@ -1,3 +1,5 @@
+use derive_new::new;
+
 /// Represents a move operation that moves an element from the stack into a register.
 ///
 /// A `MovFromStackOperation` consists of a stack offset and a target register,
@@ -22,7 +24,7 @@
 ///
 /// In the real world, you should use enums instead of strings for the target 😉,
 /// the code above shows strings for clarity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct MovFromStackOperation<T> {
     /// The offset from the base of the stack (e.g., ESP or RSP in x86) where the data is located.
     pub stack_offset: i32,

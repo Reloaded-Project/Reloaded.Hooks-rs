@@ -1,6 +1,7 @@
 extern crate alloc;
 
 use alloc::vec::Vec;
+use derive_more::From;
 
 use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
@@ -13,7 +14,7 @@ use super::{
     xchg_operation::XChgOperation,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, From)]
 pub enum Operation<T> {
     Mov(MovOperation<T>),
     MovFromStack(MovFromStackOperation<T>),

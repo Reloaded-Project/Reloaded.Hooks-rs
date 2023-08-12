@@ -121,24 +121,3 @@ impl ParameterType {
         !self.is_float()
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::helpers::test_helpers::*;
-
-    fn create_mock_function(params: Vec<ParameterType>) -> MockFunction {
-        MockFunction { parameters: params }
-    }
-
-    fn create_mock_attribute(
-        int_params: Vec<MockRegister>,
-        float_params: Vec<MockRegister>,
-    ) -> MockFunctionAttribute {
-        MockFunctionAttribute {
-            int_params,
-            float_params,
-            ..Default::default()
-        }
-    }
-}

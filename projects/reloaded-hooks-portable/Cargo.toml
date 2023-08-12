@@ -14,6 +14,8 @@ nohash = "0.2.0"
 spin = "0.9.8"
 thiserror-no-std = "2.0.2"
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
+derive_more = { version = "0.99.17", default-features = false, features = ["from", "add", "iterator"] }
+derive-new = { version = "0.5.9", default-features = false }
 
 [dev-dependencies]
 criterion = "0.5.1"
