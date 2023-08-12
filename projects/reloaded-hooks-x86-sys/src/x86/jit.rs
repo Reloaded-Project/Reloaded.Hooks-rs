@@ -167,10 +167,10 @@ mod tests {
     fn test_compile_sub() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::Sub(Sub::new(Register::eax, 10))];
+        let operations = vec![Op::StackAlloc(StackAlloc::new(10))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        assert_eq!("2d0a000000", hex::encode(result.unwrap()));
+        assert_eq!("83ec0a", hex::encode(result.unwrap()));
     }
 
     #[test]

@@ -32,10 +32,10 @@ use derive_new::new;
 /// represented as:
 ///
 /// ```
-/// use reloaded_hooks_portable::api::jit::sub_operation::SubOperation;
+/// use reloaded_hooks_portable::api::jit::stack_alloc_operation::StackAllocOperation;
 /// use reloaded_hooks_portable::api::jit::mov_operation::MovOperation;
 ///
-/// let sub_sp = SubOperation { register: "sp", operand: 4 }; // assuming 4 bytes per register
+/// let sub_sp = StackAllocOperation { operand: 4 }; // assuming 4 bytes per register
 /// let mov_into_stack = MovOperation { source: "r1", target: "[sp]" };
 /// ```
 ///

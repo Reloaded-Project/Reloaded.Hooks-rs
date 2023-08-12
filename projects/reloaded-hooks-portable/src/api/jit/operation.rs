@@ -10,7 +10,7 @@ use super::{
     jump_rip_relative_operation::JumpIpRelativeOperation,
     mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
     pop_operation::PopOperation, push_operation::PushOperation,
-    push_stack_operation::PushStackOperation, sub_operation::SubOperation,
+    push_stack_operation::PushStackOperation, stack_alloc_operation::StackAllocOperation,
     xchg_operation::XChgOperation,
 };
 
@@ -20,7 +20,7 @@ pub enum Operation<T> {
     MovFromStack(MovFromStackOperation<T>),
     Push(PushOperation<T>),
     PushStack(PushStackOperation<T>),
-    Sub(SubOperation<T>),
+    StackAlloc(StackAllocOperation),
     Pop(PopOperation<T>),
     Xchg(XChgOperation<T>),
     CallAbsolute(CallAbsoluteOperation<T>),
@@ -58,8 +58,7 @@ where
             offset: inner_op.offset,
             item_size: inner_op.item_size,
         }),
-        Operation::Sub(inner_op) => Operation::Sub(SubOperation {
-            register: f(inner_op.register),
+        Operation::StackAlloc(inner_op) => Operation::StackAlloc(StackAllocOperation {
             operand: inner_op.operand,
         }),
         Operation::Pop(inner_op) => Operation::Pop(PopOperation {

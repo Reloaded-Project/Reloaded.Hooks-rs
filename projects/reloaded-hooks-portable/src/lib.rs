@@ -37,7 +37,7 @@ pub mod api {
         pub mod pop_operation;
         pub mod push_operation;
         pub mod push_stack_operation;
-        pub mod sub_operation;
+        pub mod stack_alloc_operation;
         pub mod xchg_operation;
     }
 

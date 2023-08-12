@@ -21,7 +21,7 @@ pub(crate) fn encode_instruction(
         Operation::MovFromStack(x) => encode_mov_from_stack(assembler, x),
         Operation::Push(x) => encode_push(assembler, x),
         Operation::PushStack(x) => encode_push_stack(assembler, x),
-        Operation::Sub(x) => encode_sub(assembler, x),
+        Operation::StackAlloc(x) => encode_stack_alloc(assembler, x),
         Operation::Pop(x) => encode_pop(assembler, x),
         Operation::Xchg(x) => encode_xchg(assembler, x),
         Operation::CallRelative(x) => encode_call_relative(assembler, x),
@@ -218,18 +218,19 @@ fn encode_pop(
     Ok(())
 }
 
-fn encode_sub(
+fn encode_stack_alloc(
     a: &mut CodeAssembler,
-    sub: &Sub<AllRegisters>,
+    sub: &StackAlloc,
 ) -> Result<(), JitError<AllRegisters>> {
-    if sub.register.is_32() {
-        a.sub(sub.register.as_iced_32()?, sub.operand)
-    } else if sub.register.is_64() {
-        a.sub(sub.register.as_iced_64()?, sub.operand)
+    if a.bitness() == 32 {
+        a.sub(iced_regs::esp, sub.operand).map_err(convert_error)?;
+    } else if a.bitness() == 64 {
+        a.sub(iced_regs::rsp, sub.operand).map_err(convert_error)?;
     } else {
-        return Err(JitError::InvalidRegister(sub.register));
+        return Err(JitError::ThirdPartyAssemblerError(
+            ARCH_NOT_SUPPORTED.to_string(),
+        ));
     }
-    .map_err(convert_error)?;
 
     Ok(())
 }

@@ -8,7 +8,7 @@ use super::{
     jump_rip_relative_operation::JumpIpRelativeOperation,
     mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
     operation::Operation, pop_operation::PopOperation, push_operation::PushOperation,
-    push_stack_operation::PushStackOperation, sub_operation::SubOperation,
+    push_stack_operation::PushStackOperation, stack_alloc_operation::StackAllocOperation,
     xchg_operation::XChgOperation,
 };
 
@@ -17,7 +17,7 @@ pub type Mov<T> = MovOperation<T>;
 pub type MovFromStack<T> = MovFromStackOperation<T>;
 pub type Push<T> = PushOperation<T>;
 pub type PushStack<T> = PushStackOperation<T>;
-pub type Sub<T> = SubOperation<T>;
+pub type StackAlloc = StackAllocOperation;
 pub type Pop<T> = PopOperation<T>;
 pub type XChg<T> = XChgOperation<T>;
 pub type CallAbs<T> = CallAbsoluteOperation<T>;

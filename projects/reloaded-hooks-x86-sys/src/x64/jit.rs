@@ -167,10 +167,10 @@ mod tests {
     fn test_compile_sub() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Op::Sub(Sub::new(Register::rax, 10))];
+        let operations = vec![Op::StackAlloc(StackAlloc::new(10))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
-        assert_eq!("482d0a000000", hex::encode(result.unwrap()));
+        assert_eq!("4883ec0a", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -329,12 +329,12 @@ mod tests {
         let mut jit = JitX64 {};
 
         let operations = vec![
-            Op::Sub(Sub::new(Register::rax, 10)),
+            Op::StackAlloc(StackAlloc::new(10)),
             Op::CallIpRelative(CallIpRel::new(16)),
         ];
         let result = jit.compile(20, &operations);
         assert!(result.is_ok());
-        assert_eq!("482d0a000000ff15f0ffffff", hex::encode(result.unwrap()));
+        assert_eq!("4883ec0aff15f2ffffff", hex::encode(result.unwrap()));
     }
 
     #[test]
@@ -342,13 +342,13 @@ mod tests {
         let mut jit = JitX64 {};
 
         let operations = vec![
-            Op::Sub(Sub::new(Register::rax, 10)),
+            Op::StackAlloc(StackAlloc::new(10)),
             Op::JumpIpRelative(JumpIpRel::new(16)),
         ];
         let result = jit.compile(20, &operations);
         assert!(result.is_ok());
         assert_eq!(
-            "482d0a000000ff25f0ffffff",
+            "4883ec0aff25f2ffffff",
             hex::encode(result.as_ref().unwrap())
         );
     }

@@ -26,10 +26,7 @@ pub(crate) fn create_operations_64() -> Vec<Operation<Register>> {
             source: Register::rax,
             target: Register::rbx,
         }),
-        Operation::Sub(Sub {
-            register: Register::rax,
-            operand: 10,
-        }),
+        Operation::StackAlloc(StackAlloc { operand: 10 }),
         Operation::Xchg(XChg {
             register1: Register::rax,
             register2: Register::rbx,

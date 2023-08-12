@@ -33,10 +33,10 @@ use derive_new::new;
 ///
 /// ```
 /// use reloaded_hooks_portable::api::jit::mov_operation::MovOperation;
-/// use reloaded_hooks_portable::api::jit::sub_operation::SubOperation;
+/// use reloaded_hooks_portable::api::jit::stack_alloc_operation::StackAllocOperation;
 ///
 /// let mov_from_stack = MovOperation { source: "[sp]", target: "r1" };
-/// let add_sp = SubOperation { register: "sp", operand: -4 }; // assuming 4 bytes per register
+/// let add_sp = StackAllocOperation { operand: -4 }; // assuming 4 bytes per register
 /// ```
 ///
 /// In these cases, the `PopOperation` can be used as an abstraction of these two
