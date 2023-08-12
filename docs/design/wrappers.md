@@ -139,6 +139,52 @@ add esp, 8
 ret 8
 ```
 
+### Combine Push/Pop Operations when Possible
+
+!!! info "When pushing multiple registers at once, it is possible to remove redundant stack operations."
+
+Imagine a situation where you need to push 3 float registers onto the stack; if we pass the instructions
+from the wrapper generator verbatim [push a, then push b, then push c], we would land with the following:
+
+```asm
+; Push XMM registers
+sub rsp, 16
+movdqu [rsp], xmm0
+sub rsp, 16
+movdqu [rsp], xmm1
+sub rsp, 16
+movdqu [rsp], xmm2
+
+; Pop XMM registers
+movdqu xmm2, [rsp]
+add rsp, 16
+movdqu xmm1, [rsp]
+add rsp, 16
+movdqu xmm0, [rsp]
+add rsp, 16
+```
+
+This is unoptimal as it can be simplified to:
+
+```asm
+# Push Registers to the Stack
+sub rsp, 48
+movdqu [rsp], xmm0 
+movdqu [rsp + 16], xmm1
+movdqu [rsp + 32], xmm2
+
+# Pop three XMM registers from the Stack
+movdqu xmm0, [rsp]
+movdqu xmm1, [rsp + 16]
+movdqu xmm2, [rsp + 32]
+add rsp, 48
+```
+
+When generating wrappers, the generator must recognise this pattern, and merge multiple
+push/pop operations into a single block, wherever possible.
+
+!!! note "It is optimal to access memory sequentially from lowest to highest address."
+
 ### Move Between Registers Instead of Push Pop
 
 !!! tip "In some cases it's possible to mov between registers, rather than doing an explicit push+pop operation"
