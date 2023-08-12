@@ -68,8 +68,6 @@ where
         Operation::Xchg(inner_op) => Operation::Xchg(XChgOperation {
             register1: f(inner_op.register1),
             register2: f(inner_op.register2),
-
-            #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
             scratch: inner_op.scratch.map(&f),
         }),
         Operation::CallRelative(inner_op) => Operation::CallRelative(inner_op),

@@ -1,12 +1,11 @@
 extern crate alloc;
 
+use crate::api::jit::operation_aliases::*;
+use crate::graphs::{graph::Graph, node::Node};
+use alloc::rc::Rc;
 use core::cell::RefCell;
 use core::hash::BuildHasherDefault;
 use core::hash::Hash;
-
-use crate::api::jit::mov_operation::MovOperation;
-use crate::graphs::{graph::Graph, node::Node};
-use alloc::rc::Rc;
 use hashbrown::HashMap;
 use nohash::NoHashHasher;
 
@@ -26,7 +25,7 @@ type NodeMap<T> = HashMap<T, Rc<RefCell<Node<T>>>, BuildHasherDefault<NoHashHash
 ///
 /// Would be represented as
 /// ebx -> eax -> ecx
-pub fn build_graph<T: Eq + Clone + Hash>(moves: &[MovOperation<T>]) -> Graph<T> {
+pub fn build_graph<T: Eq + Clone + Hash>(moves: &[Mov<T>]) -> Graph<T> {
     let mut graph = Graph::<T>::new();
     let mut nodes: NodeMap<T> =
         HashMap::with_capacity_and_hasher(moves.len(), BuildHasherDefault::default());
@@ -60,13 +59,11 @@ pub fn build_graph<T: Eq + Clone + Hash>(moves: &[MovOperation<T>]) -> Graph<T> 
 
 #[cfg(test)]
 mod tests {
-    use crate::api::jit::mov_operation::MovOperation;
-
     use super::*;
 
     #[test]
     fn test_build_graph_empty() {
-        let moves: Vec<MovOperation<u32>> = Vec::new();
+        let moves: Vec<Mov<u32>> = Vec::new();
         let graph = build_graph(&moves);
 
         assert_eq!(graph.values.len(), 0);
@@ -74,7 +71,7 @@ mod tests {
 
     #[test]
     fn test_build_graph_single_move() {
-        let moves = vec![MovOperation {
+        let moves = vec![Mov {
             source: 1,
             target: 2,
         }];
@@ -91,11 +88,11 @@ mod tests {
     #[test]
     fn test_build_graph_multiple_moves() {
         let moves = vec![
-            MovOperation {
+            Mov {
                 source: 1,
                 target: 2,
             },
-            MovOperation {
+            Mov {
                 source: 2,
                 target: 3,
             },

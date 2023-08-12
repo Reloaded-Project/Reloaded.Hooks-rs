@@ -1,12 +1,6 @@
-use crate::api::{
-    jit::{
-        mov_operation::MovOperation, operation::Operation, pop_operation::PopOperation,
-        push_operation::PushOperation,
-    },
-    traits::register_info::RegisterInfo,
-};
-
 use super::optimize_parameters_common::{find_pop_for_given_push, replace_optimized_operation};
+use crate::api::jit::operation_aliases::*;
+use crate::api::{jit::operation::Operation, traits::register_info::RegisterInfo};
 
 /// Optimizes the parameters that are pushed from register and then popped back
 /// into another register.
@@ -91,15 +85,15 @@ pub fn optimize_push_pop_parameters<TRegister: RegisterInfo + Copy>(
 /// Accepts a push stack operation and a pop operation, and returns a mov operation that
 /// is equivalent to both the operations.
 fn encode_push_pop_to_mov<TRegister: Clone + RegisterInfo>(
-    push: &PushOperation<TRegister>,
-    pop: &PopOperation<TRegister>,
-) -> Option<MovOperation<TRegister>> {
+    push: &Push<TRegister>,
+    pop: &Pop<TRegister>,
+) -> Option<Mov<TRegister>> {
     // This encode is only possible if both registers have the same 'type' according to JIT.
     if pop.register.register_type() != push.register.register_type() {
         return None;
     }
 
-    Some(MovOperation {
+    Some(Mov {
         source: push.register.clone(),
         target: pop.register.clone(),
     })
@@ -107,19 +101,17 @@ fn encode_push_pop_to_mov<TRegister: Clone + RegisterInfo>(
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
-    use crate::{
-        api::jit::operation::Operation::{Mov, Pop, Push},
-        helpers::test_helpers::MockRegister::*,
-    };
+    use crate::helpers::test_helpers::MockRegister::*;
 
     #[test]
     fn optimizes_push_pop_sequence() {
         let mut operations = vec![
-            Push(PushOperation { register: R2 }),
-            Push(PushOperation { register: R3 }),
-            Pop(PopOperation { register: R4 }),
-            Pop(PopOperation { register: R1 }),
+            Operation::Push(Push { register: R2 }),
+            Operation::Push(Push { register: R3 }),
+            Operation::Pop(Pop { register: R4 }),
+            Operation::Pop(Pop { register: R1 }),
         ];
 
         let new_ops = optimize_push_pop_parameters(&mut operations);
@@ -127,11 +119,11 @@ mod tests {
         assert_eq!(
             new_ops,
             vec![
-                Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: R2,
                     target: R1,
                 }),
-                Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: R3,
                     target: R4,
                 }),
@@ -142,9 +134,9 @@ mod tests {
     #[test]
     fn mixed_sequence_with_missing_pop() {
         let mut operations = vec![
-            Push(PushOperation { register: F1 }),
-            Push(PushOperation { register: F2 }),
-            Pop(PopOperation { register: F3 }),
+            Operation::Push(Push { register: F1 }),
+            Operation::Push(Push { register: F2 }),
+            Operation::Pop(Pop { register: F3 }),
         ];
 
         let new_ops = optimize_push_pop_parameters(&mut operations);
@@ -152,8 +144,8 @@ mod tests {
         assert_eq!(
             new_ops,
             vec![
-                Push(PushOperation { register: F1 }),
-                Mov(MovOperation {
+                Operation::Push(Push { register: F1 }),
+                Operation::Mov(Mov {
                     source: F2,
                     target: F3,
                 }),
@@ -164,14 +156,14 @@ mod tests {
     #[test]
     fn multiple_consecutive_push_pop_sequences_optimized() {
         let mut operations = vec![
-            Push(PushOperation { register: R1 }),
-            Push(PushOperation { register: R2 }),
-            Pop(PopOperation { register: R3 }),
-            Pop(PopOperation { register: R4 }),
-            Push(PushOperation { register: R3 }),
-            Push(PushOperation { register: R4 }),
-            Pop(PopOperation { register: R1 }),
-            Pop(PopOperation { register: R2 }),
+            Operation::Push(Push { register: R1 }),
+            Operation::Push(Push { register: R2 }),
+            Operation::Pop(Pop { register: R3 }),
+            Operation::Pop(Pop { register: R4 }),
+            Operation::Push(Push { register: R3 }),
+            Operation::Push(Push { register: R4 }),
+            Operation::Pop(Pop { register: R1 }),
+            Operation::Pop(Pop { register: R2 }),
         ];
 
         let new_ops = optimize_push_pop_parameters(&mut operations);
@@ -179,19 +171,19 @@ mod tests {
         assert_eq!(
             new_ops,
             vec![
-                Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: R1,
                     target: R4,
                 }),
-                Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: R2,
                     target: R3,
                 }),
-                Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: R3,
                     target: R2,
                 }),
-                Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: R4,
                     target: R1,
                 }),

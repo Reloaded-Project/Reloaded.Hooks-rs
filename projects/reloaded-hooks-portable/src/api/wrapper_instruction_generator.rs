@@ -7,16 +7,10 @@ use super::{
     jit::{
         compiler::{Jit, JitCapabilities},
         operation::Operation,
-        pop_operation::PopOperation,
-        push_operation::PushOperation,
-        sub_operation::SubOperation,
     },
     traits::register_info::RegisterInfo,
 };
-
-type Sub<T> = SubOperation<T>;
-type Push<T> = PushOperation<T>;
-type Pop<T> = PopOperation<T>;
+use crate::api::jit::operation_aliases::*;
 
 /// Options and additional context necessary for the wrapper generator.
 #[derive(Clone, Copy)]

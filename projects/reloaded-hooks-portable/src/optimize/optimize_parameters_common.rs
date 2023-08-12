@@ -75,15 +75,10 @@ pub(crate) fn find_pop_for_given_push<TRegister: RegisterInfo>(
 
 #[cfg(test)]
 pub mod tests {
+
+    use crate::api::jit::operation_aliases::*;
     use crate::{
-        api::{
-            jit::{
-                mov_from_stack_operation::MovFromStackOperation, operation::Operation,
-                pop_operation::PopOperation, push_operation::PushOperation,
-                push_stack_operation::PushStackOperation,
-            },
-            traits::register_info::RegisterInfo,
-        },
+        api::{jit::operation::Operation, traits::register_info::RegisterInfo},
         helpers::test_helpers::MockRegister::*,
         optimize::optimize_parameters_common::{
             find_pop_for_given_push, replace_optimized_operation,
@@ -93,14 +88,14 @@ pub mod tests {
     #[test]
     fn find_pop_for_given_push_basic() {
         let ops = vec![
-            Operation::Push(PushOperation { register: R1 }),
-            Operation::PushStack(PushStackOperation {
+            Operation::Push(Push { register: R1 }),
+            Operation::PushStack(PushStack {
                 base_register: R2,
                 item_size: 4,
                 offset: 4,
             }),
-            Operation::Pop(PopOperation { register: R1 }),
-            Operation::Pop(PopOperation { register: R2 }),
+            Operation::Pop(Pop { register: R1 }),
+            Operation::Pop(Pop { register: R2 }),
         ];
 
         let idx = find_pop_for_given_push(&ops[1..], R1.size_in_bytes());
@@ -111,13 +106,13 @@ pub mod tests {
     #[test]
     fn find_pop_for_given_push_no_matching_pop() {
         let ops = vec![
-            Operation::Push(PushOperation { register: R1 }),
-            Operation::PushStack(PushStackOperation {
+            Operation::Push(Push { register: R1 }),
+            Operation::PushStack(PushStack {
                 base_register: R2,
                 item_size: 8,
                 offset: 4,
             }),
-            Operation::Push(PushOperation { register: R2 }),
+            Operation::Push(Push { register: R2 }),
         ];
 
         let idx = find_pop_for_given_push(&ops[1..], R1.size_in_bytes());
@@ -128,13 +123,13 @@ pub mod tests {
     #[test]
     fn find_pop_for_given_push_missing_just_one_pop() {
         let ops = vec![
-            Operation::Push(PushOperation { register: R1 }),
-            Operation::PushStack(PushStackOperation {
+            Operation::Push(Push { register: R1 }),
+            Operation::PushStack(PushStack {
                 base_register: R2,
                 item_size: 4,
                 offset: 4,
             }),
-            Operation::Pop(PopOperation { register: R1 }),
+            Operation::Pop(Pop { register: R1 }),
         ];
 
         let idx = find_pop_for_given_push(&ops[1..], R1.size_in_bytes());
@@ -145,17 +140,17 @@ pub mod tests {
     #[test]
     fn find_pop_for_given_push_stack_and_register() {
         let ops = vec![
-            Operation::Push(PushOperation { register: R1 }),
-            Operation::PushStack(PushStackOperation {
+            Operation::Push(Push { register: R1 }),
+            Operation::PushStack(PushStack {
                 base_register: R2,
                 item_size: 8, // This register is double the size; so offsets the pops by 1.
                 offset: 4,
             }),
-            Operation::Push(PushOperation { register: R3 }),
-            Operation::Pop(PopOperation { register: R4 }),
-            Operation::Pop(PopOperation { register: R1 }),
-            Operation::Pop(PopOperation { register: R3 }),
-            Operation::Pop(PopOperation { register: R2 }),
+            Operation::Push(Push { register: R3 }),
+            Operation::Pop(Pop { register: R4 }),
+            Operation::Pop(Pop { register: R1 }),
+            Operation::Pop(Pop { register: R3 }),
+            Operation::Pop(Pop { register: R2 }),
         ];
 
         let idx = find_pop_for_given_push(&ops[1..], R1.size_in_bytes());
@@ -167,17 +162,17 @@ pub mod tests {
     fn can_replace_optimized_operation() {
         // Sample operations list
         let mut operations = [
-            Operation::PushStack(PushStackOperation {
+            Operation::PushStack(PushStack {
                 base_register: SP,
                 offset: 4,
                 item_size: 4,
             }),
-            Operation::Push(PushOperation { register: R1 }),
-            Operation::Pop(PopOperation { register: R2 }),
-            Operation::Pop(PopOperation { register: R3 }),
+            Operation::Push(Push { register: R1 }),
+            Operation::Pop(Pop { register: R2 }),
+            Operation::Pop(Pop { register: R3 }),
         ];
 
-        let mov_op = Operation::MovFromStack(MovFromStackOperation {
+        let mov_op = Operation::MovFromStack(MovFromStack {
             stack_offset: 4,
             target: R3,
         });
@@ -186,12 +181,12 @@ pub mod tests {
 
         // Expected result
         let expected = [
-            Operation::MovFromStack(MovFromStackOperation {
+            Operation::MovFromStack(MovFromStack {
                 stack_offset: 4,
                 target: R3,
             }),
-            Operation::Push(PushOperation { register: R1 }),
-            Operation::Pop(PopOperation { register: R2 }),
+            Operation::Push(Push { register: R1 }),
+            Operation::Pop(Pop { register: R2 }),
         ];
 
         assert_eq!(result, &expected);

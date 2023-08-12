@@ -71,17 +71,7 @@ fn encode_instruction_x64(
 
 #[cfg(test)]
 mod tests {
-    use reloaded_hooks_portable::api::jit::{
-        call_absolute_operation::CallAbsoluteOperation,
-        call_relative_operation::CallRelativeOperation,
-        call_rip_relative_operation::CallIpRelativeOperation,
-        jump_absolute_operation::JumpAbsoluteOperation,
-        jump_relative_operation::JumpRelativeOperation,
-        jump_rip_relative_operation::JumpIpRelativeOperation,
-        mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
-        pop_operation::PopOperation, push_operation::PushOperation, sub_operation::SubOperation,
-        xchg_operation::XChgOperation,
-    };
+    use reloaded_hooks_portable::api::jit::operation_aliases::*;
 
     use super::*;
 
@@ -91,9 +81,7 @@ mod tests {
     fn test_compile_push() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::Push(PushOperation {
-            register: Register::rax,
-        })];
+        let operations = vec![Op::Push(Push::new(Register::rax))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("50", hex::encode(result.unwrap()));
@@ -103,9 +91,7 @@ mod tests {
     fn test_compile_push_xmm() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::Push(PushOperation {
-            register: Register::xmm0,
-        })];
+        let operations = vec![Op::Push(Push::new(Register::xmm0))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("4883ec10f30f7f0424", hex::encode(result.unwrap()));
@@ -115,9 +101,7 @@ mod tests {
     fn test_compile_push_ymm() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::Push(PushOperation {
-            register: Register::ymm0,
-        })];
+        let operations = vec![Op::Push(Push::new(Register::ymm0))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("4883ec20c5fe7f0424", hex::encode(result.unwrap()));
@@ -127,9 +111,7 @@ mod tests {
     fn test_compile_push_zmm() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::Push(PushOperation {
-            register: Register::zmm0,
-        })];
+        let operations = vec![Op::Push(Push::new(Register::zmm0))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(
@@ -142,9 +124,7 @@ mod tests {
     fn test_compile_pop_xmm() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::Pop(PopOperation {
-            register: Register::xmm0,
-        })];
+        let operations = vec![Op::Pop(Pop::new(Register::xmm0))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("f30f6f04244883c410", hex::encode(result.unwrap()));
@@ -154,9 +134,7 @@ mod tests {
     fn test_compile_pop_ymm() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::Pop(PopOperation {
-            register: Register::ymm0,
-        })];
+        let operations = vec![Op::Pop(Pop::new(Register::ymm0))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("c5fe6f04244883c420", hex::encode(result.unwrap()));
@@ -166,9 +144,7 @@ mod tests {
     fn test_compile_pop_zmm() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::Pop(PopOperation {
-            register: Register::zmm0,
-        })];
+        let operations = vec![Op::Pop(Pop::new(Register::zmm0))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("62f17f486f04244883c440", hex::encode(result.unwrap()));
@@ -178,7 +154,7 @@ mod tests {
     fn test_compile_mov() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::Mov(MovOperation {
+        let operations = vec![Op::Mov(Mov {
             source: Register::rax,
             target: Register::rbx,
         })];
@@ -191,10 +167,7 @@ mod tests {
     fn test_compile_sub() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::Sub(SubOperation {
-            register: Register::rax,
-            operand: 10,
-        })];
+        let operations = vec![Op::Sub(Sub::new(Register::rax, 10))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("482d0a000000", hex::encode(result.unwrap()));
@@ -204,9 +177,10 @@ mod tests {
     fn test_compile_xchg() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::Xchg(XChgOperation {
+        let operations = vec![Op::Xchg(XChg {
             register1: Register::rax,
             register2: Register::rbx,
+            scratch: None,
         })];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
@@ -217,9 +191,7 @@ mod tests {
     fn test_compile_jmp_relative() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::JumpRelative(JumpRelativeOperation {
-            target_address: 0x7FFFFFFF,
-        })];
+        let operations = vec![Op::JumpRelative(JumpRel::new(0x7FFFFFFF))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("e9faffff7f", hex::encode(result.unwrap()));
@@ -229,7 +201,7 @@ mod tests {
     fn test_compile_jmp_absolute() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::JumpAbsolute(JumpAbsoluteOperation {
+        let operations = vec![Op::JumpAbsolute(JumpAbs {
             scratch_register: Register::rax,
             target_address: 0x12345678,
         })];
@@ -245,9 +217,7 @@ mod tests {
     fn test_compile_call_relative() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::CallRelative(CallRelativeOperation {
-            target_address: 0x7FFFFFFF,
-        })];
+        let operations = vec![Op::CallRelative(CallRel::new(0x7FFFFFFF))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("e8faffff7f", hex::encode(result.unwrap()));
@@ -257,7 +227,7 @@ mod tests {
     fn test_compile_call_absolute() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::CallAbsolute(CallAbsoluteOperation {
+        let operations = vec![Op::CallAbsolute(CallAbs {
             scratch_register: Register::rax,
             target_address: 0x12345678,
         })];
@@ -272,9 +242,7 @@ mod tests {
         let mut jit = JitX64 {};
 
         // Note: This fails inside Iced :/
-        let operations = vec![Operation::JumpRelative(JumpRelativeOperation {
-            target_address: usize::MAX,
-        })];
+        let operations = vec![Op::JumpRelative(JumpRel::new(usize::MAX))];
         let result = jit.compile(0, &operations);
         assert!(result.is_err());
     }
@@ -286,9 +254,7 @@ mod tests {
         // Verifies that the JIT compiles a relative jmp that branches towards target_address
         // This is verified by branching to an address outside of the 2GB range and setting
         // Instruction Pointer of assembled code to make it within range.
-        let operations = vec![Operation::JumpRelative(JumpRelativeOperation {
-            target_address: 0x80000005,
-        })];
+        let operations = vec![Op::JumpRelative(JumpRel::new(0x80000005))];
         let result = jit.compile(5, &operations);
         assert!(result.is_ok());
         assert_eq!("e9fbffff7f", hex::encode(result.as_ref().unwrap()));
@@ -300,9 +266,7 @@ mod tests {
         let mut jit = JitX64 {};
 
         // Note: This fails inside Iced :/
-        let operations = vec![Operation::CallRelative(CallRelativeOperation {
-            target_address: usize::MAX,
-        })];
+        let operations = vec![Op::CallRelative(CallRel::new(usize::MAX))];
         let result = jit.compile(0, &operations);
         assert!(result.is_err());
     }
@@ -314,9 +278,7 @@ mod tests {
         // Verifies that the JIT compiles a relative call that branches towards target_address
         // This is verified by branching to an address outside of the 2GB range and setting
         // Instruction Pointer of assembled code to make it within range.
-        let operations = vec![Operation::CallRelative(CallRelativeOperation {
-            target_address: 0x80000005,
-        })];
+        let operations = vec![Op::CallRelative(CallRel::new(0x80000005))];
         let result = jit.compile(5, &operations);
         assert!(result.is_ok());
         assert_eq!("e8fbffff7f", hex::encode(result.unwrap()));
@@ -326,9 +288,7 @@ mod tests {
     fn test_compile_call_rip_relative() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::CallIpRelative(CallIpRelativeOperation {
-            target_address: 0x16,
-        })];
+        let operations = vec![Op::CallIpRelative(CallIpRel::new(0x16))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("ff1510000000", hex::encode(result.unwrap()));
@@ -338,9 +298,7 @@ mod tests {
     fn test_compile_jmp_rip_relative() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::JumpIpRelative(JumpIpRelativeOperation {
-            target_address: 0x16,
-        })];
+        let operations = vec![Op::JumpIpRelative(JumpIpRel::new(0x16))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("ff2510000000", hex::encode(result.unwrap()));
@@ -350,9 +308,7 @@ mod tests {
     fn test_compile_call_rip_relative_backwards() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::CallIpRelative(CallIpRelativeOperation {
-            target_address: 16,
-        })];
+        let operations = vec![Op::CallIpRelative(CallIpRel::new(16))];
         let result = jit.compile(20, &operations);
         assert!(result.is_ok());
         assert_eq!("ff15e2ffffff", hex::encode(result.as_ref().unwrap()))
@@ -362,9 +318,7 @@ mod tests {
     fn test_compile_jmp_rip_relative_backwards() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::JumpIpRelative(JumpIpRelativeOperation {
-            target_address: 16,
-        })];
+        let operations = vec![Op::JumpIpRelative(JumpIpRel::new(16))];
         let result = jit.compile(20, &operations);
         assert!(result.is_ok());
         assert_eq!("ff25e2ffffff", hex::encode(result.unwrap()));
@@ -375,11 +329,8 @@ mod tests {
         let mut jit = JitX64 {};
 
         let operations = vec![
-            Operation::Sub(SubOperation {
-                register: Register::rax,
-                operand: 10,
-            }),
-            Operation::CallIpRelative(CallIpRelativeOperation { target_address: 16 }),
+            Op::Sub(Sub::new(Register::rax, 10)),
+            Op::CallIpRelative(CallIpRel::new(16)),
         ];
         let result = jit.compile(20, &operations);
         assert!(result.is_ok());
@@ -391,11 +342,8 @@ mod tests {
         let mut jit = JitX64 {};
 
         let operations = vec![
-            Operation::Sub(SubOperation {
-                register: Register::rax,
-                operand: 10,
-            }),
-            Operation::JumpIpRelative(JumpIpRelativeOperation { target_address: 16 }),
+            Op::Sub(Sub::new(Register::rax, 10)),
+            Op::JumpIpRelative(JumpIpRel::new(16)),
         ];
         let result = jit.compile(20, &operations);
         assert!(result.is_ok());
@@ -409,10 +357,7 @@ mod tests {
     fn test_compile_mov_from_stack() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MovFromStack(MovFromStackOperation {
-            stack_offset: 4,
-            target: Register::rax,
-        })];
+        let operations = vec![Op::MovFromStack(MovFromStack::new(4, Register::rax))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("488b442404", hex::encode(result.as_ref().unwrap()));
@@ -422,16 +367,10 @@ mod tests {
     fn compile_multi_push_basic_regs_only() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MultiPush(vec![
-            PushOperation {
-                register: Register::rax,
-            },
-            PushOperation {
-                register: Register::rbx,
-            },
-            PushOperation {
-                register: Register::rcx,
-            },
+        let operations = vec![Op::MultiPush(vec![
+            Push::new(Register::rax),
+            Push::new(Register::rbx),
+            Push::new(Register::rcx),
         ])];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
@@ -447,16 +386,10 @@ mod tests {
     fn compile_multi_push_xmm_only() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MultiPush(vec![
-            PushOperation {
-                register: Register::xmm0,
-            },
-            PushOperation {
-                register: Register::xmm1,
-            },
-            PushOperation {
-                register: Register::xmm2,
-            },
+        let operations = vec![Op::MultiPush(vec![
+            Push::new(Register::xmm0),
+            Push::new(Register::xmm1),
+            Push::new(Register::xmm2),
         ])];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
@@ -472,16 +405,10 @@ mod tests {
     fn compile_multi_push_ymm_only() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MultiPush(vec![
-            PushOperation {
-                register: Register::ymm0,
-            },
-            PushOperation {
-                register: Register::ymm1,
-            },
-            PushOperation {
-                register: Register::ymm2,
-            },
+        let operations = vec![Op::MultiPush(vec![
+            Push::new(Register::ymm0),
+            Push::new(Register::ymm1),
+            Push::new(Register::ymm2),
         ])];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
@@ -497,16 +424,10 @@ mod tests {
     fn compile_multi_push_zmm_only() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MultiPush(vec![
-            PushOperation {
-                register: Register::zmm0,
-            },
-            PushOperation {
-                register: Register::zmm1,
-            },
-            PushOperation {
-                register: Register::zmm2,
-            },
+        let operations = vec![Op::MultiPush(vec![
+            Push::new(Register::zmm0),
+            Push::new(Register::zmm1),
+            Push::new(Register::zmm2),
         ])];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
@@ -522,16 +443,10 @@ mod tests {
     fn compile_multi_push_mixed() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MultiPush(vec![
-            PushOperation {
-                register: Register::rax,
-            },
-            PushOperation {
-                register: Register::xmm0,
-            },
-            PushOperation {
-                register: Register::ymm1,
-            },
+        let operations = vec![Op::MultiPush(vec![
+            Push::new(Register::rax),
+            Push::new(Register::xmm0),
+            Push::new(Register::ymm1),
         ])];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
@@ -547,16 +462,10 @@ mod tests {
     fn compile_multi_pop_basic_regs_only() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MultiPop(vec![
-            PopOperation {
-                register: Register::rax,
-            },
-            PopOperation {
-                register: Register::rbx,
-            },
-            PopOperation {
-                register: Register::rcx,
-            },
+        let operations = vec![Op::MultiPop(vec![
+            Pop::new(Register::rax),
+            Pop::new(Register::rbx),
+            Pop::new(Register::rcx),
         ])];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
@@ -572,16 +481,10 @@ mod tests {
     fn compile_multi_pop_xmm_only() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MultiPop(vec![
-            PopOperation {
-                register: Register::xmm0,
-            },
-            PopOperation {
-                register: Register::xmm1,
-            },
-            PopOperation {
-                register: Register::xmm2,
-            },
+        let operations = vec![Op::MultiPop(vec![
+            Pop::new(Register::xmm0),
+            Pop::new(Register::xmm1),
+            Pop::new(Register::xmm2),
         ])];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
@@ -597,16 +500,10 @@ mod tests {
     fn compile_multi_pop_ymm_only() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MultiPop(vec![
-            PopOperation {
-                register: Register::ymm0,
-            },
-            PopOperation {
-                register: Register::ymm1,
-            },
-            PopOperation {
-                register: Register::ymm2,
-            },
+        let operations = vec![Op::MultiPop(vec![
+            Pop::new(Register::ymm0),
+            Pop::new(Register::ymm1),
+            Pop::new(Register::ymm2),
         ])];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
@@ -622,16 +519,10 @@ mod tests {
     fn compile_multi_pop_zmm_only() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MultiPop(vec![
-            PopOperation {
-                register: Register::zmm0,
-            },
-            PopOperation {
-                register: Register::zmm1,
-            },
-            PopOperation {
-                register: Register::zmm2,
-            },
+        let operations = vec![Op::MultiPop(vec![
+            Pop::new(Register::zmm0),
+            Pop::new(Register::zmm1),
+            Pop::new(Register::zmm2),
         ])];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
@@ -647,16 +538,10 @@ mod tests {
     fn compile_multi_pop_mixed() {
         let mut jit = JitX64 {};
 
-        let operations = vec![Operation::MultiPop(vec![
-            PopOperation {
-                register: Register::rax,
-            },
-            PopOperation {
-                register: Register::xmm0,
-            },
-            PopOperation {
-                register: Register::ymm1,
-            },
+        let operations = vec![Op::MultiPop(vec![
+            Pop::new(Register::rax),
+            Pop::new(Register::xmm0),
+            Pop::new(Register::ymm1),
         ])];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());

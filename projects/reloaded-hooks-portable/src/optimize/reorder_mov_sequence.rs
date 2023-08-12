@@ -2,11 +2,9 @@ extern crate alloc;
 
 use alloc::vec::Vec;
 
+use crate::api::jit::operation_aliases::*;
 use crate::{
-    api::{
-        jit::{mov_operation::MovOperation, operation::Operation},
-        traits::register_info::RegisterInfo,
-    },
+    api::{jit::operation::Operation, traits::register_info::RegisterInfo},
     graphs::algorithms::move_optimizer::optimize_moves,
 };
 
@@ -67,7 +65,7 @@ where
         }
 
         // Pull values until first non-MOV index.
-        let as_mov: Vec<MovOperation<TRegister>> = operations[first_mov_idx..]
+        let as_mov: Vec<Mov<TRegister>> = operations[first_mov_idx..]
             .iter()
             .map_while(|op| {
                 if let Operation::Mov(mov_op) = op {
@@ -114,7 +112,7 @@ mod tests {
 
     #[test]
     fn reorder_mov_sequence_single_mov() {
-        let mock_op = Operation::Mov(MovOperation {
+        let mock_op = Operation::Mov(Mov {
             source: R2,
             target: R3,
         });
@@ -127,11 +125,11 @@ mod tests {
 
     #[test]
     fn reorder_mov_sequence_no_cycle() {
-        let mock_op1 = Operation::Mov(MovOperation {
+        let mock_op1 = Operation::Mov(Mov {
             source: R1,
             target: R2,
         });
-        let mock_op2 = Operation::Mov(MovOperation {
+        let mock_op2 = Operation::Mov(Mov {
             source: R2,
             target: R3,
         });

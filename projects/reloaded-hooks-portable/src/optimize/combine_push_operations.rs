@@ -65,29 +65,25 @@ deduplicate_merge_ops!(merge_pop_operations, Pop, MultiPop);
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        api::jit::{
-            mov_operation::MovOperation, pop_operation::PopOperation, push_operation::PushOperation,
-        },
-        helpers::test_helpers::MockRegister,
-    };
 
     use super::*;
+    use crate::api::jit::operation_aliases::*;
+    use crate::helpers::test_helpers::MockRegister;
 
     #[test]
     fn merge_push_operations_baseline() {
         let mut ops = vec![
-            Operation::Push(PushOperation {
+            Operation::Push(Push {
                 register: MockRegister::R1,
             }),
-            Operation::Push(PushOperation {
+            Operation::Push(Push {
                 register: MockRegister::R2,
             }),
-            Operation::Mov(MovOperation {
+            Operation::Mov(Mov {
                 source: MockRegister::R3,
                 target: MockRegister::R4,
             }),
-            Operation::Push(PushOperation {
+            Operation::Push(Push {
                 register: MockRegister::R3,
             }),
         ];
@@ -113,17 +109,17 @@ mod tests {
     #[test]
     fn merge_pop_operations_baseline() {
         let mut ops = vec![
-            Operation::Pop(PopOperation {
+            Operation::Pop(Pop {
                 register: MockRegister::R1,
             }),
-            Operation::Pop(PopOperation {
+            Operation::Pop(Pop {
                 register: MockRegister::R2,
             }),
-            Operation::Mov(MovOperation {
+            Operation::Mov(Mov {
                 source: MockRegister::R3,
                 target: MockRegister::R4,
             }),
-            Operation::Pop(PopOperation {
+            Operation::Pop(Pop {
                 register: MockRegister::R3,
             }),
         ];

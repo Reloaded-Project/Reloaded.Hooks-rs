@@ -3,19 +3,8 @@ extern crate alloc;
 use crate::jit_common::alloc::string::ToString;
 use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
 use iced_x86::IcedError;
-use reloaded_hooks_portable::api::jit::call_absolute_operation::CallAbsoluteOperation;
-use reloaded_hooks_portable::api::jit::call_relative_operation::CallRelativeOperation;
-use reloaded_hooks_portable::api::jit::call_rip_relative_operation::CallIpRelativeOperation;
-use reloaded_hooks_portable::api::jit::jump_absolute_operation::JumpAbsoluteOperation;
-use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
-use reloaded_hooks_portable::api::jit::jump_rip_relative_operation::JumpIpRelativeOperation;
-use reloaded_hooks_portable::api::jit::mov_from_stack_operation::MovFromStackOperation;
-use reloaded_hooks_portable::api::jit::{
-    compiler::JitError, mov_operation::MovOperation, operation::Operation,
-    pop_operation::PopOperation, push_operation::PushOperation,
-    push_stack_operation::PushStackOperation, sub_operation::SubOperation,
-    xchg_operation::XChgOperation,
-};
+use reloaded_hooks_portable::api::jit::operation_aliases::*;
+use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::Operation};
 
 use crate::all_registers::AllRegisters;
 use iced_x86::code_asm::registers as iced_regs;
@@ -72,7 +61,7 @@ macro_rules! multi_push_item {
 
 fn encode_multi_push(
     a: &mut CodeAssembler,
-    ops: &[PushOperation<AllRegisters>],
+    ops: &[Push<AllRegisters>],
 ) -> Result<(), JitError<AllRegisters>> {
     // Calculate space to reserve.
     let mut space_needed = 0;
@@ -132,7 +121,7 @@ macro_rules! multi_pop_item {
 
 fn encode_multi_pop(
     a: &mut CodeAssembler,
-    ops: &[PopOperation<AllRegisters>],
+    ops: &[Pop<AllRegisters>],
 ) -> Result<(), JitError<AllRegisters>> {
     // Note: It is important that we do MOV in ascending address order, to help CPU caching :wink:
 
@@ -171,7 +160,7 @@ fn convert_error(e: IcedError) -> JitError<AllRegisters> {
 
 fn encode_xchg(
     a: &mut CodeAssembler,
-    xchg: &XChgOperation<AllRegisters>,
+    xchg: &XChg<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if xchg.register1.is_32() && xchg.register2.is_32() {
         a.xchg(xchg.register1.as_iced_32()?, xchg.register2.as_iced_32()?)
@@ -210,7 +199,7 @@ macro_rules! encode_xmm_pop {
 
 fn encode_pop(
     a: &mut CodeAssembler,
-    pop: &PopOperation<AllRegisters>,
+    pop: &Pop<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if pop.register.is_32() {
         a.pop(pop.register.as_iced_32()?).map_err(convert_error)?;
@@ -231,7 +220,7 @@ fn encode_pop(
 
 fn encode_sub(
     a: &mut CodeAssembler,
-    sub: &SubOperation<AllRegisters>,
+    sub: &Sub<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if sub.register.is_32() {
         a.sub(sub.register.as_iced_32()?, sub.operand)
@@ -247,7 +236,7 @@ fn encode_sub(
 
 fn encode_mov_from_stack(
     a: &mut CodeAssembler,
-    x: &MovFromStackOperation<AllRegisters>,
+    x: &MovFromStack<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 32 {
         let ptr = dword_ptr(iced_x86::Register::ESP) + x.stack_offset;
@@ -267,7 +256,7 @@ fn encode_mov_from_stack(
 
 fn encode_push_stack(
     a: &mut CodeAssembler,
-    push: &PushStackOperation<AllRegisters>,
+    push: &PushStack<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if push.base_register.is_32() {
         if push.item_size != 4 {
@@ -317,7 +306,7 @@ macro_rules! encode_xmm_push {
 
 fn encode_push(
     a: &mut CodeAssembler,
-    push: &PushOperation<AllRegisters>,
+    push: &Push<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if push.register.is_32() {
         a.push(push.register.as_iced_32()?).map_err(convert_error)?;
@@ -338,7 +327,7 @@ fn encode_push(
 
 fn encode_mov(
     a: &mut CodeAssembler,
-    mov: &MovOperation<AllRegisters>,
+    mov: &Mov<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if mov.target.is_32() && mov.source.is_32() {
         a.mov(mov.target.as_iced_32()?, mov.source.as_iced_32()?)
@@ -352,17 +341,14 @@ fn encode_mov(
     Ok(())
 }
 
-fn encode_jump_relative(
-    a: &mut CodeAssembler,
-    x: &JumpRelativeOperation,
-) -> Result<(), JitError<AllRegisters>> {
+fn encode_jump_relative(a: &mut CodeAssembler, x: &JumpRel) -> Result<(), JitError<AllRegisters>> {
     a.jmp(x.target_address as u64).map_err(convert_error)?;
     Ok(())
 }
 
 fn encode_jump_absolute(
     a: &mut CodeAssembler,
-    x: &JumpAbsoluteOperation<AllRegisters>,
+    x: &JumpAbs<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 64 {
         let target_reg = x.scratch_register.as_iced_64()?;
@@ -383,17 +369,14 @@ fn encode_jump_absolute(
     Ok(())
 }
 
-fn encode_call_relative(
-    a: &mut CodeAssembler,
-    x: &CallRelativeOperation,
-) -> Result<(), JitError<AllRegisters>> {
+fn encode_call_relative(a: &mut CodeAssembler, x: &CallRel) -> Result<(), JitError<AllRegisters>> {
     a.call(x.target_address as u64).map_err(convert_error)?;
     Ok(())
 }
 
 fn encode_call_absolute(
     a: &mut CodeAssembler,
-    x: &CallAbsoluteOperation<AllRegisters>,
+    x: &CallAbs<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 64 {
         let target_reg = x.scratch_register.as_iced_64()?;
@@ -416,7 +399,7 @@ fn encode_call_absolute(
 
 fn encode_jump_ip_relative(
     a: &mut CodeAssembler,
-    x: &JumpIpRelativeOperation,
+    x: &JumpIpRel,
     address: usize,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 32 {
@@ -440,7 +423,7 @@ fn encode_jump_ip_relative(
 
 fn encode_call_ip_relative(
     a: &mut CodeAssembler,
-    x: &CallIpRelativeOperation,
+    x: &CallIpRel,
     address: usize,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 32 {

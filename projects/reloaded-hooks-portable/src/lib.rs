@@ -33,6 +33,7 @@ pub mod api {
         pub mod mov_from_stack_operation;
         pub mod mov_operation;
         pub mod operation;
+        pub mod operation_aliases;
         pub mod pop_operation;
         pub mod push_operation;
         pub mod push_stack_operation;
