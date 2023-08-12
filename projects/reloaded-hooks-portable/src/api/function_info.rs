@@ -1,7 +1,4 @@
 extern crate alloc;
-use alloc::vec::Vec;
-
-use super::function_attribute::FunctionAttribute;
 
 /// This trait defines the information about the function for which a wrapper is being generated.
 ///
@@ -45,38 +42,6 @@ pub trait FunctionInfo {
                 )
             })
             .count() as u32
-    }
-
-    /// Returns the parameters that would be put to the stack if this
-    /// function were to be used with the specified calling convention.
-    fn get_stack_parameters<TRegister, T: FunctionAttribute<TRegister>>(
-        &self,
-        convention: &T,
-    ) -> Vec<ParameterType> {
-        let parameters = self.parameters();
-        let mut result = Vec::<ParameterType>::with_capacity(self.parameters().len());
-        let mut num_int_params = convention.register_int_parameters().len() as i32;
-        let mut num_float_params = convention.register_float_parameters().len() as i32;
-
-        for &parameter in parameters {
-            if parameter.is_float() {
-                // Check if we still have any float registers available, if not, push to stack
-                if num_float_params > 0 {
-                    num_float_params -= 1;
-                } else {
-                    result.push(parameter);
-                }
-            } else {
-                // Check if we still have any int registers available, if not, push to stack
-                if num_int_params > 0 {
-                    num_int_params -= 1;
-                } else {
-                    result.push(parameter);
-                }
-            }
-        }
-
-        result
     }
 }
 
@@ -175,97 +140,5 @@ mod tests {
             float_params,
             ..Default::default()
         }
-    }
-
-    fn get_spilled_parameters(
-        function: &MockFunction,
-        attribute: &MockFunctionAttribute,
-    ) -> Vec<ParameterType> {
-        function.get_stack_parameters(attribute).to_vec()
-    }
-
-    #[test]
-    fn get_stack_parameters_with_float_spilled() {
-        let function = create_mock_function(vec![
-            ParameterType::i32,
-            ParameterType::f32,
-            ParameterType::f64,
-            ParameterType::i64,
-        ]);
-        let attribute = create_mock_attribute(
-            vec![MockRegister::R1, MockRegister::R2],
-            vec![MockRegister::F1],
-        );
-
-        assert_eq!(
-            get_spilled_parameters(&function, &attribute),
-            vec![ParameterType::f64]
-        );
-    }
-
-    #[test]
-    fn get_stack_parameters_with_no_spilled() {
-        let function = create_mock_function(vec![
-            ParameterType::i32,
-            ParameterType::f32,
-            ParameterType::f64,
-            ParameterType::i64,
-        ]);
-        let attribute = create_mock_attribute(
-            vec![MockRegister::R1, MockRegister::R2],
-            vec![MockRegister::F1, MockRegister::F2],
-        );
-
-        assert_eq!(get_spilled_parameters(&function, &attribute), vec![]);
-    }
-
-    #[test]
-    fn get_stack_parameters_int_spilled() {
-        let function = create_mock_function(vec![
-            ParameterType::i32,
-            ParameterType::i32,
-            ParameterType::i32,
-            ParameterType::i32,
-            ParameterType::i32,
-        ]);
-        let attribute = create_mock_attribute(
-            vec![
-                MockRegister::R1,
-                MockRegister::R2,
-                MockRegister::R3,
-                MockRegister::R4,
-            ],
-            vec![],
-        );
-
-        assert_eq!(
-            get_spilled_parameters(&function, &attribute),
-            vec![ParameterType::i32]
-        );
-    }
-
-    #[test]
-    fn get_stack_parameters_float_spilled() {
-        let function = create_mock_function(vec![
-            ParameterType::f32,
-            ParameterType::f32,
-            ParameterType::f32,
-            ParameterType::f32,
-            ParameterType::f32,
-        ]);
-        let attribute = create_mock_attribute(
-            vec![],
-            vec![
-                MockRegister::F1,
-                MockRegister::F2,
-                MockRegister::F3,
-                MockRegister::F4,
-            ],
-        );
-
-        assert_eq!(
-            get_spilled_parameters(&function, &attribute),
-            vec![ParameterType::f32]
-        );
     }
 }

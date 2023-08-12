@@ -48,6 +48,7 @@ pub mod api {
     pub mod function_attribute;
     pub mod function_info;
     pub mod wrapper_generator;
+    pub mod wrapper_instruction_generator;
 }
 
 /// Code for all the graph algorithms.
@@ -64,7 +65,6 @@ pub mod graphs {
 /// Helper functions for the library.
 pub mod helpers {
     pub mod alignment_space_finder;
-    pub mod convention_converter_helpers;
 
     #[cfg(test)]
     pub(crate) mod test_helpers;

@@ -99,5 +99,6 @@ pub fn generate_wrapper<
 
     // Start assembling some code.
     let assembly = Vec::<Operation<TRegister>>::new();
-    0 as *const u8
+    0 as *const u8;
+    todo!();
 }
