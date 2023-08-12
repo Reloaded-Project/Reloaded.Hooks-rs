@@ -73,6 +73,7 @@ pub mod helpers {
 /// Code optimization algorithms.
 pub mod optimize {
     pub mod combine_push_operations;
+    pub mod eliminate_common_callee_saved_registers;
     pub mod optimize_parameters_common;
     pub mod optimize_reg_parameters;
     pub mod optimize_stack_parameters;

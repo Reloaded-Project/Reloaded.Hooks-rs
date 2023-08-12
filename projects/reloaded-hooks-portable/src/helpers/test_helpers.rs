@@ -3,6 +3,7 @@ use crate::api::{
     function_info::{FunctionInfo, ParameterType},
     traits::register_info::RegisterInfo,
 };
+use lazy_static;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MockRegister {
@@ -15,6 +16,9 @@ pub enum MockRegister {
     F3,
     F4,
     SP,
+
+    // This is used when we test with pretend-architectures that don't use stack for return address.
+    LR,
 }
 
 impl RegisterInfo for MockRegister {
@@ -29,6 +33,7 @@ impl RegisterInfo for MockRegister {
             MockRegister::F3 => 4,
             MockRegister::F4 => 4,
             MockRegister::SP => 4,
+            MockRegister::LR => 4,
         }
     }
 
@@ -48,6 +53,8 @@ impl RegisterInfo for MockRegister {
             MockRegister::F2 => 1,
             MockRegister::F3 => 1,
             MockRegister::F4 => 1,
+
+            MockRegister::LR => 2,
         }
     }
 }
@@ -110,6 +117,10 @@ impl FunctionAttribute<MockRegister> for MockFunctionAttribute {
     fn stack_parameter_order(&self) -> StackParameterOrder {
         StackParameterOrder::RightToLeft
     }
+
+    fn required_stack_alignment(&self) -> usize {
+        0
+    }
 }
 
 pub struct MockFunction {
@@ -120,4 +131,44 @@ impl FunctionInfo for MockFunction {
     fn parameters(&self) -> &[ParameterType] {
         &self.parameters
     }
+}
+
+// Testing Calling Conventions
+lazy_static::lazy_static! {
+
+    /// A calling convention that is similar to x86 'cdecl', but for our pretend architecture.
+    pub static ref CDECL_LIKE_FUNCTION_ATTRIBUTE: MockFunctionAttribute = MockFunctionAttribute {
+        int_params: vec![],
+        float_params: vec![],
+        return_reg: MockRegister::R1,
+        reserved_stack: 0,
+        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        always_saved: vec![],
+        stack_cleanup: StackCleanup::Caller,
+        stack_param_order: StackParameterOrder::RightToLeft,
+    };
+
+    /// A calling convention that is similar to x86 'stdcall', but for our pretend architecture.
+    pub static ref STDCALL_LIKE_FUNCTION_ATTRIBUTE: MockFunctionAttribute = MockFunctionAttribute {
+        int_params: vec![],
+        float_params: vec![],
+        return_reg: MockRegister::R1,
+        reserved_stack: 0,
+        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        always_saved: vec![],
+        stack_cleanup: StackCleanup::Callee,  // callee cleanup
+        stack_param_order: StackParameterOrder::RightToLeft,
+    };
+
+    /// A calling convention that is similar to x86 Microsoft 'thiscall', but for our pretend architecture.
+    pub static ref THISCALL_LIKE_FUNCTION_ATTRIBUTE: MockFunctionAttribute = MockFunctionAttribute {
+        int_params: vec![ MockRegister::R1 ], // R1 is 'this' pointer
+        float_params: vec![],
+        return_reg: MockRegister::R1,
+        reserved_stack: 0,
+        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        always_saved: vec![],
+        stack_cleanup: StackCleanup::Callee,  // callee cleanup
+        stack_param_order: StackParameterOrder::RightToLeft,
+    };
 }

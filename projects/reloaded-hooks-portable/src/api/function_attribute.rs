@@ -45,6 +45,11 @@ pub trait FunctionAttribute<TRegister> {
     /// Specifies the order in which parameters are passed to the stack;
     /// either left-to-right or right-to-left.
     fn stack_parameter_order(&self) -> StackParameterOrder;
+
+    /// Required alignment of the stack pointer before the function is called.
+    /// This may vary depending on architecture. Tends to be 16 bytes for x64,
+    /// 0 bytes for x86, etc.
+    fn required_stack_alignment(&self) -> usize;
 }
 
 /// Defines how the calling convention cleans up the stack after a function call.

@@ -7,6 +7,7 @@ use super::{
     jit::{
         compiler::{Jit, JitCapabilities},
         operation::Operation,
+        push_operation::PushOperation,
     },
     traits::register_info::RegisterInfo,
 };
@@ -30,6 +31,15 @@ where
 
     /// Information about the function for which the wrapper needs to be generated.
     pub function_info: &'a TFunctionInfo,
+
+    /// If this parameter is specified, the wrapper will inject an additional parameter
+    /// with the specified value into the target (called) function.
+    ///
+    /// # Remarks
+    ///
+    /// This is useful for example when the target function is your own method when hooking
+    /// and you want to inject a 'this' pointer.
+    pub injected_paramter: Option<usize>,
 }
 
 /// Creates the instructions responsible for wrapping one object kind to another.
@@ -41,7 +51,7 @@ where
 /// - `options` - The parameters for this wrapper generation task.
 #[allow(warnings)]
 pub fn generate_wrapper_instructions<
-    TRegister: RegisterInfo,
+    TRegister: RegisterInfo + Clone,
     TFunctionAttribute: FunctionAttribute<TRegister>,
     TJit: Jit<TRegister>,
     TFunctionInfo: FunctionInfo,
@@ -49,7 +59,20 @@ pub fn generate_wrapper_instructions<
     from_convention: TFunctionAttribute,
     to_convention: TFunctionAttribute,
     options: WrapperInstructionGeneratorOptions<TFunctionInfo>,
-) -> *const u8 {
-    let assembly = Vec::<Operation<TRegister>>::new();
-    0 as *const u8
+) -> Vec<Operation<TRegister>> {
+    let mut assembly = Vec::<Operation<TRegister>>::new();
+
+    let mut stack_pointer = 0;
+
+    // Backup Always Saved Registers (LR)
+    for register in from_convention.always_saved_registers() {
+        assembly.push(Operation::Push(PushOperation {
+            register: register.clone(),
+        }));
+        stack_pointer += register.size_in_bytes();
+    }
+
+    // Return Result
+    todo!("rest of code");
+    assembly
 }
