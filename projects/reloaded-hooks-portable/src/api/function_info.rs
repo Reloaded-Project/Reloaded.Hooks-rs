@@ -51,42 +51,44 @@ pub trait FunctionInfo {
 
     /// Returns the parameters that would be put to the stack if this
     /// function were to be used with the specified calling convention.
-    fn get_stack_parameters<TRegister, T: FunctionAttribute<TRegister>>(
+    fn get_parameters<TRegister, T: FunctionAttribute<TRegister>>(
         &self,
         convention: &T,
-    ) -> Vec<ParameterType> {
+    ) -> (Vec<ParameterType>, Vec<ParameterType>) {
         let parameters = self.parameters();
-        let mut result = Vec::<ParameterType>::with_capacity(self.parameters().len());
+        let mut stack_params = Vec::<ParameterType>::with_capacity(self.parameters().len());
+        let mut reg_params = Vec::<ParameterType>::with_capacity(self.parameters().len());
+
         let mut num_int_params = convention.register_int_parameters().len() as i32;
         let mut num_float_params = convention.register_float_parameters().len() as i32;
         let mut num_vector_params = convention.register_vector_parameters().len() as i32;
 
         for &parameter in parameters {
             if parameter.is_float() {
-                // Check if we still have any float registers available, if not, push to stack
                 if num_float_params > 0 {
+                    reg_params.push(parameter);
                     num_float_params -= 1;
                 } else {
-                    result.push(parameter);
+                    stack_params.push(parameter);
                 }
             } else if parameter.is_vector() {
-                // Check if we still have any vector registers available, if not, push to stack
                 if num_vector_params > 0 {
+                    reg_params.push(parameter);
                     num_vector_params -= 1;
                 } else {
-                    result.push(parameter);
+                    stack_params.push(parameter);
                 }
             } else {
-                // Check if we still have any int registers available, if not, push to stack
                 if num_int_params > 0 {
+                    reg_params.push(parameter);
                     num_int_params -= 1;
                 } else {
-                    result.push(parameter);
+                    stack_params.push(parameter);
                 }
             }
         }
 
-        result
+        (stack_params, reg_params)
     }
 }
 
@@ -258,7 +260,7 @@ mod tests {
         function: &MockFunction,
         attribute: &MockFunctionAttribute,
     ) -> Vec<ParameterType> {
-        function.get_stack_parameters(attribute).to_vec()
+        function.get_parameters(attribute).0.to_vec()
     }
 
     #[test]

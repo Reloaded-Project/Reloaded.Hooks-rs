@@ -95,7 +95,7 @@ pub fn generate_wrapper_instructions<
     stack_pointer += from_convention.reserved_stack_space() as usize;
 
     // Re-push stack parameters of function returned (right to left)
-    let params = options.function_info.get_stack_parameters(&to_convention);
+    let params = options.function_info.get_parameters(&to_convention);
     let mut base_pointer = stack_pointer as usize;
 
     /*
@@ -111,7 +111,7 @@ pub fn generate_wrapper_instructions<
         raising as we push more.
     */
 
-    for param in params.iter().rev() {
+    for param in params.0.iter().rev() {
         ops.push(PushStack::new(stack_pointer as isize, param.size_in_bytes()).into());
         base_pointer -= (param.size_in_bytes() * 2); // since we are relative to SP
     }
