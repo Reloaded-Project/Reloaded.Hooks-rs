@@ -90,11 +90,35 @@ pub fn generate_wrapper_instructions<
         stack_pointer += register.size_in_bytes();
     }
 
-    // Reserve required space
+    // Reserve required space for function called
     ops.push(StackAlloc::new(from_convention.reserved_stack_space() as i32).into());
     stack_pointer += from_convention.reserved_stack_space() as usize;
 
-    // Re-push stack parameters.
+    // Re-push stack parameters of function returned (right to left)
+    let params = options.function_info.get_stack_parameters(&to_convention);
+    let base_pointer = -(stack_pointer as i32);
+
+    /*
+        Context [x64 as example].
+
+        At the current moment in time, the variable before the return address is at -stack_pointer.
+
+        On platforms like ARM that don't do stack returns, this is natural, but on platforms like
+        x64 where return is done via address on stack, `options.stack_entry_alignment` offsets this
+        such that -stack_pointer is guaranteed to points to the base of the last stack parameter.
+
+        From there, we can re push registers, just have to be careful to keep track of SP, which is
+        raising as we push more.
+    */
+
+    /*
+    for param in params.iter().rev() {
+        ops.push(PushStack::new(param.clone(), stack_pointer).into());
+        stack_pointer -= param.size_in_bytes();
+    }
+    */
+
+    // Inject parameter (if applicable)
 
     // Return Result
     todo!("rest of code");

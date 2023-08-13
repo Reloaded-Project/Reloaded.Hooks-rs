@@ -5,6 +5,7 @@ use crate::api::{
 };
 use lazy_static;
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum MockRegister {
     R1,

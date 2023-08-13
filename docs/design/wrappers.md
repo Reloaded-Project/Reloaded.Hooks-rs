@@ -4,6 +4,9 @@
 
 !!! info "This page uses x86 as an example, however the same concepts apply to other architectures."
 
+These stubs are what allows `Reloaded.Hooks-rs` to hook functions which take parameters in custom registers, 
+allowing developers to skip writing error prone `'naked'` functions by hand.
+
 ## General Strategy
 
 !!! note "Setting frame pointer (`ebp`) is not necessary, as our wrapper shouldn't use it"
@@ -610,5 +613,52 @@ jmp {function} # jump to our function
 add esp, 8 # our function returns here due to changed return address
 ret 8
 ```
+
+## Technical Limitations
+
+!!! info "Wrapper generation does not have understanding of any specific ABI, and as such cannot always be 100% correct in edge cases."
+
+### Wrappers Don't understand ABI Specific Rules
+
+!!! info "Some ABIs have unconventional rules for handling edge cases."
+
+For example, consider the following rule used by the RISC-V ABI.
+
+> When primitive arguments twice the size of a pointer-word are passed on the stack, they are
+> naturally aligned. When they are passed in the integer registers, they reside in an aligned even-odd
+> register pair, with the even register holding the least-significant bits. In RV32, for example, the
+> function void foo(int, long long) is passed its first argument in a0 and its second in a2 and
+> a3. Nothing is passed in a1.
+
+The wrappers cannot know or understand the intricate rules such as this that are imposed by an ABI.
+
+### Wrappers Don't Understand How Mixed Size Registers Are Stack Allocated.
+
+!!! tip "Usually functions which have so many registers that they spill on stack won't be optimized to use custom parameter passing anyway; so this limitation is mostly moot in practice."
+
+!!! tip "Even if they were optimised, the probability to spill both float AND int registers to trigger something like this is well... I've never ran into it before."
+
+Consider a function which spills a float register `xmm0`, and an `nint` (native size integer).  
+A `Push` is basically a sequence of `sub` and then `mov`.
+
+So (pretend ASM below is valid)
+
+```asm
+push xmm0
+push rax
+```
+
+Would become
+
+```asm
+sub rsp, 16
+mov [rsp], xmm0
+sub rsp, 8
+mov [rsp], rax
+```
+
+This is invalid, because the contents of rax will now replace half of the `xmm0` register on the stack.  
+How ABIs and compilers deal with this isn't always well standardised; therefore there is not a good 
+strategy to handle this.  
 
 [bijective]: https://www.mathsisfun.com/sets/injective-surjective-bijective.html
