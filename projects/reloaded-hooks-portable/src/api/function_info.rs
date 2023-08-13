@@ -1,5 +1,7 @@
 extern crate alloc;
 
+use core::mem::size_of;
+
 use super::function_attribute::FunctionAttribute;
 use alloc::vec::Vec;
 
@@ -205,6 +207,19 @@ impl ParameterType {
                 | ParameterType::v256
                 | ParameterType::v512
         )
+    }
+
+    /// Returns the size in bytes of the parameter type.
+    pub fn size_in_bytes(&self) -> usize {
+        match *self {
+            ParameterType::nint => size_of::<isize>(),
+            ParameterType::i8 | ParameterType::v16 | ParameterType::f16 => 1,
+            ParameterType::i16 | ParameterType::v32 | ParameterType::f32 => 2,
+            ParameterType::i32 | ParameterType::v64 | ParameterType::f64 => 4,
+            ParameterType::i64 | ParameterType::v128 | ParameterType::f128 => 8,
+            ParameterType::i128 | ParameterType::v256 | ParameterType::f256 => 16,
+            ParameterType::v512 | ParameterType::f512 => 64,
+        }
     }
 }
 

@@ -96,7 +96,7 @@ pub fn generate_wrapper_instructions<
 
     // Re-push stack parameters of function returned (right to left)
     let params = options.function_info.get_stack_parameters(&to_convention);
-    let base_pointer = -(stack_pointer as i32);
+    let mut base_pointer = stack_pointer as usize;
 
     /*
         Context [x64 as example].
@@ -111,14 +111,17 @@ pub fn generate_wrapper_instructions<
         raising as we push more.
     */
 
-    /*
     for param in params.iter().rev() {
-        ops.push(PushStack::new(param.clone(), stack_pointer).into());
-        stack_pointer -= param.size_in_bytes();
+        ops.push(PushStack::new(stack_pointer as isize, param.size_in_bytes()).into());
+        base_pointer -= (param.size_in_bytes() * 2); // since we are relative to SP
     }
-    */
+
+    // Push register parameters of function returned (right to left)
 
     // Inject parameter (if applicable)
+    if let Some(injected_value) = options.injected_paramter {
+        ops.push(PushConst::new(injected_value).into());
+    }
 
     // Return Result
     todo!("rest of code");

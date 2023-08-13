@@ -4,6 +4,7 @@ use crate::jit_common::alloc::string::ToString;
 use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
 use iced_x86::IcedError;
 use reloaded_hooks_portable::api::jit::operation_aliases::*;
+use reloaded_hooks_portable::api::jit::push_constant_operation::PushConstantOperation;
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::Operation};
 
 use crate::all_registers::AllRegisters;
@@ -36,6 +37,7 @@ pub(crate) fn encode_instruction(
         // Optimised Functions
         Operation::MultiPush(x) => encode_multi_push(assembler, x),
         Operation::MultiPop(x) => encode_multi_pop(assembler, x),
+        Operation::PushConst(x) => encode_push_constant(assembler, x),
     }
 }
 
@@ -461,4 +463,21 @@ fn encode_call_ip_relative(
     a.call(qword_ptr(iced_x86::Register::RIP) + relative_offset as i32)
         .map_err(convert_error)?;
     Ok(())
+}
+
+fn encode_push_constant(
+    a: &mut CodeAssembler,
+    x: &PushConstantOperation,
+) -> Result<(), JitError<AllRegisters>> {
+    if a.bitness() == 32 {
+        a.push(x.value as i32).map_err(convert_error)
+    } else if a.bitness() == 64 {
+        a.push(((x.value >> 32) & 0xFFFFFFFF) as i32)
+            .map_err(convert_error)?;
+        a.push((x.value & 0xFFFFFFFF) as i32).map_err(convert_error)
+    } else {
+        return Err(JitError::ThirdPartyAssemblerError(
+            ARCH_NOT_SUPPORTED.to_string(),
+        ));
+    }
 }
