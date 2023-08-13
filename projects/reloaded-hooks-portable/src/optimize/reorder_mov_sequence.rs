@@ -46,26 +46,30 @@ use core::hash::Hash;
 ///
 /// For more info about this, see `Design Docs -> Wrapper Generation`,
 /// section `Reordering Operations`.
-pub fn reorder_mov_sequence<'a, TRegister>(
-    operations: &'a mut [Operation<TRegister>],
-    scratch_register: &TRegister,
-) -> &'a mut [Operation<TRegister>]
+pub fn reorder_mov_sequence<TRegister>(
+    operations: &mut [Operation<TRegister>],
+    scratch_register: &Option<TRegister>,
+) -> Vec<Operation<TRegister>>
 where
     TRegister: RegisterInfo + Eq + PartialEq + Hash + Clone,
 {
     // Find the first block of MOV operations.
-    let mut first_mov_idx = 0;
+    let mut start_idx = 0;
+    let mut new_ops = Vec::<Operation<TRegister>>::with_capacity(operations.len());
 
     loop {
-        for (idx, operation) in operations[first_mov_idx..].iter().enumerate() {
+        // Copy elements until found a MOV operation.
+        for (idx, operation) in operations[start_idx..].iter().enumerate() {
             if let Operation::Mov(_) = operation {
-                first_mov_idx = idx;
+                start_idx = idx;
                 break;
+            } else {
+                new_ops.push(operation.clone());
             }
         }
 
         // Pull values until first non-MOV index.
-        let as_mov: Vec<Mov<TRegister>> = operations[first_mov_idx..]
+        let as_mov: Vec<Mov<TRegister>> = operations[start_idx..]
             .iter()
             .map_while(|op| {
                 if let Operation::Mov(mov_op) = op {
@@ -76,24 +80,20 @@ where
             })
             .collect();
 
-        let orig_first_mov_idx = first_mov_idx;
-        first_mov_idx += as_mov.len();
-
         // Get the slice of MOV operations.
         if as_mov.len() <= 1 {
-            break; // No more MOV operations to reorder.
+            // No more MOV operations to reorder, push all remaining items
+            new_ops.extend_from_slice(&operations[start_idx..]);
+            break;
         }
 
-        // Assuming the operations slice starts with Mov and continues with only Mov operations
-        // for the intended length, this is safe.
-        let new_mov = optimize_moves(&as_mov, &Option::from(scratch_register.clone()));
-
-        // Replace the old MOV operations with the new ones, by copying them over the old slice
-        let mov_slice = &mut operations[orig_first_mov_idx..first_mov_idx];
-        mov_slice.clone_from_slice(&new_mov);
+        // Alter our MOV operations and return
+        start_idx += as_mov.len();
+        let new_mov = optimize_moves(&as_mov, scratch_register);
+        new_ops.extend(new_mov);
     }
 
-    operations
+    new_ops
 }
 
 #[cfg(test)]
@@ -105,7 +105,7 @@ mod tests {
     #[test]
     fn reorder_mov_sequence_no_mov() {
         let mut operations: Vec<Operation<MockRegister>> = vec![];
-        let result = reorder_mov_sequence(&mut operations, &R1);
+        let result = reorder_mov_sequence(&mut operations, &Some(R1));
         assert_eq!(result, &[]);
     }
 
@@ -117,8 +117,8 @@ mod tests {
         });
 
         let mut operations: Vec<Operation<MockRegister>> = vec![mock_op.clone()];
-        let result = reorder_mov_sequence(&mut operations, &R1);
-        assert_eq!(result, &vec![mock_op.clone()]);
+        let result = reorder_mov_sequence(&mut operations, &Some(R1));
+        assert_eq!(result, vec![mock_op.clone()]);
     }
 
     #[test]
@@ -133,12 +133,78 @@ mod tests {
         });
 
         let mut operations: Vec<Operation<MockRegister>> = vec![mock_op1.clone(), mock_op2.clone()];
-        let reordered_ops = reorder_mov_sequence(&mut operations, &R4);
+        let reordered_ops = reorder_mov_sequence(&mut operations, &Some(R4));
 
         // Expected result would depend on the optimize_moves implementation
         // Here's a dummy expected result assuming optimize_moves doesn't change the order:
         let expected_result = vec![mock_op2.clone(), mock_op1.clone()];
 
-        assert_eq!(reordered_ops, &expected_result);
+        assert_eq!(reordered_ops, expected_result);
+    }
+
+    #[test]
+    fn reorder_mov_sequence_with_cycle_with_scratch_register() {
+        let mock_op1 = Operation::Mov(Mov {
+            source: R1,
+            target: R2,
+        });
+        let mock_op2 = Operation::Mov(Mov {
+            source: R2,
+            target: R3,
+        });
+        let mock_op3 = Operation::Mov(Mov {
+            source: R3,
+            target: R1,
+        });
+
+        let mut operations: Vec<Operation<MockRegister>> =
+            vec![mock_op1.clone(), mock_op2.clone(), mock_op3.clone()];
+        let reordered_ops = reorder_mov_sequence(&mut operations, &Some(R4));
+
+        assert_eq!(
+            reordered_ops,
+            vec![
+                Operation::Mov(Mov {
+                    source: R3,
+                    target: R4,
+                }),
+                mock_op2.clone(),
+                mock_op1.clone(),
+                Operation::Mov(Mov {
+                    source: R4,
+                    target: R1,
+                })
+            ]
+        );
+    }
+
+    #[test]
+    fn reorder_mov_sequence_with_cycle_no_scratch_register() {
+        let mock_op1 = Operation::Mov(Mov {
+            source: R1,
+            target: R2,
+        });
+        let mock_op2 = Operation::Mov(Mov {
+            source: R2,
+            target: R3,
+        });
+        let mock_op3 = Operation::Mov(Mov {
+            source: R3,
+            target: R1,
+        });
+
+        let mut operations: Vec<Operation<MockRegister>> =
+            vec![mock_op1.clone(), mock_op2.clone(), mock_op3.clone()];
+        let reordered_ops = reorder_mov_sequence(&mut operations, &None);
+
+        assert_eq!(
+            reordered_ops,
+            vec![
+                Operation::Push(Push::new(R3)),
+                mock_op2.clone(),
+                mock_op1.clone(),
+                Operation::Pop(Pop::new(R1))
+            ]
+        );
     }
 }
