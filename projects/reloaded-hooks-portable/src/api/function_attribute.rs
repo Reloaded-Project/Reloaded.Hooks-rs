@@ -26,8 +26,8 @@ pub trait FunctionAttribute<TRegister> {
     ///
     /// # Remarks
     /// Some calling conventions and/or ABIs require stack alignment. In those cases, this stack space
-    /// is reserved BEFORE the alignment is made. If the value of this variable is less than the
-    /// ABI alignment requirement.
+    /// is reserved AFTER the alignment is made. Therefore, this value must be a multiplier of the
+    /// stack alignment.
     fn reserved_stack_space(&self) -> u32;
 
     /// Specifies all the registers whose values are expected to be preserved by the function.

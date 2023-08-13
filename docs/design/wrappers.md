@@ -21,14 +21,7 @@ push edi
 push esi
 ```
 
-- Reserve Extra Stack Space
-
-Some compiler optimised you hook require you to reserve stack space up front. So we reserve it
-
-```asm
-sub esp, {whatever}
-```
-
+- Align the Stack
 - Setup Function Parameters
     - Re push stack parameters (right to left) of the function being returned
 
@@ -39,6 +32,14 @@ sub esp, {whatever}
 
     - Push register parameters of the function being returned (right to left, reverse loop)
     - Pop parameters into registers of function being called
+
+- Reserve Extra Stack Space
+
+Some calling conventions require extra space reserved up front
+
+```asm
+sub esp, {whatever}
+```
 
 - Call Target Method
 - Setup Return Register
@@ -75,7 +76,6 @@ So we align our wrappers to these boundaries.
 !!! info "When there are overlaps in callee saved registers between source and target, we can skip backing up those registers."
 
 For example, `cdecl` and `stdcall` use the same callee saved registers, `ebp`, `ebx`, `esi`, `edi`. When converting between these two conventions, it is not necessary to backup/restore any of them in the wrapper, because the target function will already take care of that.
-
 
 Example: `cdecl target -> stdcall` wrapper.
 

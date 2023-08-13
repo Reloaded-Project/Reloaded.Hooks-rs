@@ -1,5 +1,5 @@
 extern crate alloc;
-use core::hash::Hash;
+use core::{hash::Hash, mem::size_of};
 
 use alloc::vec::Vec;
 
@@ -14,7 +14,13 @@ use super::{
 };
 use crate::{
     api::jit::operation_aliases::*,
-    optimize::eliminate_common_callee_saved_registers::eliminate_common_callee_saved_registers,
+    optimize::{
+        combine_push_operations::{merge_pop_operations, merge_push_operations},
+        eliminate_common_callee_saved_registers::eliminate_common_callee_saved_registers,
+        optimize_reg_parameters::optimize_push_pop_parameters,
+        optimize_stack_parameters::optimize_stack_parameters,
+        reorder_mov_sequence::reorder_mov_sequence,
+    },
 };
 
 /// Options and additional context necessary for the wrapper generator.
@@ -59,9 +65,13 @@ where
 /// - `fromConvention` - The calling convention to convert to `toConvention`. This is the convention of the function (`options.target_address`) called.
 /// - `toConvention` - The target convention to which convert to `fromConvention`. This is the convention of the function returned.
 /// - `options` - The parameters for this wrapper generation task.
+///
+/// # Remarks
+///
+/// This process is documented in the Wiki under `Design Docs -> Wrapper Generation`.
 #[allow(warnings)]
 pub fn generate_wrapper_instructions<
-    TRegister: RegisterInfo + Clone + Hash + Eq,
+    TRegister: RegisterInfo + Clone + Hash + Eq + Copy + Default,
     TFunctionAttribute: FunctionAttribute<TRegister>,
     TJit: Jit<TRegister>,
     TFunctionInfo: FunctionInfo,
@@ -71,7 +81,8 @@ pub fn generate_wrapper_instructions<
     options: WrapperInstructionGeneratorOptions<TFunctionInfo>,
 ) -> Vec<Operation<TRegister>> {
     let mut ops = Vec::<Operation<TRegister>>::new();
-    let mut stack_pointer = options.stack_entry_alignment;
+    let mut stack_pointer =
+        options.stack_entry_alignment + from_convention.reserved_stack_space() as usize;
 
     // Backup Always Saved Registers (LR)
     for register in to_convention.always_saved_registers() {
@@ -90,12 +101,13 @@ pub fn generate_wrapper_instructions<
         stack_pointer += register.size_in_bytes();
     }
 
-    // Reserve required space for function called
-    ops.push(StackAlloc::new(from_convention.reserved_stack_space() as i32).into());
-    stack_pointer += from_convention.reserved_stack_space() as usize;
+    // Insert Dummy for Stack Alignment
+    let align_stack_idx = ops.len();
+    ops.push(StackAlloc::new(0).into()); // insert a dummy for now.
 
     // Re-push stack parameters of function returned (right to left)
-    let params = options.function_info.get_parameters(&to_convention);
+    let mut setup_params_ops = Vec::<Operation<TRegister>>::new();
+    let fn_returned_params = options.function_info.get_parameters(&to_convention);
     let mut base_pointer = stack_pointer as usize;
 
     /*
@@ -111,16 +123,65 @@ pub fn generate_wrapper_instructions<
         raising as we push more.
     */
 
-    for param in params.0.iter().rev() {
-        ops.push(PushStack::new(stack_pointer as isize, param.size_in_bytes()).into());
+    for param in fn_returned_params.0.iter().rev() {
+        setup_params_ops.push(PushStack::new(stack_pointer as isize, param.size_in_bytes()).into());
         base_pointer -= (param.size_in_bytes() * 2); // since we are relative to SP
+        stack_pointer += param.size_in_bytes();
     }
 
     // Push register parameters of function returned (right to left)
+    for param in fn_returned_params.1.iter().rev() {
+        setup_params_ops.push(Push::new(param.1.clone()).into());
+        stack_pointer += param.0.size_in_bytes();
+    }
 
     // Inject parameter (if applicable)
     if let Some(injected_value) = options.injected_paramter {
-        ops.push(PushConst::new(injected_value).into());
+        setup_params_ops.push(PushConst::new(injected_value).into());
+        stack_pointer += size_of::<usize>();
+    }
+
+    // Pop register parameters of the function being called (left to right)
+    let fn_called_params = options.function_info.get_parameters(&from_convention);
+    for param in fn_called_params.1.iter() {
+        setup_params_ops.push(Pop::new(param.1.clone()).into());
+        stack_pointer -= param.0.size_in_bytes();
+    }
+
+    // Optimize the re-pushing process.
+    let mut optimized = optimize_stack_parameters(setup_params_ops.as_mut_slice());
+    optimized = optimize_push_pop_parameters(optimized);
+    // optimized = reorder_mov_sequence(optimized);
+    if options
+        .jit_capabilities
+        .contains(&JitCapabilities::CanMultiPush)
+    {
+        optimized = merge_push_operations(optimized);
+        optimized = merge_pop_operations(optimized);
+    }
+
+    // Push optimised call setup to stack
+    ops.extend_from_slice(optimized);
+
+    // Now write the correct stack alignment value
+    let stack_misalignment = stack_pointer % from_convention.required_stack_alignment();
+    ops[align_stack_idx] = StackAlloc::new(stack_misalignment as i32).into();
+
+    // Reserve required space for function called
+    ops.push(StackAlloc::new(from_convention.reserved_stack_space() as i32).into());
+    stack_pointer += from_convention.reserved_stack_space() as usize;
+
+    // Call the Method
+    if options.can_generate_relative_jumps {
+        ops.push(CallRel::new(options.target_address).into());
+    } else {
+        ops.push(
+            CallAbs {
+                scratch_register: TRegister::default(),
+                target_address: options.target_address,
+            }
+            .into(),
+        );
     }
 
     // Return Result

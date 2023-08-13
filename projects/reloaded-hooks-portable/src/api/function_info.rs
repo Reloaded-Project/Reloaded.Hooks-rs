@@ -49,42 +49,38 @@ pub trait FunctionInfo {
             .count() as u32
     }
 
-    /// Returns the parameters that would be put to the stack if this
+    /// Returns the parameters that would be put to the stack and heap if the
     /// function were to be used with the specified calling convention.
-    fn get_parameters<TRegister, T: FunctionAttribute<TRegister>>(
+    fn get_parameters<TRegister: Clone, T: FunctionAttribute<TRegister>>(
         &self,
         convention: &T,
-    ) -> (Vec<ParameterType>, Vec<ParameterType>) {
+    ) -> (Vec<ParameterType>, Vec<(ParameterType, TRegister)>) {
         let parameters = self.parameters();
         let mut stack_params = Vec::<ParameterType>::with_capacity(self.parameters().len());
-        let mut reg_params = Vec::<ParameterType>::with_capacity(self.parameters().len());
+        let mut reg_params =
+            Vec::<(ParameterType, TRegister)>::with_capacity(self.parameters().len());
 
-        let mut num_int_params = convention.register_int_parameters().len() as i32;
-        let mut num_float_params = convention.register_float_parameters().len() as i32;
-        let mut num_vector_params = convention.register_vector_parameters().len() as i32;
+        let mut int_registers = convention.register_int_parameters().iter();
+        let mut float_registers = convention.register_float_parameters().iter();
+        let mut vector_registers = convention.register_vector_parameters().iter();
 
         for &parameter in parameters {
             if parameter.is_float() {
-                if num_float_params > 0 {
-                    reg_params.push(parameter);
-                    num_float_params -= 1;
+                if let Some(reg) = float_registers.next() {
+                    reg_params.push((parameter, reg.clone()));
                 } else {
                     stack_params.push(parameter);
                 }
             } else if parameter.is_vector() {
-                if num_vector_params > 0 {
-                    reg_params.push(parameter);
-                    num_vector_params -= 1;
+                if let Some(reg) = vector_registers.next() {
+                    reg_params.push((parameter, reg.clone()));
                 } else {
                     stack_params.push(parameter);
                 }
+            } else if let Some(reg) = int_registers.next() {
+                reg_params.push((parameter, reg.clone()));
             } else {
-                if num_int_params > 0 {
-                    reg_params.push(parameter);
-                    num_int_params -= 1;
-                } else {
-                    stack_params.push(parameter);
-                }
+                stack_params.push(parameter);
             }
         }
 

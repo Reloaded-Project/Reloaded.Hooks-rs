@@ -18,13 +18,13 @@ use crate::graphs::node::Node;
 /// # Parameter
 ///
 /// - `moves`: The sequence of MOV register operations to create a valid order for.
-/// - `scratch_registers`: The scratch registers to use for reordering, used in case of cycles.
+/// - `scratch_register`: The scratch register to use for reordering, used in case of cycles.
 ///
 /// # About
 ///
 /// For more info about this, see `Design Docs -> Wrapper Generation`,
 /// section `Reordering Operations`.
-pub fn optimize_moves<T>(moves: &[Mov<T>], scratch_registers: &[T]) -> Vec<Operation<T>>
+pub fn optimize_moves<T>(moves: &[Mov<T>], scratch_register: &Option<T>) -> Vec<Operation<T>>
 where
     T: Eq + PartialEq + Hash + Clone,
 {
@@ -37,7 +37,7 @@ where
     }
 
     let mut results = Vec::<Operation<T>>::with_capacity(moves.len() * 2);
-    let scratch_register: Option<T> = scratch_registers.first().cloned();
+    let scratch_register: Option<T> = scratch_register.clone();
     let graph = move_graph_builder::build_graph(moves);
     let mut visited: HashSet<T, BuildHasherDefault<NoHashHasher<u32>>> =
         HashSet::with_capacity_and_hasher(graph.len(), BuildHasherDefault::default());
@@ -171,14 +171,14 @@ pub mod tests {
         let original_operations: Vec<Operation<i32>> =
             moves.iter().map(|mov| Operation::Mov(*mov)).collect();
 
-        let new_operations = optimize_moves(&moves, &[]);
+        let new_operations = optimize_moves(&moves, &None);
         assert_eq!(new_operations, original_operations);
     }
 
     #[test]
     fn when_empty_moves_no_action() {
         let moves: Vec<Mov<i32>> = vec![];
-        let new_operations = optimize_moves(&moves, &[]);
+        let new_operations = optimize_moves(&moves, &None);
         assert!(new_operations.is_empty());
     }
 
@@ -195,7 +195,7 @@ pub mod tests {
             },
         ];
 
-        let new_operations = optimize_moves(&moves, &[]);
+        let new_operations = optimize_moves(&moves, &None);
         assert_eq!(
             new_operations,
             vec![Operation::Xchg(XChg {
@@ -223,7 +223,7 @@ pub mod tests {
             },
         ];
 
-        let new_operations = optimize_moves(&moves, &[]);
+        let new_operations = optimize_moves(&moves, &None);
         assert_eq!(
             new_operations,
             vec![
@@ -258,7 +258,7 @@ pub mod tests {
             },
         ];
 
-        let new_operations = optimize_moves(&moves, &[3]);
+        let new_operations = optimize_moves(&moves, &Some(3));
         assert_eq!(
             new_operations,
             vec![
