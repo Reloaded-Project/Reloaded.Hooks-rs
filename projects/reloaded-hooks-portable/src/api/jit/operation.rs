@@ -19,7 +19,7 @@ pub enum Operation<T> {
     Mov(MovOperation<T>),
     MovFromStack(MovFromStackOperation<T>),
     Push(PushOperation<T>),
-    PushStack(PushStackOperation<T>),
+    PushStack(PushStackOperation),
     StackAlloc(StackAllocOperation),
     Pop(PopOperation<T>),
     Xchg(XChgOperation<T>),
@@ -54,7 +54,6 @@ where
             register: f(inner_op.register),
         }),
         Operation::PushStack(inner_op) => Operation::PushStack(PushStackOperation {
-            base_register: f(inner_op.base_register),
             offset: inner_op.offset,
             item_size: inner_op.item_size,
         }),

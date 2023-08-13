@@ -91,6 +91,16 @@ mod tests {
     }
 
     #[test]
+    fn test_compile_push_from_stack() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Op::PushStack(PushStack::new(4, 4))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("ff742404", hex::encode(result.unwrap()));
+    }
+
+    #[test]
     fn test_compile_push_xmm() {
         let mut jit = JitX86 {};
 

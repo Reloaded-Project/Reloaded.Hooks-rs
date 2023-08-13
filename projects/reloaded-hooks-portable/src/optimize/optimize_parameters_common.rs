@@ -90,7 +90,6 @@ pub mod tests {
         let ops = vec![
             Operation::Push(Push { register: R1 }),
             Operation::PushStack(PushStack {
-                base_register: R2,
                 item_size: 4,
                 offset: 4,
             }),
@@ -108,7 +107,6 @@ pub mod tests {
         let ops = vec![
             Operation::Push(Push { register: R1 }),
             Operation::PushStack(PushStack {
-                base_register: R2,
                 item_size: 8,
                 offset: 4,
             }),
@@ -125,7 +123,6 @@ pub mod tests {
         let ops = vec![
             Operation::Push(Push { register: R1 }),
             Operation::PushStack(PushStack {
-                base_register: R2,
                 item_size: 4,
                 offset: 4,
             }),
@@ -142,7 +139,6 @@ pub mod tests {
         let ops = vec![
             Operation::Push(Push { register: R1 }),
             Operation::PushStack(PushStack {
-                base_register: R2,
                 item_size: 8, // This register is double the size; so offsets the pops by 1.
                 offset: 4,
             }),
@@ -163,7 +159,6 @@ pub mod tests {
         // Sample operations list
         let mut operations = [
             Operation::PushStack(PushStack {
-                base_register: SP,
                 offset: 4,
                 item_size: 4,
             }),

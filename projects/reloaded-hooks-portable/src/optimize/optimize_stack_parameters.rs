@@ -97,13 +97,9 @@ pub fn optimize_stack_parameters<TRegister: RegisterInfo + Copy>(
 /// Accepts a push stack operation and a pop operation, and returns a mov operation that
 /// is equivalent to both the operations.
 fn encode_push_stack_to_mov<TRegister: Clone + RegisterInfo>(
-    push_stack: &PushStack<TRegister>,
+    push_stack: &PushStack,
     pop: &Pop<TRegister>,
 ) -> Option<MovFromStack<TRegister>> {
-    if !push_stack.base_register.is_stack_pointer() {
-        return None;
-    }
-
     Some(MovFromStack {
         stack_offset: push_stack.offset as i32,
         target: pop.register.clone(),
@@ -127,9 +123,7 @@ fn update_stack_push_offsets<TRegister: RegisterInfo>(
 ) {
     for item in items {
         if let Operation::PushStack(x) = item {
-            if x.base_register.is_stack_pointer() {
-                x.offset += offset_to_adjust_by as isize;
-            }
+            x.offset += offset_to_adjust_by as isize;
         }
     }
 }
@@ -137,20 +131,18 @@ fn update_stack_push_offsets<TRegister: RegisterInfo>(
 #[cfg(test)]
 mod tests {
     use crate::api::jit::operation_aliases::*;
-    use crate::helpers::test_helpers::MockRegister::*;
+    use crate::helpers::test_helpers::MockRegister::{self, *};
 
     use super::*;
 
     #[test]
     fn update_stack_push_offsets_no_change() {
-        let mut ops = vec![
+        let mut ops: Vec<Operation<MockRegister>> = vec![
             Operation::PushStack(PushStack {
-                base_register: R1,
                 offset: 0,
                 item_size: 4,
             }),
             Operation::PushStack(PushStack {
-                base_register: R2,
                 offset: 10,
                 item_size: 4,
             }),
@@ -161,16 +153,14 @@ mod tests {
         assert_eq!(
             ops[0],
             Operation::PushStack(PushStack {
-                base_register: R1,
-                offset: 0,
+                offset: 10,
                 item_size: 4,
             })
         );
         assert_eq!(
             ops[1],
             Operation::PushStack(PushStack {
-                base_register: R2,
-                offset: 10,
+                offset: 20,
                 item_size: 4,
             })
         );
@@ -178,14 +168,12 @@ mod tests {
 
     #[test]
     fn update_stack_push_offsets_with_sp() {
-        let mut ops = vec![
+        let mut ops: Vec<Operation<MockRegister>> = vec![
             Operation::PushStack(PushStack {
-                base_register: SP,
                 offset: 0,
                 item_size: 4,
             }),
             Operation::PushStack(PushStack {
-                base_register: R2,
                 offset: 10,
                 item_size: 4,
             }),
@@ -196,7 +184,6 @@ mod tests {
         assert_eq!(
             ops[0],
             Operation::PushStack(PushStack {
-                base_register: SP,
                 offset: 10,
                 item_size: 4,
             })
@@ -204,8 +191,7 @@ mod tests {
         assert_eq!(
             ops[1],
             Operation::PushStack(PushStack {
-                base_register: R2,
-                offset: 10,
+                offset: 20,
                 item_size: 4,
             })
         );
@@ -213,14 +199,12 @@ mod tests {
 
     #[test]
     fn update_stack_push_offsets_negative_adjustment() {
-        let mut ops = vec![
+        let mut ops: Vec<Operation<MockRegister>> = vec![
             Operation::PushStack(PushStack {
-                base_register: SP,
                 offset: 10,
                 item_size: 4,
             }),
             Operation::PushStack(PushStack {
-                base_register: R2,
                 offset: 10,
                 item_size: 4,
             }),
@@ -231,7 +215,6 @@ mod tests {
         assert_eq!(
             ops[0],
             Operation::PushStack(PushStack {
-                base_register: SP,
                 offset: 5,
                 item_size: 4,
             })
@@ -239,8 +222,7 @@ mod tests {
         assert_eq!(
             ops[1],
             Operation::PushStack(PushStack {
-                base_register: R2,
-                offset: 10,
+                offset: 5,
                 item_size: 4,
             })
         );
@@ -251,12 +233,10 @@ mod tests {
         let mut operations = vec![
             Operation::PushStack(PushStack {
                 item_size: 4,
-                base_register: SP,
                 offset: 4,
             }),
             Operation::PushStack(PushStack {
                 item_size: 4,
-                base_register: SP,
                 offset: 12,
             }),
             Operation::Pop(Pop { register: R1 }),
@@ -283,11 +263,10 @@ mod tests {
     fn optimize_no_matching_pop() {
         let mut operations = vec![Operation::PushStack(PushStack {
             item_size: 4,
-            base_register: SP,
             offset: 4,
         })];
 
-        let optimized = optimize_stack_parameters(&mut operations);
+        let optimized: &mut [Operation<MockRegister>] = optimize_stack_parameters(&mut operations);
         assert_eq!(optimized.len(), 1);
         match &optimized[0] {
             Operation::PushStack(_) => {}
@@ -300,7 +279,6 @@ mod tests {
         let mut operations = vec![
             Operation::PushStack(PushStack {
                 item_size: 4,
-                base_register: SP,
                 offset: 4,
             }),
             // Some other operation that should prevent optimization

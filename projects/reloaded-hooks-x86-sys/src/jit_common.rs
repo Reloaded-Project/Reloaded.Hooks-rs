@@ -257,28 +257,30 @@ fn encode_mov_from_stack(
 
 fn encode_push_stack(
     a: &mut CodeAssembler,
-    push: &PushStack<AllRegisters>,
+    push: &PushStack,
 ) -> Result<(), JitError<AllRegisters>> {
-    if push.base_register.is_32() {
+    if a.bitness() == 32 {
         if push.item_size != 4 {
             return Err(JitError::ThirdPartyAssemblerError(
                 "Pushing float registers not implemented right now.".to_string(),
             ));
         }
 
-        let ptr = dword_ptr(push.base_register.as_iced_32()?) + push.offset as i32;
+        let ptr = dword_ptr(iced_x86::Register::ESP) + push.offset as i32;
         a.push(ptr)
-    } else if push.base_register.is_64() {
+    } else if a.bitness() == 64 {
         if push.item_size != 8 {
             return Err(JitError::ThirdPartyAssemblerError(
                 "Pushing float registers not implemented right now.".to_string(),
             ));
         }
 
-        let ptr = qword_ptr(push.base_register.as_iced_64()?) + push.offset as i32;
+        let ptr = qword_ptr(iced_x86::Register::RSP) + push.offset as i32;
         a.push(ptr)
     } else {
-        return Err(JitError::InvalidRegister(push.base_register));
+        return Err(JitError::ThirdPartyAssemblerError(
+            ARCH_NOT_SUPPORTED.to_string(),
+        ));
     }
     .map_err(convert_error)?;
 
