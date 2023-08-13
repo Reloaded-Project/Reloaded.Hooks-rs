@@ -47,7 +47,7 @@ macro_rules! multi_push_item {
                     .map_err(convert_error)?;
             }
             64 => {
-                $a.$op(dword_ptr(iced_regs::rsp) + $offset, $reg.$convert_method()?)
+                $a.$op(qword_ptr(iced_regs::rsp) + $offset, $reg.$convert_method()?)
                     .map_err(convert_error)?;
             }
             _ => {
@@ -107,7 +107,7 @@ macro_rules! multi_pop_item {
                     .map_err(convert_error)?;
             }
             64 => {
-                $a.$op($reg.$convert_method()?, dword_ptr(iced_regs::rsp) + $offset)
+                $a.$op($reg.$convert_method()?, qword_ptr(iced_regs::rsp) + $offset)
                     .map_err(convert_error)?;
             }
             _ => {
@@ -185,7 +185,7 @@ macro_rules! encode_xmm_pop {
             $a.add(iced_regs::esp, $reg.size() as i32)
                 .map_err(convert_error)?;
         } else if $a.bitness() == 64 {
-            $a.$op($reg.$reg_type()?, dword_ptr(iced_regs::rsp))
+            $a.$op($reg.$reg_type()?, qword_ptr(iced_regs::rsp))
                 .map_err(convert_error)?;
             $a.add(iced_regs::rsp, $reg.size() as i32)
                 .map_err(convert_error)?;
@@ -255,34 +255,49 @@ fn encode_mov_from_stack(
     Ok(())
 }
 
+macro_rules! encode_push_stack_impl {
+    ($a:expr, $push:expr, $reg:expr, $size:expr, $ptr_type:ident, $error_msg:expr) => {
+        if $push.item_size != $size {
+            // Need to do some custom shenanigans to re-push larger values.
+            if $push.item_size % $size != 0 {
+                return Err(JitError::ThirdPartyAssemblerError($error_msg.to_string()));
+            } else {
+                let num_operations = $push.item_size / $size;
+                for op_idx in 0..num_operations {
+                    let ptr = $ptr_type($reg) + $push.offset as i32 + (op_idx * $size * 2);
+                    $a.push(ptr).map_err(convert_error)?;
+                }
+            }
+        } else {
+            let ptr = $ptr_type($reg) + $push.offset as i32;
+            $a.push(ptr).map_err(convert_error)?;
+        }
+    };
+}
+
 fn encode_push_stack(
     a: &mut CodeAssembler,
     push: &PushStack,
 ) -> Result<(), JitError<AllRegisters>> {
-    if a.bitness() == 32 {
-        if push.item_size != 4 {
+    match a.bitness() {
+        32 => {
+            // This could be faster for 32-bit; using SSE registers to re-push 4 params at once
+            // Only problem is, there is no common callee saved register for SSE on 32-bit,
+            let error_msg =
+                "Stack parameter must be a multiple of 4 if not a single register size.";
+            encode_push_stack_impl!(a, push, iced_x86::Register::ESP, 4, dword_ptr, error_msg);
+        }
+        64 => {
+            let error_msg =
+                "Stack parameter must be a multiple of 8 if not a single register size.";
+            encode_push_stack_impl!(a, push, iced_x86::Register::RSP, 8, qword_ptr, error_msg);
+        }
+        _ => {
             return Err(JitError::ThirdPartyAssemblerError(
-                "Pushing float registers not implemented right now.".to_string(),
+                ARCH_NOT_SUPPORTED.to_string(),
             ));
         }
-
-        let ptr = dword_ptr(iced_x86::Register::ESP) + push.offset as i32;
-        a.push(ptr)
-    } else if a.bitness() == 64 {
-        if push.item_size != 8 {
-            return Err(JitError::ThirdPartyAssemblerError(
-                "Pushing float registers not implemented right now.".to_string(),
-            ));
-        }
-
-        let ptr = qword_ptr(iced_x86::Register::RSP) + push.offset as i32;
-        a.push(ptr)
-    } else {
-        return Err(JitError::ThirdPartyAssemblerError(
-            ARCH_NOT_SUPPORTED.to_string(),
-        ));
     }
-    .map_err(convert_error)?;
 
     Ok(())
 }
@@ -297,7 +312,7 @@ macro_rules! encode_xmm_push {
         } else if $a.bitness() == 64 {
             $a.sub(iced_regs::rsp, $reg.size() as i32)
                 .map_err(convert_error)?;
-            $a.$op(dword_ptr(iced_regs::rsp), $reg.$reg_type()?)
+            $a.$op(qword_ptr(iced_regs::rsp), $reg.$reg_type()?)
                 .map_err(convert_error)?;
         } else {
             return Err(JitError::ThirdPartyAssemblerError(
