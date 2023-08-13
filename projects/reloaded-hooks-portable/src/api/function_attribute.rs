@@ -11,6 +11,9 @@ pub trait FunctionAttribute<TRegister> {
     /// Float registers in left to right parameter order passed to the custom function.
     fn register_float_parameters(&self) -> &[TRegister];
 
+    /// Vector registers in left to right parameter order passed to the custom function.
+    fn register_vector_parameters(&self) -> &[TRegister];
+
     /// The register that the function returns its value in.
     /// In x86 this is typically 'eax/rax'.
     ///

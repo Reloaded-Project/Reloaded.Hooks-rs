@@ -71,8 +71,7 @@ pub fn generate_wrapper_instructions<
     options: WrapperInstructionGeneratorOptions<TFunctionInfo>,
 ) -> Vec<Operation<TRegister>> {
     let mut ops = Vec::<Operation<TRegister>>::new();
-
-    let mut stack_pointer = 0;
+    let mut stack_pointer = options.stack_entry_alignment;
 
     // Backup Always Saved Registers (LR)
     for register in to_convention.always_saved_registers() {
@@ -92,8 +91,10 @@ pub fn generate_wrapper_instructions<
     }
 
     // Reserve required space
-    // let sp = RegisterInfo::stack_pointer();
-    // ops.push(Sub::new(sp, from_convention.reserved_stack_space() as i32).into());
+    ops.push(StackAlloc::new(from_convention.reserved_stack_space() as i32).into());
+    stack_pointer += from_convention.reserved_stack_space() as usize;
+
+    // Re-push stack parameters.
 
     // Return Result
     todo!("rest of code");
