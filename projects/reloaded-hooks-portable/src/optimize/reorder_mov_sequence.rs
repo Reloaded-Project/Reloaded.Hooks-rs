@@ -59,6 +59,7 @@ where
 
     loop {
         // Copy elements until found a MOV operation.
+        let original_ops = new_ops.len();
         for (idx, operation) in operations[start_idx..].iter().enumerate() {
             if let Operation::Mov(_) = operation {
                 start_idx = idx;
@@ -83,7 +84,7 @@ where
         // Get the slice of MOV operations.
         if as_mov.len() <= 1 {
             // No more MOV operations to reorder, push all remaining items
-            new_ops.extend_from_slice(&operations[start_idx..]);
+            new_ops.extend_from_slice(&operations[start_idx + (new_ops.len() - original_ops)..]);
             break;
         }
 

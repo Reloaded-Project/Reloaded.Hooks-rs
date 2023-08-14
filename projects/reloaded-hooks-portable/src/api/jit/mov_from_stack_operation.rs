@@ -26,7 +26,7 @@ use derive_new::new;
 /// the code above shows strings for clarity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct MovFromStackOperation<T> {
-    /// The offset from the base of the stack (e.g., ESP or RSP in x86) where the data is located.
+    /// The offset from the current stack pointer in the direction opposite to the stack's growth.
     pub stack_offset: i32,
 
     /// The target (destination) register for the move operation.

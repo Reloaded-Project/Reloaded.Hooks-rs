@@ -5,6 +5,11 @@
 /// Contains all declarations that are exposed to library users.
 pub mod api {
 
+    /// The errors that can occur when generating a wrapper.
+    pub mod errors {
+        pub mod wrapper_generation_error;
+    }
+
     /// APIs for allocating buffers in given proximity.
     pub mod buffers {
         pub mod buffer_abstractions;
@@ -12,6 +17,7 @@ pub mod api {
         pub mod default_buffer_factory;
     }
 
+    /// Settings passed to other methodss
     pub mod settings {
         pub mod proximity_target;
     }
@@ -38,6 +44,7 @@ pub mod api {
         pub mod push_constant_operation;
         pub mod push_operation;
         pub mod push_stack_operation;
+        pub mod return_operation;
         pub mod stack_alloc_operation;
         pub mod xchg_operation;
     }

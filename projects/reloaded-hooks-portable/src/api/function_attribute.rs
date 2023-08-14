@@ -52,7 +52,13 @@ pub trait FunctionAttribute<TRegister> {
     /// Required alignment of the stack pointer before the function is called.
     /// This may vary depending on architecture. Tends to be 16 bytes for x64,
     /// 0 bytes for x86, etc.
-    fn required_stack_alignment(&self) -> usize;
+    fn required_stack_alignment(&self) -> u32;
+
+    /// A 'scratch' register that can be used for temporary storage when building
+    /// wrappers for this calling convention.
+    fn scratch_register(&self) -> Option<TRegister> {
+        None
+    }
 }
 
 /// Defines how the calling convention cleans up the stack after a function call.
@@ -74,6 +80,7 @@ pub trait FunctionAttribute<TRegister> {
 /// - `Callee`: Indicates that the function being called (the callee) will clean
 /// up its own arguments from the stack before it returns. This is seen in
 /// conventions like stdcall used in the Windows API.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StackCleanup {
     /// Indicates that the function making the call (the caller) is
     /// responsible for cleaning up the stack after the function call returns.
@@ -95,6 +102,7 @@ pub enum StackCleanup {
 ///
 /// This distinction is especially important when interfacing with different foreign function interfaces
 /// or when writing low-level code that manipulates the stack directly.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StackParameterOrder {
     /// Parameters are pushed onto the stack starting with the rightmost (last) parameter and
     /// proceeding to the left. This is common in many C and C++ calling conventions on platforms

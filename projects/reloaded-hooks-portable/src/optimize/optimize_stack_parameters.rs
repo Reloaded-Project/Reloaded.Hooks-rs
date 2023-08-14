@@ -56,7 +56,8 @@ pub fn optimize_stack_parameters<TRegister: RegisterInfo + Copy>(
     for push_idx in 0..operations.len() {
         let operation = &operations[push_idx];
         if let Operation::PushStack(x) = operation {
-            current_stack_offset += x.item_size;
+            let item_size = x.item_size;
+            current_stack_offset += item_size;
 
             // Found a push, now find the next pop.
             let pop = find_pop_for_given_push(&operations[push_idx + 1..], current_stack_offset);
@@ -84,7 +85,7 @@ pub fn optimize_stack_parameters<TRegister: RegisterInfo + Copy>(
                 &Operation::MovFromStack(opt_optimized_operation),
             );
 
-            update_stack_push_offsets(new_slice, -opt_optimized_operation.stack_offset);
+            update_stack_push_offsets(&mut new_slice[push_idx..], -(item_size as i32));
             return optimize_stack_parameters(new_slice);
         } else if let Operation::Push(x) = operation {
             current_stack_offset += x.register.size_in_bytes();
@@ -117,7 +118,7 @@ fn encode_push_stack_to_mov<TRegister: Clone + RegisterInfo>(
 ///
 /// We call this after replacing a stack pointer relative push with a mov, as future
 /// operations need to be updated.
-fn update_stack_push_offsets<TRegister: RegisterInfo>(
+pub(crate) fn update_stack_push_offsets<TRegister: RegisterInfo>(
     items: &mut [Operation<TRegister>],
     offset_to_adjust_by: i32,
 ) {

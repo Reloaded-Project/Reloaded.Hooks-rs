@@ -73,6 +73,7 @@ impl RegisterInfo for MockRegister {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MockFunctionAttribute {
     pub int_params: Vec<MockRegister>,
     pub float_params: Vec<MockRegister>,
@@ -83,6 +84,7 @@ pub struct MockFunctionAttribute {
     pub always_saved: Vec<MockRegister>,
     pub stack_cleanup: StackCleanup,
     pub stack_param_order: StackParameterOrder,
+    pub required_stack_alignment: u32,
 }
 
 impl Default for MockFunctionAttribute {
@@ -97,6 +99,7 @@ impl Default for MockFunctionAttribute {
             always_saved: vec![],
             stack_cleanup: StackCleanup::Caller,
             stack_param_order: StackParameterOrder::RightToLeft,
+            required_stack_alignment: 0,
         }
     }
 }
@@ -115,31 +118,31 @@ impl FunctionAttribute<MockRegister> for MockFunctionAttribute {
     }
 
     fn return_register(&self) -> MockRegister {
-        MockRegister::R1
+        self.return_reg
     }
 
     fn reserved_stack_space(&self) -> u32 {
-        0
+        self.reserved_stack
     }
 
     fn callee_saved_registers(&self) -> &[MockRegister] {
-        &[]
+        self.callee_saved.as_slice()
     }
 
     fn always_saved_registers(&self) -> &[MockRegister] {
-        &[]
+        self.always_saved.as_slice()
     }
 
     fn stack_cleanup_behaviour(&self) -> StackCleanup {
-        StackCleanup::Caller
+        self.stack_cleanup
     }
 
     fn stack_parameter_order(&self) -> StackParameterOrder {
-        StackParameterOrder::RightToLeft
+        self.stack_param_order
     }
 
-    fn required_stack_alignment(&self) -> usize {
-        0
+    fn required_stack_alignment(&self) -> u32 {
+        self.required_stack_alignment
     }
 }
 
@@ -167,6 +170,7 @@ lazy_static::lazy_static! {
         always_saved: vec![],
         stack_cleanup: StackCleanup::Caller,
         stack_param_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 1
     };
 
     /// A calling convention that is similar to x86 'stdcall', but for our pretend architecture.
@@ -180,6 +184,7 @@ lazy_static::lazy_static! {
         always_saved: vec![],
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 1
     };
 
     /// A calling convention that is similar to x86 Microsoft 'thiscall', but for our pretend architecture.
@@ -193,5 +198,20 @@ lazy_static::lazy_static! {
         always_saved: vec![],
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 1
+    };
+    
+    /// A calling convention that is similar to x86 Microsoft 'fastcall', but for our pretend architecture.
+    pub static ref FASTCALL_LIKE_FUNCTION_ATTRIBUTE: MockFunctionAttribute = MockFunctionAttribute {
+        int_params: vec![ MockRegister::R1, MockRegister::R2 ], // first 2 params on stack
+        float_params: vec![],
+        vector_params: vec![],
+        return_reg: MockRegister::R1,
+        reserved_stack: 0,
+        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        always_saved: vec![],
+        stack_cleanup: StackCleanup::Callee,  // callee cleanup
+        stack_param_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 1
     };
 }

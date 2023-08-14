@@ -11,7 +11,8 @@ use super::{
     mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
     pop_operation::PopOperation, push_constant_operation::PushConstantOperation,
     push_operation::PushOperation, push_stack_operation::PushStackOperation,
-    stack_alloc_operation::StackAllocOperation, xchg_operation::XChgOperation,
+    return_operation::ReturnOperation, stack_alloc_operation::StackAllocOperation,
+    xchg_operation::XChgOperation,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, From)]
@@ -28,6 +29,7 @@ pub enum Operation<T> {
     CallRelative(CallRelativeOperation),
     JumpRelative(JumpRelativeOperation),
     JumpAbsolute(JumpAbsoluteOperation<T>),
+    Return(ReturnOperation),
 
     // Only possible on some architectures.
     CallIpRelative(CallIpRelativeOperation),
@@ -103,5 +105,6 @@ where
                 .collect(),
         ),
         Operation::PushConst(x) => Operation::PushConst(x),
+        Operation::Return(x) => Operation::Return(x),
     }
 }

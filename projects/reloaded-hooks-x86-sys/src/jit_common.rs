@@ -5,6 +5,7 @@ use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
 use iced_x86::IcedError;
 use reloaded_hooks_portable::api::jit::operation_aliases::*;
 use reloaded_hooks_portable::api::jit::push_constant_operation::PushConstantOperation;
+use reloaded_hooks_portable::api::jit::return_operation::ReturnOperation;
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::Operation};
 
 use crate::all_registers::AllRegisters;
@@ -38,6 +39,7 @@ pub(crate) fn encode_instruction(
         Operation::MultiPush(x) => encode_multi_push(assembler, x),
         Operation::MultiPop(x) => encode_multi_pop(assembler, x),
         Operation::PushConst(x) => encode_push_constant(assembler, x),
+        Operation::Return(x) => encode_return(assembler, x),
     }
 }
 
@@ -479,5 +481,13 @@ fn encode_push_constant(
         return Err(JitError::ThirdPartyAssemblerError(
             ARCH_NOT_SUPPORTED.to_string(),
         ));
+    }
+}
+
+fn encode_return(a: &mut CodeAssembler, x: &ReturnOperation) -> Result<(), JitError<AllRegisters>> {
+    if x.offset == 0 {
+        a.ret().map_err(convert_error)
+    } else {
+        a.ret_1(x.offset as i32).map_err(convert_error)
     }
 }
