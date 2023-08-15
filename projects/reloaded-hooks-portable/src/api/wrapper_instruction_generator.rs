@@ -254,11 +254,11 @@ pub fn generate_wrapper_instructions<
 
 #[cfg(test)]
 mod tests {
+    use crate::api::jit::operation::Operation::MultiPush;
     use crate::{
         api::function_info::ParameterType, helpers::test_helpers::MockRegister::*,
         helpers::test_helpers::*,
     };
-    use crate::api::jit::operation::Operation::MultiPush;
 
     use super::*;
 
@@ -271,7 +271,7 @@ mod tests {
     }
 
     // X86-LIKE TESTS //
-    
+
     #[test]
     fn ms_thiscall_to_cdecl_unoptimized() {
         let nint = size_of::<isize>() as isize;
@@ -383,7 +383,7 @@ mod tests {
         assert_eq!(vec[2], StackAlloc::new(-(nint * 2) as i32).into()); // caller stack cleanup
         assert_eq!(vec[3], Return::new(0).into()); // callee stack cleanup (only non-register parameter)
     }
-    
+
     // EXTRA X86-LIKE TESTS //
 
     #[test]
@@ -403,7 +403,7 @@ mod tests {
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], Return::new(nint as usize).into()); // callee stack cleanup (only non-register parameter)
     }
-    
+
     #[test]
     fn ms_thiscall_to_stdcall_optimized() {
         let nint = size_of::<isize>() as isize;
@@ -422,6 +422,13 @@ mod tests {
         assert_eq!(vec[3], Return::new((nint * 2) as usize).into()); // caller cleanup, so no offset here
     }
 
+    /// Creates the instructions responsible for wrapping one object kind to another.
+    ///
+    /// # Parameters
+    ///
+    /// - `from_convention` - The calling convention to convert to `to_convention`. This is the convention of the function (`options.target_address`) called.
+    /// - `to_convention` - The target convention to which convert to `from_convention`. This is the convention of the function returned.
+    /// - `optimized` - Whether to generate optimized code
     fn two_parameters(
         from_convention: MockFunctionAttribute,
         to_convention: MockFunctionAttribute,

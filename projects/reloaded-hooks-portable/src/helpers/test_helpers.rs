@@ -200,7 +200,7 @@ lazy_static::lazy_static! {
         stack_param_order: StackParameterOrder::RightToLeft,
         required_stack_alignment: 1
     };
-    
+
     /// A calling convention that is similar to x86 Microsoft 'fastcall', but for our pretend architecture.
     pub static ref FASTCALL_LIKE_FUNCTION_ATTRIBUTE: MockFunctionAttribute = MockFunctionAttribute {
         int_params: vec![ MockRegister::R1, MockRegister::R2 ], // first 2 params on stack
@@ -213,5 +213,19 @@ lazy_static::lazy_static! {
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,
         required_stack_alignment: 1
+    };
+
+    /// A calling convention that is similar to Microsoft 'x64', but for our pretend architecture.
+    pub static ref MICROSOFTX64_LIKE_FUNCTION_ATTRIBUTE: MockFunctionAttribute = MockFunctionAttribute {
+        int_params: vec![ MockRegister::R1, MockRegister::R2 ], // first 2 params on stack
+        float_params: vec![],
+        vector_params: vec![],
+        return_reg: MockRegister::R1,
+        reserved_stack: 32,
+        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        always_saved: vec![],
+        stack_cleanup: StackCleanup::Callee,  // callee cleanup
+        stack_param_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 16
     };
 }
