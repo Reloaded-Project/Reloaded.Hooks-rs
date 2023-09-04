@@ -189,8 +189,12 @@ pub fn generate_wrapper_instructions<
     if options.enable_optimizations {
         optimized = optimize_stack_parameters(optimized);
         optimized = optimize_push_pop_parameters(optimized);
-        new_optimized = reorder_mov_sequence(optimized, &scratch_register); // perf hit
-        optimized = &mut new_optimized[..];
+
+        let reordered = reorder_mov_sequence(optimized, &scratch_register); // perf hit
+        if reordered.is_some() {
+            new_optimized = unsafe { reordered.unwrap_unchecked() };
+            optimized = &mut new_optimized[..];
+        }
 
         if options
             .jit_capabilities

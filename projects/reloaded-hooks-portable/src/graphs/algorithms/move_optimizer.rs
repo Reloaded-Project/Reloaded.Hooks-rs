@@ -24,16 +24,16 @@ use crate::graphs::node::Node;
 ///
 /// For more info about this, see `Design Docs -> Wrapper Generation`,
 /// section `Reordering Operations`.
-pub fn optimize_moves<T>(moves: &[Mov<T>], scratch_register: &Option<T>) -> Vec<Operation<T>>
+pub fn optimize_moves<T>(
+    moves: &[Mov<T>],
+    scratch_register: &Option<T>,
+) -> Option<Vec<Operation<T>>>
 where
     T: Eq + PartialEq + Hash + Clone,
 {
     // Check if the moves are already valid.
     if (moves.is_empty()) || validate_moves(moves) {
-        return moves
-            .iter()
-            .map(|mov| Operation::Mov(mov.clone()))
-            .collect();
+        return None;
     }
 
     let mut results = Vec::<Operation<T>>::with_capacity(moves.len() * 2);
@@ -56,7 +56,7 @@ where
         }
     }
 
-    results
+    Some(results)
 }
 
 fn dfs<T: Eq + Clone + Hash>(
@@ -168,18 +168,15 @@ pub mod tests {
             target: 0,
         }];
 
-        let original_operations: Vec<Operation<i32>> =
-            moves.iter().map(|mov| Operation::Mov(*mov)).collect();
-
         let new_operations = optimize_moves(&moves, &None);
-        assert_eq!(new_operations, original_operations);
+        assert!(new_operations.is_none());
     }
 
     #[test]
     fn when_empty_moves_no_action() {
         let moves: Vec<Mov<i32>> = vec![];
         let new_operations = optimize_moves(&moves, &None);
-        assert!(new_operations.is_empty());
+        assert!(new_operations.is_none());
     }
 
     #[test]
@@ -195,7 +192,7 @@ pub mod tests {
             },
         ];
 
-        let new_operations = optimize_moves(&moves, &None);
+        let new_operations = optimize_moves(&moves, &None).unwrap();
         assert_eq!(
             new_operations,
             vec![Operation::Xchg(XChg {
@@ -223,7 +220,7 @@ pub mod tests {
             },
         ];
 
-        let new_operations = optimize_moves(&moves, &None);
+        let new_operations = optimize_moves(&moves, &None).unwrap();
         assert_eq!(
             new_operations,
             vec![
@@ -258,7 +255,7 @@ pub mod tests {
             },
         ];
 
-        let new_operations = optimize_moves(&moves, &Some(3));
+        let new_operations = optimize_moves(&moves, &Some(3)).unwrap();
         assert_eq!(
             new_operations,
             vec![
