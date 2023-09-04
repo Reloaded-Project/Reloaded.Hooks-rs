@@ -1,4 +1,7 @@
+extern crate alloc;
+
 use crate::api::jit::operation_aliases::{Op, Return};
+use alloc::vec::Vec;
 
 /// Optimizes the code to merge [StackAlloc](crate::api::jit::stack_alloc_Op::StackAllocOperation) and
 /// [Return](crate::api::jit::return_Op::ReturnOperation) operations into a single operation,
@@ -19,11 +22,9 @@ use crate::api::jit::operation_aliases::{Op, Return};
 /// # Returns
 ///
 /// A new list of operations, these operations should replace the input slice that was passed to this structure.
-pub fn merge_stackalloc_and_return<TRegister: Clone>(
-    operations: &mut [Op<TRegister>],
-) -> &mut [Op<TRegister>] {
+pub fn merge_stackalloc_and_return<TRegister: Clone>(operations: &mut Vec<Op<TRegister>>) {
     if operations.len() < 2 {
-        return operations;
+        return;
     }
 
     // Check if the last two operations are StackAlloc and Return
@@ -34,13 +35,14 @@ pub fn merge_stackalloc_and_return<TRegister: Clone>(
         // Merge the operations
         let new_offset = ret.offset as i32 + -stack_alloc.operand;
         if new_offset >= 0 {
-            operations[operations.len() - 2] = Op::Return(Return::new(new_offset as usize));
+            let num_operations = operations.len();
+            operations[num_operations - 2] = Op::Return(Return::new(new_offset as usize));
             let slice_max = operations.len() - 1;
-            return &mut operations[..slice_max];
+            unsafe {
+                operations.set_len(slice_max);
+            }
         }
     }
-
-    operations
 }
 
 #[cfg(test)]
@@ -59,19 +61,19 @@ mod tests {
             Op::Return(Return::new(0)),
         ];
 
-        let optimized = merge_stackalloc_and_return(&mut operations);
+        merge_stackalloc_and_return(&mut operations);
 
-        assert_eq!(optimized.len(), 1);
-        assert_eq!(optimized[0], Op::Return(Return::new(4)));
+        assert_eq!(operations.len(), 1);
+        assert_eq!(operations[0], Op::Return(Return::new(4)));
     }
 
     #[test]
     fn test_no_merge_with_insufficient_operations() {
         let mut operations: Vec<Op<MockRegister>> = vec![Op::Return(Return::new(0))];
-        let optimized = merge_stackalloc_and_return(&mut operations);
+        merge_stackalloc_and_return(&mut operations);
 
-        assert_eq!(optimized.len(), 1);
-        assert_eq!(optimized[0], Op::Return(Return::new(0)));
+        assert_eq!(operations.len(), 1);
+        assert_eq!(operations[0], Op::Return(Return::new(0)));
     }
 
     #[test]
@@ -79,11 +81,11 @@ mod tests {
         let mut operations: Vec<Op<MockRegister>> =
             vec![Op::Return(Return::new(0)), Op::Return(Return::new(0))];
 
-        let optimized = merge_stackalloc_and_return(&mut operations);
+        merge_stackalloc_and_return(&mut operations);
 
-        assert_eq!(optimized.len(), 2);
-        assert_eq!(optimized[0], Op::Return(Return::new(0)));
-        assert_eq!(optimized[1], Op::Return(Return::new(0)));
+        assert_eq!(operations.len(), 2);
+        assert_eq!(operations[0], Op::Return(Return::new(0)));
+        assert_eq!(operations[1], Op::Return(Return::new(0)));
     }
 
     #[test]
@@ -93,10 +95,10 @@ mod tests {
             Op::Return(Return::new(0)),
         ];
 
-        let optimized = merge_stackalloc_and_return(&mut operations);
+        merge_stackalloc_and_return(&mut operations);
 
-        assert_eq!(optimized.len(), 2);
-        assert_eq!(optimized[0], Op::StackAlloc(StackAlloc { operand: 4 }));
-        assert_eq!(optimized[1], Op::Return(Return::new(0)));
+        assert_eq!(operations.len(), 2);
+        assert_eq!(operations[0], Op::StackAlloc(StackAlloc { operand: 4 }));
+        assert_eq!(operations[1], Op::Return(Return::new(0)));
     }
 }

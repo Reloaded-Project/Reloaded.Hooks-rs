@@ -18,6 +18,7 @@ use crate::{
     optimize::{
         combine_push_operations::{merge_pop_operations, merge_push_operations},
         eliminate_common_callee_saved_registers::eliminate_common_callee_saved_registers,
+        merge_stackalloc_and_return::merge_stackalloc_and_return,
         optimize_reg_parameters::optimize_push_pop_parameters,
         optimize_stack_parameters::{optimize_stack_parameters, update_stack_push_offsets},
         reorder_mov_sequence::reorder_mov_sequence,
@@ -249,6 +250,11 @@ pub fn generate_wrapper_instructions<
     } else {
         ops.push(ReturnOperation::new(0).into());
     }
+
+    if options.enable_optimizations {
+        merge_stackalloc_and_return(&mut ops);
+    }
+
     Ok(ops)
 }
 
@@ -339,12 +345,14 @@ mod tests {
 
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
-        assert_eq!(vec.len(), 5);
+        assert_eq!(vec.len(), 4);
         assert_eq!(vec[0], PushStack::new(nint, nint as usize).into()); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
-        assert_eq!(vec[3], StackAlloc::new(-(nint * 2) as i32).into()); // caller stack cleanup
-        assert_eq!(vec[4], Return::new(nint as usize).into()); // callee stack cleanup (only non-register parameter)
+        assert_eq!(
+            vec[3],
+            Return::new((nint * 2) as usize + nint as usize).into()
+        ); // cleanup 2*nint (cdecl) + nint (thiscall)
     }
 
     #[test]
@@ -377,11 +385,10 @@ mod tests {
 
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
-        assert_eq!(vec.len(), 4);
+        assert_eq!(vec.len(), 3);
         assert_eq!(vec[0], MultiPush(vec![Push::new(R2), Push::new(R1)])); // push right param
         assert_eq!(vec[1], CallRel::new(4096).into());
-        assert_eq!(vec[2], StackAlloc::new(-(nint * 2) as i32).into()); // caller stack cleanup
-        assert_eq!(vec[3], Return::new(0).into()); // callee stack cleanup (only non-register parameter)
+        assert_eq!(vec[2], Return::new((nint * 2) as usize).into()); // caller stack cleanup (2 cdecl parameters)
     }
 
     // EXTRA X86-LIKE TESTS //
