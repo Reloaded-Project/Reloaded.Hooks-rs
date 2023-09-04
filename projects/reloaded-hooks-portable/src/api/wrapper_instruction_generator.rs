@@ -3,6 +3,7 @@ use core::{hash::Hash, mem::size_of, slice};
 
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use smallvec::SmallVec;
 
 use super::{
     function_attribute::FunctionAttribute,
@@ -116,7 +117,7 @@ pub fn generate_wrapper_instructions<
     let num_params = options.function_info.parameters().len();
     let returned_stack_params_size = (size_of::<ParameterType>() * num_params);
     let returned_reg_params_size = (size_of::<(ParameterType, TRegister)>() * num_params);
-    let mut setup_params_ops = Vec::<Operation<TRegister>>::with_capacity(num_params * 2);
+    let mut setup_params_ops = SmallVec::<[Operation<TRegister>; 32]>::new_const();
     let mut callee_cleanup_return_size = stack_pointer - options.stack_entry_alignment;
 
     // Note: Allocating on stack to avoid heap allocations.
@@ -183,19 +184,19 @@ pub fn generate_wrapper_instructions<
     // Optimize the parameter pushing process
     let scratch_register = from_convention.scratch_register();
     let mut optimized = setup_params_ops.as_mut_slice();
-    let mut new_optimized: Vec<Operation<TRegister>> = Vec::with_capacity(optimized.len() + 1);
+    let mut new_optimized: Vec<Operation<TRegister>> = Vec::new();
 
     if options.enable_optimizations {
         optimized = optimize_stack_parameters(optimized);
         optimized = optimize_push_pop_parameters(optimized);
-        new_optimized = reorder_mov_sequence(optimized, &scratch_register);
+        new_optimized = reorder_mov_sequence(optimized, &scratch_register); // perf hit
         optimized = &mut new_optimized[..];
 
         if options
             .jit_capabilities
             .contains(&JitCapabilities::CanMultiPush)
         {
-            optimized = merge_push_operations(optimized);
+            optimized = merge_push_operations(optimized); // perf hit
             optimized = merge_pop_operations(optimized);
         }
     }
