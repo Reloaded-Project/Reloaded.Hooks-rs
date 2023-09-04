@@ -56,9 +56,8 @@ pub trait FunctionInfo {
         convention: &T,
     ) -> (Vec<ParameterType>, Vec<(ParameterType, TRegister)>) {
         let parameters = self.parameters();
-        let mut stack_params = Vec::<ParameterType>::with_capacity(self.parameters().len());
-        let mut reg_params =
-            Vec::<(ParameterType, TRegister)>::with_capacity(self.parameters().len());
+        let mut stack_params = Vec::<ParameterType>::with_capacity(parameters.len());
+        let mut reg_params = Vec::<(ParameterType, TRegister)>::with_capacity(parameters.len());
 
         let mut int_registers = convention.register_int_parameters().iter();
         let mut float_registers = convention.register_float_parameters().iter();

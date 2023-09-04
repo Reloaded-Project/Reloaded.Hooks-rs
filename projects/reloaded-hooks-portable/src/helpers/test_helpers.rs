@@ -1,3 +1,7 @@
+extern crate alloc;
+use alloc::vec;
+use alloc::vec::Vec;
+
 use crate::api::{
     function_attribute::{FunctionAttribute, StackCleanup, StackParameterOrder},
     function_info::{FunctionInfo, ParameterType},

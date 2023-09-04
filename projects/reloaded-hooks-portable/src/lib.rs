@@ -75,8 +75,9 @@ pub mod graphs {
 pub mod helpers {
     pub mod alignment_space_finder;
 
-    #[cfg(test)]
-    pub(crate) mod test_helpers;
+    // Benchmark and test only.
+    #[doc(hidden)]
+    pub mod test_helpers;
 }
 
 /// Code optimization algorithms.

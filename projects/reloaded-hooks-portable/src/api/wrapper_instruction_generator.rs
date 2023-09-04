@@ -81,11 +81,11 @@ pub fn generate_wrapper_instructions<
     TFunctionAttribute: FunctionAttribute<TRegister>,
     TFunctionInfo: FunctionInfo,
 >(
-    from_convention: TFunctionAttribute,
-    to_convention: TFunctionAttribute,
+    from_convention: &TFunctionAttribute,
+    to_convention: &TFunctionAttribute,
     options: WrapperInstructionGeneratorOptions<TFunctionInfo>,
 ) -> Result<Vec<Operation<TRegister>>, WrapperGenerationError> {
-    let mut ops = Vec::<Operation<TRegister>>::new();
+    let mut ops = Vec::<Operation<TRegister>>::with_capacity(32);
     let mut stack_pointer =
         options.stack_entry_alignment + from_convention.reserved_stack_space() as usize;
 
@@ -114,7 +114,7 @@ pub fn generate_wrapper_instructions<
 
     // Re-push stack parameters of function returned (right to left)
     let mut setup_params_ops = Vec::<Operation<TRegister>>::new();
-    let fn_returned_params = options.function_info.get_parameters(&to_convention);
+    let fn_returned_params = options.function_info.get_parameters(to_convention);
 
     /*
         Context [x64 as example].
@@ -151,7 +151,7 @@ pub fn generate_wrapper_instructions<
     }
 
     // Pop register parameters of the function being called (left to right)
-    let fn_called_params = options.function_info.get_parameters(&from_convention);
+    let fn_called_params = options.function_info.get_parameters(from_convention);
     for param in fn_called_params.1.iter() {
         setup_params_ops.push(Pop::new(param.1.clone()).into());
         stack_pointer -= param.0.size_in_bytes();
@@ -259,7 +259,7 @@ pub fn generate_wrapper_instructions<
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use crate::api::jit::operation::Operation::MultiPush;
     use crate::{
         api::function_info::ParameterType, helpers::test_helpers::MockRegister::*,
@@ -282,8 +282,8 @@ mod tests {
     fn ms_thiscall_to_cdecl_unoptimized() {
         let nint = size_of::<isize>() as isize;
         let result = two_parameters(
-            THISCALL_LIKE_FUNCTION_ATTRIBUTE.clone(),
-            CDECL_LIKE_FUNCTION_ATTRIBUTE.clone(),
+            &THISCALL_LIKE_FUNCTION_ATTRIBUTE,
+            &CDECL_LIKE_FUNCTION_ATTRIBUTE,
             false,
         );
 
@@ -301,8 +301,8 @@ mod tests {
     fn ms_thiscall_to_cdecl_optimized() {
         let nint = size_of::<isize>() as isize;
         let result = two_parameters(
-            THISCALL_LIKE_FUNCTION_ATTRIBUTE.clone(),
-            CDECL_LIKE_FUNCTION_ATTRIBUTE.clone(),
+            &THISCALL_LIKE_FUNCTION_ATTRIBUTE,
+            &CDECL_LIKE_FUNCTION_ATTRIBUTE,
             true,
         );
 
@@ -319,8 +319,8 @@ mod tests {
     fn ms_cdecl_to_thiscall_unoptimized() {
         let nint = size_of::<isize>() as isize;
         let result = two_parameters(
-            CDECL_LIKE_FUNCTION_ATTRIBUTE.clone(),
-            THISCALL_LIKE_FUNCTION_ATTRIBUTE.clone(),
+            &CDECL_LIKE_FUNCTION_ATTRIBUTE,
+            &THISCALL_LIKE_FUNCTION_ATTRIBUTE,
             false,
         );
 
@@ -338,8 +338,8 @@ mod tests {
     fn ms_cdecl_to_thiscall_optimized() {
         let nint = size_of::<isize>() as isize;
         let result = two_parameters(
-            CDECL_LIKE_FUNCTION_ATTRIBUTE.clone(),
-            THISCALL_LIKE_FUNCTION_ATTRIBUTE.clone(),
+            &CDECL_LIKE_FUNCTION_ATTRIBUTE,
+            &THISCALL_LIKE_FUNCTION_ATTRIBUTE,
             true,
         );
 
@@ -359,8 +359,8 @@ mod tests {
     fn ms_cdecl_to_fastcall_unoptimized() {
         let nint = size_of::<isize>() as isize;
         let result = two_parameters(
-            CDECL_LIKE_FUNCTION_ATTRIBUTE.clone(),
-            FASTCALL_LIKE_FUNCTION_ATTRIBUTE.clone(),
+            &CDECL_LIKE_FUNCTION_ATTRIBUTE,
+            &FASTCALL_LIKE_FUNCTION_ATTRIBUTE,
             false,
         );
 
@@ -378,8 +378,8 @@ mod tests {
     fn ms_cdecl_to_fastcall_optimized() {
         let nint = size_of::<isize>() as isize;
         let result = two_parameters(
-            CDECL_LIKE_FUNCTION_ATTRIBUTE.clone(),
-            FASTCALL_LIKE_FUNCTION_ATTRIBUTE.clone(),
+            &CDECL_LIKE_FUNCTION_ATTRIBUTE,
+            &FASTCALL_LIKE_FUNCTION_ATTRIBUTE,
             true,
         );
 
@@ -397,8 +397,8 @@ mod tests {
     fn ms_stdcall_to_thiscall_optimized() {
         let nint = size_of::<isize>() as isize;
         let result = two_parameters(
-            STDCALL_LIKE_FUNCTION_ATTRIBUTE.clone(),
-            THISCALL_LIKE_FUNCTION_ATTRIBUTE.clone(),
+            &STDCALL_LIKE_FUNCTION_ATTRIBUTE,
+            &THISCALL_LIKE_FUNCTION_ATTRIBUTE,
             true,
         );
 
@@ -415,8 +415,8 @@ mod tests {
     fn ms_thiscall_to_stdcall_optimized() {
         let nint = size_of::<isize>() as isize;
         let result = two_parameters(
-            THISCALL_LIKE_FUNCTION_ATTRIBUTE.clone(),
-            STDCALL_LIKE_FUNCTION_ATTRIBUTE.clone(),
+            &THISCALL_LIKE_FUNCTION_ATTRIBUTE,
+            &STDCALL_LIKE_FUNCTION_ATTRIBUTE,
             true,
         );
 
@@ -437,8 +437,8 @@ mod tests {
     /// - `to_convention` - The target convention to which convert to `from_convention`. This is the convention of the function returned.
     /// - `optimized` - Whether to generate optimized code
     fn two_parameters(
-        from_convention: MockFunctionAttribute,
-        to_convention: MockFunctionAttribute,
+        from_convention: &MockFunctionAttribute,
+        to_convention: &MockFunctionAttribute,
         optimized: bool,
     ) -> Result<Vec<Operation<MockRegister>>, WrapperGenerationError> {
         // Two parameters
