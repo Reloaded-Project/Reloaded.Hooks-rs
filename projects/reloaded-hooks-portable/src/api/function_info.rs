@@ -51,13 +51,32 @@ pub trait FunctionInfo {
 
     /// Returns the parameters that would be put to the stack and heap if the
     /// function were to be used with the specified calling convention.
-    fn get_parameters<TRegister: Clone, T: FunctionAttribute<TRegister>>(
+    ///
+    /// # Parameters
+    /// - `convention`: The calling convention to use.
+    /// - `stack_params`: A mutable slice of parameters that will be put on the stack.
+    ///                   This slice must be at least [`FunctionInfo::parameters()`].len() in length.
+    ///
+    /// - `reg_params`: A mutable slice of parameters that will be put in registers.
+    ///                 This slice must be at least [`FunctionInfo::parameters()`].len() in length.
+    ///
+    /// # Returns
+    ///
+    /// Tuple of (stack parameters, register parameters)
+    /// These are the original passed in slices, sliced to contain just the filled in elements.
+    fn get_parameters_as_slice<'a, TRegister: Clone, T: FunctionAttribute<TRegister>>(
         &self,
         convention: &T,
-    ) -> (Vec<ParameterType>, Vec<(ParameterType, TRegister)>) {
+        stack_params: &'a mut [ParameterType], // Mutable slice for stack parameters
+        reg_params: &'a mut [(ParameterType, TRegister)], // Mutable slice for register parameters
+    ) -> (
+        &'a mut [ParameterType],
+        &'a mut [(ParameterType, TRegister)],
+    ) {
         let parameters = self.parameters();
-        let mut stack_params = Vec::<ParameterType>::with_capacity(parameters.len());
-        let mut reg_params = Vec::<(ParameterType, TRegister)>::with_capacity(parameters.len());
+
+        let mut stack_idx = 0;
+        let mut reg_idx = 0;
 
         let mut int_registers = convention.register_int_parameters().iter();
         let mut float_registers = convention.register_float_parameters().iter();
@@ -66,22 +85,68 @@ pub trait FunctionInfo {
         for &parameter in parameters {
             if parameter.is_float() {
                 if let Some(reg) = float_registers.next() {
-                    reg_params.push((parameter, reg.clone()));
+                    reg_params[reg_idx] = (parameter, reg.clone());
+                    reg_idx += 1;
                 } else {
-                    stack_params.push(parameter);
+                    stack_params[stack_idx] = parameter;
+                    stack_idx += 1;
                 }
             } else if parameter.is_vector() {
                 if let Some(reg) = vector_registers.next() {
-                    reg_params.push((parameter, reg.clone()));
+                    reg_params[reg_idx] = (parameter, reg.clone());
+                    reg_idx += 1;
                 } else {
-                    stack_params.push(parameter);
+                    stack_params[stack_idx] = parameter;
+                    stack_idx += 1;
                 }
             } else if let Some(reg) = int_registers.next() {
-                reg_params.push((parameter, reg.clone()));
+                reg_params[reg_idx] = (parameter, reg.clone());
+                reg_idx += 1;
             } else {
-                stack_params.push(parameter);
+                stack_params[stack_idx] = parameter;
+                stack_idx += 1;
             }
         }
+
+        // Return slices that match the populated portions
+        (&mut stack_params[0..stack_idx], &mut reg_params[0..reg_idx])
+    }
+
+    /// Returns the parameters that would be put to the stack and heap if the
+    /// function were to be used with the specified calling convention.
+    ///
+    /// # Parameters
+    /// - `convention`: The calling convention to use.
+    /// - `stack_params`: A mutable slice of parameters that will be put on the stack.
+    ///                   This slice must be at least `self.parameters.len()` in length.
+    ///
+    /// - `reg_params`: A mutable slice of parameters that will be put in registers.
+    ///                 This slice must be at least `self.parameters.len()` in length.
+    ///
+    /// # Returns
+    ///
+    /// Tuple of (stack parameters, register parameters) as vectors
+    /// These are the original passed in slices, sliced to contain just the filled in elements.
+    fn get_parameters_as_vec<TRegister: Clone, T: FunctionAttribute<TRegister>>(
+        &self,
+        convention: &T,
+    ) -> (Vec<ParameterType>, Vec<(ParameterType, TRegister)>) {
+        let parameters = self.parameters();
+
+        let mut stack_params = Vec::with_capacity(parameters.len());
+        let mut reg_params = Vec::with_capacity(parameters.len());
+        unsafe {
+            stack_params.set_len(stack_params.capacity());
+            reg_params.set_len(reg_params.capacity());
+        }
+
+        let (filled_stack, filled_reg) =
+            self.get_parameters_as_slice(convention, &mut stack_params, &mut reg_params);
+
+        let filled_stack_len = filled_stack.len();
+        let filled_reg_len = filled_reg.len();
+        stack_params.truncate(filled_stack_len);
+        reg_params.truncate(filled_reg_len);
 
         (stack_params, reg_params)
     }
@@ -255,7 +320,7 @@ mod tests {
         function: &MockFunction,
         attribute: &MockFunctionAttribute,
     ) -> Vec<ParameterType> {
-        function.get_parameters(attribute).0.to_vec()
+        function.get_parameters_as_vec(attribute).0
     }
 
     #[test]

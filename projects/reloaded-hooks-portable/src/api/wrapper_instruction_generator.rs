@@ -1,12 +1,12 @@
 extern crate alloc;
-use core::{hash::Hash, mem::size_of};
+use core::{hash::Hash, mem::size_of, slice};
 
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
 use super::{
     function_attribute::FunctionAttribute,
-    function_info::FunctionInfo,
+    function_info::{FunctionInfo, ParameterType},
     jit::{compiler::JitCapabilities, operation::Operation, return_operation::ReturnOperation},
     traits::register_info::RegisterInfo,
 };
@@ -77,7 +77,7 @@ where
 /// This process is documented in the Wiki under `Design Docs -> Wrapper Generation`.
 #[allow(warnings)]
 pub fn generate_wrapper_instructions<
-    TRegister: RegisterInfo + Clone + Hash + Eq + Copy,
+    TRegister: RegisterInfo + Clone + Hash + Eq + Copy + Default,
     TFunctionAttribute: FunctionAttribute<TRegister>,
     TFunctionInfo: FunctionInfo,
 >(
@@ -113,36 +113,59 @@ pub fn generate_wrapper_instructions<
     ops.push(StackAlloc::new(0).into()); // insert a dummy for now.
 
     // Re-push stack parameters of function returned (right to left)
-    let mut setup_params_ops = Vec::<Operation<TRegister>>::new();
-    let fn_returned_params = options.function_info.get_parameters(to_convention);
-
-    /*
-        Context [x64 as example].
-
-        At the current moment in time, the variable before the return address is at -stack_pointer.
-
-        On platforms like ARM that don't do stack returns, this is natural, but on platforms like
-        x64 where return is done via address on stack, `options.stack_entry_alignment` offsets this
-        such that -stack_pointer is guaranteed to points to the base of the last stack parameter.
-
-        From there, we can re push registers, just have to be careful to keep track of SP, which is
-        raising as we push more.
-    */
-
-    let mut current_offset = stack_pointer as isize;
+    let num_params = options.function_info.parameters().len();
+    let returned_stack_params_size = (size_of::<ParameterType>() * num_params);
+    let returned_reg_params_size = (size_of::<(ParameterType, TRegister)>() * num_params);
+    let mut setup_params_ops = Vec::<Operation<TRegister>>::with_capacity(num_params * 2);
     let mut callee_cleanup_return_size = stack_pointer - options.stack_entry_alignment;
-    for param in fn_returned_params.0.iter().rev() {
-        setup_params_ops.push(PushStack::new(current_offset, param.size_in_bytes()).into());
-        current_offset += (param.size_in_bytes() * 2) as isize;
-        stack_pointer += param.size_in_bytes();
-        callee_cleanup_return_size += param.size_in_bytes();
-    }
 
-    // Push register parameters of function returned (right to left)
-    for param in fn_returned_params.1.iter().rev() {
-        setup_params_ops.push(Push::new(param.1.clone()).into());
-        stack_pointer += param.0.size_in_bytes();
-    }
+    // Note: Allocating on stack to avoid heap allocations.
+    alloca::with_alloca(returned_stack_params_size + returned_reg_params_size, |f| {
+        let mut returned_stack_params_buf = unsafe {
+            slice::from_raw_parts_mut::<ParameterType>(f.as_ptr() as *mut ParameterType, num_params)
+        };
+        let mut returned_reg_params_buf = unsafe {
+            slice::from_raw_parts_mut::<(ParameterType, TRegister)>(
+                (f.as_ptr() as usize + returned_stack_params_size)
+                    as *mut (ParameterType, TRegister),
+                num_params,
+            )
+        };
+
+        let fn_returned_params = options.function_info.get_parameters_as_slice(
+            to_convention,
+            &mut returned_stack_params_buf,
+            &mut returned_reg_params_buf,
+        );
+
+        /*
+            Context [x64 as example].
+
+            At the current moment in time, the variable before the return address is at -stack_pointer.
+
+            On platforms like ARM that don't do stack returns, this is natural, but on platforms like
+            x64 where return is done via address on stack, `options.stack_entry_alignment` offsets this
+            such that -stack_pointer is guaranteed to points to the base of the last stack parameter.
+
+            From there, we can re push registers, just have to be careful to keep track of SP, which is
+            raising as we push more.
+        */
+
+        let mut current_offset = stack_pointer as isize;
+        for param in fn_returned_params.0.iter().rev() {
+            let param_size_bytes = param.size_in_bytes();
+            setup_params_ops.push(PushStack::new(current_offset, param_size_bytes).into());
+            current_offset += (param_size_bytes * 2) as isize;
+            stack_pointer += param_size_bytes;
+            callee_cleanup_return_size += param_size_bytes;
+        }
+
+        // Push register parameters of function returned (right to left)
+        for param in fn_returned_params.1.iter().rev() {
+            setup_params_ops.push(Push::new(param.1.clone()).into());
+            stack_pointer += param.0.size_in_bytes();
+        }
+    });
 
     // Inject parameter (if applicable)
     if let Some(injected_value) = options.injected_parameter {
@@ -151,7 +174,7 @@ pub fn generate_wrapper_instructions<
     }
 
     // Pop register parameters of the function being called (left to right)
-    let fn_called_params = options.function_info.get_parameters(from_convention);
+    let fn_called_params = options.function_info.get_parameters_as_vec(from_convention);
     for param in fn_called_params.1.iter() {
         setup_params_ops.push(Pop::new(param.1.clone()).into());
         stack_pointer -= param.0.size_in_bytes();
@@ -160,7 +183,7 @@ pub fn generate_wrapper_instructions<
     // Optimize the parameter pushing process
     let scratch_register = from_convention.scratch_register();
     let mut optimized = setup_params_ops.as_mut_slice();
-    let mut new_optimized: Vec<Operation<TRegister>> = Vec::new();
+    let mut new_optimized: Vec<Operation<TRegister>> = Vec::with_capacity(optimized.len() + 1);
 
     if options.enable_optimizations {
         optimized = optimize_stack_parameters(optimized);
