@@ -583,4 +583,24 @@ mod tests {
             hex::encode(result.as_ref().unwrap())
         );
     }
+
+    #[test]
+    fn test_compile_ret_no_offset() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Op::Return(Return::new(0))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("c3", hex::encode(result.unwrap()));
+    }
+
+    #[test]
+    fn test_compile_ret_with_offset() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Op::Return(Return::new(4))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("c20400", hex::encode(result.unwrap()));
+    }
 }
