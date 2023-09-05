@@ -36,6 +36,7 @@ pub enum Operation<T> {
     Return(ReturnOperation),
 
     // Only possible on some architectures.
+    // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
     CallIpRelative(CallIpRelativeOperation),
     JumpIpRelative(JumpIpRelativeOperation),
 

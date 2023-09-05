@@ -55,6 +55,7 @@ nav:
     - Interop (ARM64): design/interop-arm64.md
   - Architectures:
     - Overview: arch/overview.md
+    - Operations: arch/operations.md
     - x86_64: arch/x86_64.md
     - x86: arch/x86.md
     - arm64: arch/arm64.md

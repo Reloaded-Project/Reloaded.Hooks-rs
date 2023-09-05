@@ -23,10 +23,10 @@ Lists currently supported architectures.
 ### Implementing This
 
 To implement this, you implement a code writer by inheriting the `Jit<TRegister>` trait; and 
-implement the following instructions:  
+implement the following operations:  
 
-- `JumpRelativeOperation`.  
-- `JumpAbsoluteOperation` [needed if platform doesn't support [Targeted Memory Allocation](../platform/overview.md)].  
+- [JumpRelativeOperation](./operations.md#jumprelativeoperation).  
+- [JumpAbsoluteOperation](./operations.md#jumpabsoluteoperation) [needed if platform doesn't support [Targeted Memory Allocation](../platform/overview.md)].  
 
 Your *Platform* must also support [Permission Change](../platform/overview.md#required-permission-change), if it is
 applicable to your platform.
@@ -75,8 +75,6 @@ to patch and 'relocate' the function to a new address.
 
 !!! note "Basic code relocation support is needed to [stack hooks](#hook-stacking)."
 
-To implement relocation for an architecture, set ``
-
 ## Hook Stacking
 
 !!! info "Hook stacking is the ability to hook a function multiple times."
@@ -86,9 +84,9 @@ In practice, this is usually supported for all cases.
 ## Calling Convention Wrapper Generation
 
 To implement this, you implement a code writer by inheriting the `Jit<TRegister>` trait; and 
-implement the following instructions:  
+implement the following operations:  
 
-- *All Non-Optional Instructions* (see: `enum Operation<T>`).  
+- [All Non-Optional Instructions](./operations.md).  
 
 ## Optimized Wrapper Generation
 
