@@ -1,6 +1,6 @@
 extern crate alloc;
 use alloc::alloc::{dealloc, Layout};
-use alloc::sync::Arc;
+use alloc::rc::Rc;
 use core::any::Any;
 use core::cell::RefCell;
 use core::ptr::NonNull;
@@ -24,7 +24,7 @@ impl AllocatedBuffer {
 }
 
 pub struct LockedBuffer {
-    pub(crate) buffer: Arc<AllocatedBuffer>,
+    pub(crate) buffer: Rc<AllocatedBuffer>,
 }
 
 impl Buffer for LockedBuffer {

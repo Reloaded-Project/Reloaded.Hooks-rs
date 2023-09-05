@@ -1,7 +1,7 @@
 extern crate alloc;
 use alloc::alloc::{alloc, Layout};
 use alloc::boxed::Box;
-use alloc::sync::Arc;
+use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::ptr::NonNull;
@@ -11,7 +11,7 @@ use super::buffer_abstractions::{Buffer, BufferFactory};
 use super::default_buffer::{AllocatedBuffer, LockedBuffer};
 
 pub struct DefaultBufferFactory {
-    buffers: Vec<Arc<AllocatedBuffer>>,
+    buffers: Vec<Rc<AllocatedBuffer>>,
 }
 
 impl DefaultBufferFactory {
@@ -73,7 +73,7 @@ impl BufferFactory for DefaultBufferFactory {
         if ptr.is_null() {
             None
         } else {
-            let buffer = Arc::new(AllocatedBuffer {
+            let buffer = Rc::new(AllocatedBuffer {
                 ptr: NonNull::new(ptr).unwrap(),
                 write_offset: RefCell::new(0),
                 size,
