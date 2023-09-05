@@ -26,28 +26,42 @@ macro_rules! deduplicate_merge_ops {
                     Operation::$op(_) => {
                         let mut ops = SmallVec::new();
 
-                        // Collect sequential $op Operations
-                        while read_idx < operations.len()
-                            && matches!(operations[read_idx], Operation::$op(_))
-                        {
-                            if let Operation::$op(op) = &operations[read_idx] {
+                        // Collect sequential $op (Push/Pop) Operations
+                        while read_idx < operations.len() {
+                            if let Operation::$op(op) =
+                                unsafe { &operations.get_unchecked(read_idx) }
+                            {
                                 ops.push(*op);
+                                read_idx += 1;
+                            } else {
+                                break;
                             }
-                            read_idx += 1;
                         }
 
                         // If there's more than one $op Operation, replace them with a Multi$op
                         if ops.len() > 1 {
-                            operations[write_idx] = Operation::$op_name(ops);
+                            unsafe {
+                                *operations.get_unchecked_mut(write_idx) = Operation::$op_name(ops);
+                            }
                         } else {
                             // If there's only one, just copy the $op Operation
-                            operations[write_idx] = operations[read_idx - 1].clone();
+                            unsafe {
+                                if read_idx - 1 != write_idx {
+                                    *operations.get_unchecked_mut(write_idx) =
+                                        operations.get_unchecked(read_idx - 1).clone();
+                                }
+                            }
                         }
                         write_idx += 1;
                     }
                     // For all other operations, simply copy them over
                     _ => {
-                        operations[write_idx] = operations[read_idx].clone();
+                        unsafe {
+                            if read_idx != write_idx {
+                                *operations.get_unchecked_mut(write_idx) =
+                                    operations.get_unchecked(read_idx).clone();
+                            }
+                        }
                         read_idx += 1;
                         write_idx += 1;
                     }

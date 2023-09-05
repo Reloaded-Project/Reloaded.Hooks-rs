@@ -122,6 +122,9 @@ pub fn generate_wrapper_instructions<
 
     // Note: Allocating on stack to avoid heap allocations.
     alloca::with_alloca(returned_stack_params_size + returned_reg_params_size, |f| {
+        // Find out which parameters are stack spilled and which are in registers
+        // Note: We use our stack allocated memory as buffer for returned stack + reg parameters
+        // Ugly workaround for lack of native alloca in Rust.
         let mut returned_stack_params_buf = unsafe {
             slice::from_raw_parts_mut::<ParameterType>(f.as_ptr() as *mut ParameterType, num_params)
         };
