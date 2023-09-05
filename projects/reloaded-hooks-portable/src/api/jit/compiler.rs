@@ -7,6 +7,7 @@ use core::fmt::Debug;
 use thiserror_no_std::Error;
 
 /// Lists the supported features of the JIT
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JitCapabilities {
     /// Can encode call that is relative to the instruction pointer.
     /// This controls whether [CallIpRelativeOperation](super::call_rip_relative_operation::CallIpRelativeOperation) is emitted.
@@ -70,7 +71,7 @@ pub enum JitError<TRegister> {
     InvalidInstruction(Operation<TRegister>),
 }
 
-pub fn transform_err<TOldRegister: Clone, TNewRegister, TConvertRegister>(
+pub fn transform_err<TOldRegister: Clone + Copy, TNewRegister, TConvertRegister>(
     err: JitError<TOldRegister>,
     f: TConvertRegister,
 ) -> JitError<TNewRegister>

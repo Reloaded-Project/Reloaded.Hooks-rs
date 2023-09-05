@@ -1,3 +1,5 @@
+use derive_new::new;
+
 /// Represents an exchange operation which swaps the contents of two registers.
 ///
 /// This can be used to model assembly `xchg` instructions.
@@ -21,7 +23,6 @@
 /// {
 ///     register1: "eax",
 ///     register2: "ebx",
-///     #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
 ///     scratch: None,
 /// };
 /// ```
@@ -35,14 +36,12 @@
 ///
 /// In the real world, you should use enums instead of strings for register1 and register2,
 /// the code above shows strings for clarity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct XChgOperation<T> {
     /// The first register to exchange.
     pub register1: T,
     /// The second register to exchange.
     pub register2: T,
-
-    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
     /// A scratch register to use (applies only to architectures without explicit xchg instruction).
     pub scratch: Option<T>,
 }

@@ -1,10 +1,12 @@
-/// Represents a push stack operation which pushes a value onto the stack from an address
-/// relative to a given register (often the stack pointer).
+use derive_new::new;
+
+/// Represents a push stack operation which pushes a value onto the stack from an
+/// offset relative to the current stack pointer.
 ///
 /// # Fields
 ///
-/// - `base_register`: This is the base register from which the offset is calculated.  
 /// - `offset`: This is the offset from the base register.  
+/// - `item_size`: Size of the item to push.  
 ///
 /// # Example
 ///
@@ -17,24 +19,11 @@
 ///
 /// ```
 /// use reloaded_hooks_portable::api::jit::push_stack_operation::PushStackOperation;
-/// let push_offset_from_esp = PushStackOperation { base_register: "esp", offset: 8, item_size: 4 };
+/// let push_offset_from_esp = PushStackOperation { offset: 8, item_size: 4 };
 /// ```
-///
-/// # Note
-///
-/// The `PushStackOperation` only represents the operation itself; it does not perform
-/// the operation or modify any actual register or memory values. To simulate the
-/// effect of the operation, you would need to implement additional logic or use
-/// a computing architecture simulation framework.
-///
-/// In the real world, you should use enums or more specific types instead of strings for `base_register`,
-/// the code above shows strings for clarity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct PushStackOperation<T> {
-    /// The base register from which the offset is calculated.
-    pub base_register: T,
-
-    /// The offset from the base register.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
+pub struct PushStackOperation {
+    /// The offset from the current stack pointer in the direction opposite to the stack's growth.
     pub offset: isize,
 
     /// Size of the item to re-push to stack.

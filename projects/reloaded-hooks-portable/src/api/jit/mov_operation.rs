@@ -1,3 +1,5 @@
+use derive_new::new;
+
 /// Represents a move operation between two registers.
 ///
 /// A `MovOperation` consists of a source and a target register,
@@ -22,7 +24,7 @@
 ///
 /// In the real world, you should use enums instead of strings for source and target 😉,
 /// the code above shows strings for clarity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct MovOperation<T> {
     /// The source register for the move operation.
     pub source: T,

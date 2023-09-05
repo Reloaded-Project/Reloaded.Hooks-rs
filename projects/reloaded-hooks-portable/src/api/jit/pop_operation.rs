@@ -1,3 +1,5 @@
+use derive_new::new;
+
 /// Represents a pop operation which retrieves a value from the top of the stack,
 /// stores it in a register and decrements the current stack pointer.
 ///
@@ -31,10 +33,10 @@
 ///
 /// ```
 /// use reloaded_hooks_portable::api::jit::mov_operation::MovOperation;
-/// use reloaded_hooks_portable::api::jit::sub_operation::SubOperation;
+/// use reloaded_hooks_portable::api::jit::stack_alloc_operation::StackAllocOperation;
 ///
 /// let mov_from_stack = MovOperation { source: "[sp]", target: "r1" };
-/// let add_sp = SubOperation { register: "sp", operand: -4 }; // assuming 4 bytes per register
+/// let add_sp = StackAllocOperation { operand: -4 }; // assuming 4 bytes per register
 /// ```
 ///
 /// In these cases, the `PopOperation` can be used as an abstraction of these two
@@ -50,7 +52,7 @@
 ///
 /// In the real world, you should use enums instead of strings for source and target 😉,
 /// the code above shows strings for clarity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct PopOperation<T> {
     /// The register to pop the value into from the stack.
     pub register: T,

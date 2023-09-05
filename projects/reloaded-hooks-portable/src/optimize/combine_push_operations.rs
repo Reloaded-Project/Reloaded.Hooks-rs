@@ -1,7 +1,6 @@
 extern crate alloc;
-
 use crate::api::jit::operation::Operation;
-use alloc::vec::Vec;
+use smallvec::SmallVec;
 
 macro_rules! deduplicate_merge_ops {
     ($name:ident, $op:ident, $op_name:ident) => {
@@ -17,7 +16,7 @@ macro_rules! deduplicate_merge_ops {
         /// This is an optional step that can be applied within the structs that implement the JIT trait.
         /// It can be used to optimise series of multiple $ops wherever possible.
         #[allow(dead_code)]
-        pub(crate) fn $name<TRegister: Clone>(
+        pub(crate) fn $name<TRegister: Copy>(
             operations: &mut [Operation<TRegister>],
         ) -> &mut [Operation<TRegister>] {
             let mut read_idx = 0;
@@ -25,30 +24,44 @@ macro_rules! deduplicate_merge_ops {
             while read_idx < operations.len() {
                 match &operations[read_idx] {
                     Operation::$op(_) => {
-                        let mut ops = Vec::new();
+                        let mut ops = SmallVec::new();
 
-                        // Collect sequential $op Operations
-                        while read_idx < operations.len()
-                            && matches!(operations[read_idx], Operation::$op(_))
-                        {
-                            if let Operation::$op(op) = &operations[read_idx] {
-                                ops.push(op.clone());
+                        // Collect sequential $op (Push/Pop) Operations
+                        while read_idx < operations.len() {
+                            if let Operation::$op(op) =
+                                unsafe { &operations.get_unchecked(read_idx) }
+                            {
+                                ops.push(*op);
+                                read_idx += 1;
+                            } else {
+                                break;
                             }
-                            read_idx += 1;
                         }
 
                         // If there's more than one $op Operation, replace them with a Multi$op
                         if ops.len() > 1 {
-                            operations[write_idx] = Operation::$op_name(ops);
+                            unsafe {
+                                *operations.get_unchecked_mut(write_idx) = Operation::$op_name(ops);
+                            }
                         } else {
                             // If there's only one, just copy the $op Operation
-                            operations[write_idx] = operations[read_idx - 1].clone();
+                            unsafe {
+                                if read_idx - 1 != write_idx {
+                                    *operations.get_unchecked_mut(write_idx) =
+                                        operations.get_unchecked(read_idx - 1).clone();
+                                }
+                            }
                         }
                         write_idx += 1;
                     }
                     // For all other operations, simply copy them over
                     _ => {
-                        operations[write_idx] = operations[read_idx].clone();
+                        unsafe {
+                            if read_idx != write_idx {
+                                *operations.get_unchecked_mut(write_idx) =
+                                    operations.get_unchecked(read_idx).clone();
+                            }
+                        }
                         read_idx += 1;
                         write_idx += 1;
                     }
@@ -65,29 +78,25 @@ deduplicate_merge_ops!(merge_pop_operations, Pop, MultiPop);
 
 #[cfg(test)]
 mod tests {
-    use crate::{
-        api::jit::{
-            mov_operation::MovOperation, pop_operation::PopOperation, push_operation::PushOperation,
-        },
-        helpers::test_helpers::MockRegister,
-    };
 
     use super::*;
+    use crate::api::jit::operation_aliases::*;
+    use crate::helpers::test_helpers::MockRegister;
 
     #[test]
     fn merge_push_operations_baseline() {
         let mut ops = vec![
-            Operation::Push(PushOperation {
+            Operation::Push(Push {
                 register: MockRegister::R1,
             }),
-            Operation::Push(PushOperation {
+            Operation::Push(Push {
                 register: MockRegister::R2,
             }),
-            Operation::Mov(MovOperation {
+            Operation::Mov(Mov {
                 source: MockRegister::R3,
                 target: MockRegister::R4,
             }),
-            Operation::Push(PushOperation {
+            Operation::Push(Push {
                 register: MockRegister::R3,
             }),
         ];
@@ -113,17 +122,17 @@ mod tests {
     #[test]
     fn merge_pop_operations_baseline() {
         let mut ops = vec![
-            Operation::Pop(PopOperation {
+            Operation::Pop(Pop {
                 register: MockRegister::R1,
             }),
-            Operation::Pop(PopOperation {
+            Operation::Pop(Pop {
                 register: MockRegister::R2,
             }),
-            Operation::Mov(MovOperation {
+            Operation::Mov(Mov {
                 source: MockRegister::R3,
                 target: MockRegister::R4,
             }),
-            Operation::Pop(PopOperation {
+            Operation::Pop(Pop {
                 register: MockRegister::R3,
             }),
         ];

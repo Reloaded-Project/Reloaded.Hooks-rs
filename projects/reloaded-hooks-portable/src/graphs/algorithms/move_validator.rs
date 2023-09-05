@@ -4,7 +4,7 @@ use core::hash::{BuildHasherDefault, Hash};
 use hashbrown::HashSet;
 use nohash::NoHashHasher;
 
-use crate::api::jit::mov_operation::MovOperation;
+use crate::api::jit::operation_aliases::*;
 
 /// Validates an existing sequence of MOV register operations
 /// to ensure that a serues if MOV operations from register
@@ -18,7 +18,7 @@ use crate::api::jit::mov_operation::MovOperation;
 ///
 /// For more info about this, see `Design Docs -> Wrapper Generation`,
 /// section `Reordering Operations`.
-pub fn validate_moves<T>(moves: &[MovOperation<T>]) -> bool
+pub fn validate_moves<T>(moves: &[Mov<T>]) -> bool
 where
     T: Eq + PartialEq + Hash + Clone,
 {
@@ -42,13 +42,13 @@ where
 
 #[cfg(test)]
 pub mod tests {
-    use crate::{
-        api::jit::mov_operation::MovOperation, graphs::algorithms::move_validator::validate_moves,
-    };
+
+    use crate::api::jit::operation_aliases::*;
+    use crate::graphs::algorithms::move_validator::validate_moves;
 
     #[test]
     fn valid_when_no_overwrites() {
-        let moves = vec![MovOperation {
+        let moves = vec![Mov {
             source: 1,
             target: 0,
         }];
@@ -59,11 +59,11 @@ pub mod tests {
     #[test]
     fn valid_when_last_source_overwritten() {
         let moves = vec![
-            MovOperation {
+            Mov {
                 source: 1,
                 target: 0,
             },
-            MovOperation {
+            Mov {
                 source: 2,
                 target: 1,
             },
@@ -75,15 +75,15 @@ pub mod tests {
     #[test]
     fn valid_when_last_source_overwritten_with_multiple_registers() {
         let moves = vec![
-            MovOperation {
+            Mov {
                 source: 1,
                 target: 0,
             },
-            MovOperation {
+            Mov {
                 source: 2,
                 target: 1,
             },
-            MovOperation {
+            Mov {
                 source: 3,
                 target: 2,
             },
@@ -95,11 +95,11 @@ pub mod tests {
     #[test]
     fn invalid_when_source_register_already_overwritten() {
         let moves = vec![
-            MovOperation {
+            Mov {
                 source: 1,
                 target: 0,
             },
-            MovOperation {
+            Mov {
                 source: 0,
                 target: 2,
             },

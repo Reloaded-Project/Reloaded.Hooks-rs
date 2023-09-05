@@ -6,11 +6,8 @@ use core::hash::{BuildHasherDefault, Hash};
 use hashbrown::HashSet;
 use nohash::NoHashHasher;
 
-use crate::api::jit::mov_operation::MovOperation;
 use crate::api::jit::operation::Operation;
-use crate::api::jit::pop_operation::PopOperation;
-use crate::api::jit::push_operation::PushOperation;
-use crate::api::jit::xchg_operation::XChgOperation;
+use crate::api::jit::operation_aliases::*;
 use crate::graphs::algorithms::move_graph_builder;
 use crate::graphs::algorithms::move_validator::validate_moves;
 use crate::graphs::node::Node;
@@ -21,26 +18,26 @@ use crate::graphs::node::Node;
 /// # Parameter
 ///
 /// - `moves`: The sequence of MOV register operations to create a valid order for.
-/// - `scratch_registers`: The scratch registers to use for reordering, used in case of cycles.
+/// - `scratch_register`: The scratch register to use for reordering, used in case of cycles.
 ///
 /// # About
 ///
 /// For more info about this, see `Design Docs -> Wrapper Generation`,
 /// section `Reordering Operations`.
-pub fn optimize_moves<T>(moves: &[MovOperation<T>], scratch_registers: &[T]) -> Vec<Operation<T>>
+pub fn optimize_moves<T>(
+    moves: &[Mov<T>],
+    scratch_register: &Option<T>,
+) -> Option<Vec<Operation<T>>>
 where
-    T: Eq + PartialEq + Hash + Clone,
+    T: Eq + PartialEq + Hash + Copy,
 {
     // Check if the moves are already valid.
     if (moves.is_empty()) || validate_moves(moves) {
-        return moves
-            .iter()
-            .map(|mov| Operation::Mov(mov.clone()))
-            .collect();
+        return None;
     }
 
     let mut results = Vec::<Operation<T>>::with_capacity(moves.len() * 2);
-    let scratch_register: Option<T> = scratch_registers.first().cloned();
+    let scratch_register: Option<T> = *scratch_register;
     let graph = move_graph_builder::build_graph(moves);
     let mut visited: HashSet<T, BuildHasherDefault<NoHashHasher<u32>>> =
         HashSet::with_capacity_and_hasher(graph.len(), BuildHasherDefault::default());
@@ -59,17 +56,17 @@ where
         }
     }
 
-    results
+    Some(results)
 }
 
-fn dfs<T: Eq + Clone + Hash>(
+fn dfs<T: Eq + Hash + Copy>(
     node: &Rc<RefCell<Node<T>>>,
     visited: &mut HashSet<T, BuildHasherDefault<NoHashHasher<u32>>>,
     rec_stack: &mut Vec<Rc<RefCell<Node<T>>>>,
     scratch_register: &Option<T>,
     results: &mut Vec<Operation<T>>,
 ) {
-    visited.insert(node.borrow().value.clone());
+    visited.insert(node.borrow().value);
     rec_stack.push(node.clone());
 
     let borrowed = &node.borrow();
@@ -91,10 +88,9 @@ fn dfs<T: Eq + Clone + Hash>(
             // Special case: There are only 2 nodes, and they are in a cycle.
             // We can swap them directly on architectures like x86.
             if rec_stack.len() == 2 {
-                results.push(Operation::Xchg(XChgOperation {
-                    register1: node.borrow().value.clone(),
-                    register2: neighbour.borrow().value.clone(),
-                    #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+                results.push(Operation::Xchg(XChg {
+                    register1: node.borrow().value,
+                    register2: neighbour.borrow().value,
                     scratch: None,
                 }));
 
@@ -103,13 +99,13 @@ fn dfs<T: Eq + Clone + Hash>(
 
             // Backup Register (or use scratch)
             if let Some(scratch) = scratch_register {
-                results.push(Operation::Mov(MovOperation {
-                    source: node.borrow().value.clone(),
-                    target: scratch.clone(),
+                results.push(Operation::Mov(Mov {
+                    source: node.borrow().value,
+                    target: *scratch,
                 }));
             } else {
-                results.push(Operation::Push(PushOperation {
-                    register: node.borrow().value.clone(),
+                results.push(Operation::Push(Push {
+                    register: node.borrow().value,
                 }));
             }
 
@@ -118,13 +114,13 @@ fn dfs<T: Eq + Clone + Hash>(
 
             // Restore
             if let Some(scratch) = scratch_register {
-                results.push(Operation::Mov(MovOperation {
-                    source: scratch.clone(),
-                    target: neighbour.borrow().value.clone(),
+                results.push(Operation::Mov(Mov {
+                    source: *scratch,
+                    target: neighbour.borrow().value,
                 }));
             } else {
-                results.push(Operation::Pop(PopOperation {
-                    register: neighbour.borrow().value.clone(),
+                results.push(Operation::Pop(Pop {
+                    register: neighbour.borrow().value,
                 }));
             }
 
@@ -133,7 +129,7 @@ fn dfs<T: Eq + Clone + Hash>(
     }
 }
 
-fn unwind<T: Eq + Clone + Hash>(
+fn unwind<T: Eq + Copy + Hash>(
     rec_stack: &[Rc<RefCell<Node<T>>>],
     results: &mut Vec<Operation<T>>,
 ) {
@@ -149,9 +145,9 @@ fn unwind<T: Eq + Clone + Hash>(
         let current = rec_stack.get(current_len.wrapping_sub(1)).unwrap();
 
         // Encode this as a move.
-        results.push(Operation::Mov(MovOperation {
-            source: last.borrow().value.clone(),
-            target: current.borrow().value.clone(),
+        results.push(Operation::Mov(Mov {
+            source: last.borrow().value,
+            target: current.borrow().value,
         }));
 
         // Move element up.
@@ -161,55 +157,47 @@ fn unwind<T: Eq + Clone + Hash>(
 
 #[cfg(test)]
 pub mod tests {
-    use crate::{
-        api::jit::{
-            mov_operation::MovOperation, operation::Operation, pop_operation::PopOperation,
-            push_operation::PushOperation, xchg_operation::XChgOperation,
-        },
-        graphs::algorithms::move_optimizer::optimize_moves,
-    };
+    use crate::api::jit::operation::Operation;
+    use crate::api::jit::operation_aliases::*;
+    use crate::graphs::algorithms::move_optimizer::optimize_moves;
 
     #[test]
     fn when_valid_moves_no_action() {
-        let moves = vec![MovOperation {
+        let moves = vec![Mov {
             source: 1,
             target: 0,
         }];
 
-        let original_operations: Vec<Operation<i32>> =
-            moves.iter().map(|mov| Operation::Mov(*mov)).collect();
-
-        let new_operations = optimize_moves(&moves, &[]);
-        assert_eq!(new_operations, original_operations);
+        let new_operations = optimize_moves(&moves, &None);
+        assert!(new_operations.is_none());
     }
 
     #[test]
     fn when_empty_moves_no_action() {
-        let moves: Vec<MovOperation<i32>> = vec![];
-        let new_operations = optimize_moves(&moves, &[]);
-        assert!(new_operations.is_empty());
+        let moves: Vec<Mov<i32>> = vec![];
+        let new_operations = optimize_moves(&moves, &None);
+        assert!(new_operations.is_none());
     }
 
     #[test]
     fn when_single_cyclic_move_use_xchg() {
         let moves = vec![
-            MovOperation {
+            Mov {
                 source: 0,
                 target: 1,
             },
-            MovOperation {
+            Mov {
                 source: 1,
                 target: 0,
             },
         ];
 
-        let new_operations = optimize_moves(&moves, &[]);
+        let new_operations = optimize_moves(&moves, &None).unwrap();
         assert_eq!(
             new_operations,
-            vec![Operation::Xchg(XChgOperation {
+            vec![Operation::Xchg(XChg {
                 register1: 1,
                 register2: 0,
-                #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
                 scratch: None,
             })]
         );
@@ -218,34 +206,34 @@ pub mod tests {
     #[test]
     fn when_multiple_cyclic_moves_use_stack() {
         let moves = vec![
-            MovOperation {
+            Mov {
                 source: 0,
                 target: 1,
             },
-            MovOperation {
+            Mov {
                 source: 1,
                 target: 2,
             },
-            MovOperation {
+            Mov {
                 source: 2,
                 target: 0,
             },
         ];
 
-        let new_operations = optimize_moves(&moves, &[]);
+        let new_operations = optimize_moves(&moves, &None).unwrap();
         assert_eq!(
             new_operations,
             vec![
-                Operation::Push(PushOperation { register: 2 }),
-                Operation::Mov(MovOperation {
+                Operation::Push(Push { register: 2 }),
+                Operation::Mov(Mov {
                     source: 1,
                     target: 2,
                 }),
-                Operation::Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: 0,
                     target: 1,
                 }),
-                Operation::Pop(PopOperation { register: 0 }),
+                Operation::Pop(Pop { register: 0 }),
             ]
         );
     }
@@ -253,37 +241,37 @@ pub mod tests {
     #[test]
     fn when_multiple_cyclic_moves_with_scratch_use_scratch() {
         let moves = vec![
-            MovOperation {
+            Mov {
                 source: 0,
                 target: 1,
             },
-            MovOperation {
+            Mov {
                 source: 1,
                 target: 2,
             },
-            MovOperation {
+            Mov {
                 source: 2,
                 target: 0,
             },
         ];
 
-        let new_operations = optimize_moves(&moves, &[3]);
+        let new_operations = optimize_moves(&moves, &Some(3)).unwrap();
         assert_eq!(
             new_operations,
             vec![
-                Operation::Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: 2,
                     target: 3,
                 }),
-                Operation::Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: 1,
                     target: 2,
                 }),
-                Operation::Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: 0,
                     target: 1,
                 }),
-                Operation::Mov(MovOperation {
+                Operation::Mov(Mov {
                     source: 3,
                     target: 0,
                 }),

@@ -1,6 +1,7 @@
 extern crate alloc;
 
-use alloc::vec::Vec;
+use derive_more::From;
+use smallvec::SmallVec;
 
 use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
@@ -8,36 +9,46 @@ use super::{
     jump_absolute_operation::JumpAbsoluteOperation, jump_relative_operation::JumpRelativeOperation,
     jump_rip_relative_operation::JumpIpRelativeOperation,
     mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
-    pop_operation::PopOperation, push_operation::PushOperation,
-    push_stack_operation::PushStackOperation, sub_operation::SubOperation,
+    pop_operation::PopOperation, push_constant_operation::PushConstantOperation,
+    push_operation::PushOperation, push_stack_operation::PushStackOperation,
+    return_operation::ReturnOperation, stack_alloc_operation::StackAllocOperation,
     xchg_operation::XChgOperation,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+pub type MultiPushVec<T> = [PushOperation<T>; 4];
+pub type MultiPopVec<T> = [PopOperation<T>; 4];
+
+#[derive(Debug, Clone, PartialEq, Eq, From)]
 pub enum Operation<T> {
+    None,
     Mov(MovOperation<T>),
     MovFromStack(MovFromStackOperation<T>),
     Push(PushOperation<T>),
-    PushStack(PushStackOperation<T>),
-    Sub(SubOperation<T>),
+    PushStack(PushStackOperation),
+    PushConst(PushConstantOperation), // Required for parameter injection
+    StackAlloc(StackAllocOperation),
     Pop(PopOperation<T>),
     Xchg(XChgOperation<T>),
     CallAbsolute(CallAbsoluteOperation<T>),
     CallRelative(CallRelativeOperation),
     JumpRelative(JumpRelativeOperation),
     JumpAbsolute(JumpAbsoluteOperation<T>),
+    Return(ReturnOperation),
 
     // Only possible on some architectures.
+    // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
     CallIpRelative(CallIpRelativeOperation),
     JumpIpRelative(JumpIpRelativeOperation),
 
     // Opt-in for architectures that support it or can optimise for this use case.
     // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
-    MultiPush(Vec<PushOperation<T>>),
-    MultiPop(Vec<PopOperation<T>>),
+
+    // Note: I experimented with packing, to try make push/pull 1 byte, but seemed to have no effect.
+    MultiPush(SmallVec<MultiPushVec<T>>),
+    MultiPop(SmallVec<MultiPopVec<T>>),
 }
 
-pub fn transform_op<TOldRegister: Clone, TNewRegister, TConvertRegister>(
+pub fn transform_op<TOldRegister: Copy, TNewRegister, TConvertRegister>(
     op: Operation<TOldRegister>,
     f: TConvertRegister,
 ) -> Operation<TNewRegister>
@@ -53,12 +64,10 @@ where
             register: f(inner_op.register),
         }),
         Operation::PushStack(inner_op) => Operation::PushStack(PushStackOperation {
-            base_register: f(inner_op.base_register),
             offset: inner_op.offset,
             item_size: inner_op.item_size,
         }),
-        Operation::Sub(inner_op) => Operation::Sub(SubOperation {
-            register: f(inner_op.register),
+        Operation::StackAlloc(inner_op) => Operation::StackAlloc(StackAllocOperation {
             operand: inner_op.operand,
         }),
         Operation::Pop(inner_op) => Operation::Pop(PopOperation {
@@ -67,8 +76,6 @@ where
         Operation::Xchg(inner_op) => Operation::Xchg(XChgOperation {
             register1: f(inner_op.register1),
             register2: f(inner_op.register2),
-
-            #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
             scratch: inner_op.scratch.map(&f),
         }),
         Operation::CallRelative(inner_op) => Operation::CallRelative(inner_op),
@@ -92,7 +99,7 @@ where
             inner_ops
                 .iter()
                 .map(|op| PushOperation {
-                    register: f(op.register.clone()),
+                    register: f(op.register),
                 })
                 .collect(),
         ),
@@ -100,9 +107,12 @@ where
             inner_ops
                 .iter()
                 .map(|op| PopOperation {
-                    register: f(op.register.clone()),
+                    register: f(op.register),
                 })
                 .collect(),
         ),
+        Operation::PushConst(x) => Operation::PushConst(x),
+        Operation::Return(x) => Operation::Return(x),
+        Operation::None => Operation::None,
     }
 }

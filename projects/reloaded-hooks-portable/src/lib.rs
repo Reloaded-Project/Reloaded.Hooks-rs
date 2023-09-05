@@ -5,6 +5,11 @@
 /// Contains all declarations that are exposed to library users.
 pub mod api {
 
+    /// The errors that can occur when generating a wrapper.
+    pub mod errors {
+        pub mod wrapper_generation_error;
+    }
+
     /// APIs for allocating buffers in given proximity.
     pub mod buffers {
         pub mod buffer_abstractions;
@@ -12,6 +17,7 @@ pub mod api {
         pub mod default_buffer_factory;
     }
 
+    /// Settings passed to other methodss
     pub mod settings {
         pub mod proximity_target;
     }
@@ -33,10 +39,13 @@ pub mod api {
         pub mod mov_from_stack_operation;
         pub mod mov_operation;
         pub mod operation;
+        pub mod operation_aliases;
         pub mod pop_operation;
+        pub mod push_constant_operation;
         pub mod push_operation;
         pub mod push_stack_operation;
-        pub mod sub_operation;
+        pub mod return_operation;
+        pub mod stack_alloc_operation;
         pub mod xchg_operation;
     }
 
@@ -66,15 +75,17 @@ pub mod graphs {
 pub mod helpers {
     pub mod alignment_space_finder;
 
-    #[cfg(test)]
-    pub(crate) mod test_helpers;
+    // Benchmark and test only.
+    #[doc(hidden)]
+    pub mod test_helpers;
 }
 
 /// Code optimization algorithms.
 pub mod optimize {
     pub mod combine_push_operations;
+    pub mod eliminate_common_callee_saved_registers;
+    pub mod merge_stackalloc_and_return;
     pub mod optimize_parameters_common;
-    pub mod optimize_reg_parameters;
-    pub mod optimize_stack_parameters;
+    pub mod optimize_push_pop_parameters;
     pub mod reorder_mov_sequence;
 }

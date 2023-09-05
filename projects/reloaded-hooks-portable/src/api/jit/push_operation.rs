@@ -1,3 +1,5 @@
+use derive_new::new;
+
 /// Represents a push operation which pushes a register onto the stack and increments
 /// the current stack pointer.
 ///
@@ -30,10 +32,10 @@
 /// represented as:
 ///
 /// ```
-/// use reloaded_hooks_portable::api::jit::sub_operation::SubOperation;
+/// use reloaded_hooks_portable::api::jit::stack_alloc_operation::StackAllocOperation;
 /// use reloaded_hooks_portable::api::jit::mov_operation::MovOperation;
 ///
-/// let sub_sp = SubOperation { register: "sp", operand: 4 }; // assuming 4 bytes per register
+/// let sub_sp = StackAllocOperation { operand: 4 }; // assuming 4 bytes per register
 /// let mov_into_stack = MovOperation { source: "r1", target: "[sp]" };
 /// ```
 ///
@@ -50,7 +52,7 @@
 ///
 /// In the real world, you should use enums instead of strings for source and target 😉,
 /// the code above shows strings for clarity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct PushOperation<T> {
     /// The register to push onto the stack.
     pub register: T,

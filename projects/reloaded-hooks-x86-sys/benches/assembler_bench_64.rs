@@ -1,11 +1,8 @@
 use std::rc::Rc;
 
 use reloaded_hooks_portable::api::jit::compiler::Jit;
-use reloaded_hooks_portable::api::jit::mov_operation::MovOperation;
-use reloaded_hooks_portable::api::jit::{
-    compiler::JitError, operation::Operation, push_operation::PushOperation,
-    sub_operation::SubOperation, xchg_operation::XChgOperation,
-};
+use reloaded_hooks_portable::api::jit::operation_aliases::*;
+use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::Operation};
 use reloaded_hooks_x86_sys::x64;
 use reloaded_hooks_x86_sys::x64::jit::JitX64;
 use reloaded_hooks_x86_sys::x64::Register;
@@ -22,20 +19,18 @@ pub(crate) fn create_and_assemble_instructions_64(
 
 pub(crate) fn create_operations_64() -> Vec<Operation<Register>> {
     let operations = vec![
-        Operation::Push(PushOperation {
+        Operation::Push(Push {
             register: Register::rax,
         }),
-        Operation::Mov(MovOperation {
+        Operation::Mov(Mov {
             source: Register::rax,
             target: Register::rbx,
         }),
-        Operation::Sub(SubOperation {
-            register: Register::rax,
-            operand: 10,
-        }),
-        Operation::Xchg(XChgOperation {
+        Operation::StackAlloc(StackAlloc { operand: 10 }),
+        Operation::Xchg(XChg {
             register1: Register::rax,
             register2: Register::rbx,
+            scratch: None,
         }),
     ];
     operations
