@@ -86,7 +86,7 @@ where
 /// - `options` - The parameters for this wrapper generation task.
 #[allow(warnings)]
 pub fn generate_wrapper<
-    TRegister: RegisterInfo,
+    TRegister: RegisterInfo + Copy,
     TFunctionAttribute: FunctionAttribute<TRegister>,
     TJit: Jit<TRegister>,
     TFunctionInfo: FunctionInfo,

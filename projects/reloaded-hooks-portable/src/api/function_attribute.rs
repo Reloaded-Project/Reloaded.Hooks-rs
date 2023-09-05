@@ -4,7 +4,7 @@ extern crate alloc;
 ///
 /// # Generic Parameters
 /// - `TRegister`: The type of register used by the target architecture. (Enum)
-pub trait FunctionAttribute<TRegister> {
+pub trait FunctionAttribute<TRegister: Copy> {
     /// Registers in left to right parameter order passed to the custom function.
     fn register_int_parameters(&self) -> &[TRegister];
 

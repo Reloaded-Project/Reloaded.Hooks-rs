@@ -1,7 +1,7 @@
 extern crate alloc;
 
-use alloc::vec::Vec;
 use derive_more::From;
+use smallvec::SmallVec;
 
 use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
@@ -14,6 +14,9 @@ use super::{
     return_operation::ReturnOperation, stack_alloc_operation::StackAllocOperation,
     xchg_operation::XChgOperation,
 };
+
+pub type MultiPushVec<T> = [PushOperation<T>; 4];
+pub type MultiPopVec<T> = [PopOperation<T>; 4];
 
 #[derive(Debug, Clone, PartialEq, Eq, From)]
 pub enum Operation<T> {
@@ -37,11 +40,13 @@ pub enum Operation<T> {
 
     // Opt-in for architectures that support it or can optimise for this use case.
     // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
-    MultiPush(Vec<PushOperation<T>>),
-    MultiPop(Vec<PopOperation<T>>),
+
+    // Note: I experimented with packing, to try make push/pull 1 byte, but seemed to have no effect.
+    MultiPush(SmallVec<MultiPushVec<T>>),
+    MultiPop(SmallVec<MultiPopVec<T>>),
 }
 
-pub fn transform_op<TOldRegister: Clone, TNewRegister, TConvertRegister>(
+pub fn transform_op<TOldRegister: Copy, TNewRegister, TConvertRegister>(
     op: Operation<TOldRegister>,
     f: TConvertRegister,
 ) -> Operation<TNewRegister>
@@ -92,7 +97,7 @@ where
             inner_ops
                 .iter()
                 .map(|op| PushOperation {
-                    register: f(op.register.clone()),
+                    register: f(op.register),
                 })
                 .collect(),
         ),
@@ -100,7 +105,7 @@ where
             inner_ops
                 .iter()
                 .map(|op| PopOperation {
-                    register: f(op.register.clone()),
+                    register: f(op.register),
                 })
                 .collect(),
         ),

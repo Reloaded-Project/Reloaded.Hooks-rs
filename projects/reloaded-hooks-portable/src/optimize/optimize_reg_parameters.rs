@@ -84,7 +84,7 @@ pub fn optimize_push_pop_parameters<TRegister: RegisterInfo + Copy>(
 
 /// Accepts a push stack operation and a pop operation, and returns a mov operation that
 /// is equivalent to both the operations.
-fn encode_push_pop_to_mov<TRegister: Clone + RegisterInfo>(
+fn encode_push_pop_to_mov<TRegister: Copy + RegisterInfo>(
     push: &Push<TRegister>,
     pop: &Pop<TRegister>,
 ) -> Option<Mov<TRegister>> {
@@ -94,8 +94,8 @@ fn encode_push_pop_to_mov<TRegister: Clone + RegisterInfo>(
     }
 
     Some(Mov {
-        source: push.register.clone(),
-        target: pop.register.clone(),
+        source: push.register,
+        target: pop.register,
     })
 }
 

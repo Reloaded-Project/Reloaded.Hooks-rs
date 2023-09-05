@@ -97,13 +97,13 @@ pub fn optimize_stack_parameters<TRegister: RegisterInfo + Copy>(
 
 /// Accepts a push stack operation and a pop operation, and returns a mov operation that
 /// is equivalent to both the operations.
-fn encode_push_stack_to_mov<TRegister: Clone + RegisterInfo>(
+fn encode_push_stack_to_mov<TRegister: Copy + RegisterInfo>(
     push_stack: &PushStack,
     pop: &Pop<TRegister>,
 ) -> Option<MovFromStack<TRegister>> {
     Some(MovFromStack {
         stack_offset: push_stack.offset as i32,
-        target: pop.register.clone(),
+        target: pop.register,
     })
 }
 

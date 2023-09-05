@@ -52,7 +52,7 @@ pub fn reorder_mov_sequence<TRegister>(
     scratch_register: &Option<TRegister>,
 ) -> Option<Vec<Operation<TRegister>>>
 where
-    TRegister: RegisterInfo + Eq + PartialEq + Hash + Clone,
+    TRegister: RegisterInfo + Eq + PartialEq + Hash + Copy,
 {
     // Find the first block of MOV operations.
     let mut start_idx = 0;
@@ -74,7 +74,7 @@ where
         let mut as_mov = SmallVec::<[Mov<TRegister>; 16]>::new();
         for op in operations[start_idx..].iter() {
             if let Operation::Mov(mov_op) = op {
-                as_mov.push(mov_op.clone());
+                as_mov.push(*mov_op);
             } else {
                 break;
             }

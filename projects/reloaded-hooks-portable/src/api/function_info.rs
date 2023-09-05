@@ -64,7 +64,7 @@ pub trait FunctionInfo {
     ///
     /// Tuple of (stack parameters, register parameters)
     /// These are the original passed in slices, sliced to contain just the filled in elements.
-    fn get_parameters_as_slice<'a, TRegister: Clone, T: FunctionAttribute<TRegister>>(
+    fn get_parameters_as_slice<'a, TRegister: Clone + Copy, T: FunctionAttribute<TRegister>>(
         &self,
         convention: &T,
         stack_params: &'a mut [ParameterType], // Mutable slice for stack parameters
@@ -85,7 +85,7 @@ pub trait FunctionInfo {
         for &parameter in parameters {
             if parameter.is_float() {
                 if let Some(reg) = float_registers.next() {
-                    reg_params[reg_idx] = (parameter, reg.clone());
+                    reg_params[reg_idx] = (parameter, *reg);
                     reg_idx += 1;
                 } else {
                     stack_params[stack_idx] = parameter;
@@ -93,14 +93,14 @@ pub trait FunctionInfo {
                 }
             } else if parameter.is_vector() {
                 if let Some(reg) = vector_registers.next() {
-                    reg_params[reg_idx] = (parameter, reg.clone());
+                    reg_params[reg_idx] = (parameter, *reg);
                     reg_idx += 1;
                 } else {
                     stack_params[stack_idx] = parameter;
                     stack_idx += 1;
                 }
             } else if let Some(reg) = int_registers.next() {
-                reg_params[reg_idx] = (parameter, reg.clone());
+                reg_params[reg_idx] = (parameter, *reg);
                 reg_idx += 1;
             } else {
                 stack_params[stack_idx] = parameter;
@@ -127,7 +127,7 @@ pub trait FunctionInfo {
     ///
     /// Tuple of (stack parameters, register parameters) as vectors
     /// These are the original passed in slices, sliced to contain just the filled in elements.
-    fn get_parameters_as_vec<TRegister: Clone, T: FunctionAttribute<TRegister>>(
+    fn get_parameters_as_vec<TRegister: Clone + Copy, T: FunctionAttribute<TRegister>>(
         &self,
         convention: &T,
     ) -> (Vec<ParameterType>, Vec<(ParameterType, TRegister)>) {

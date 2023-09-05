@@ -77,6 +77,7 @@ mod tests {
     };
 
     use super::*;
+    use smallvec::smallvec;
 
     // run as `cargo test -- --nocapture` for printing
 
@@ -331,7 +332,7 @@ mod tests {
     fn compile_multi_push_basic_regs_only() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::MultiPush(vec![
+        let operations = vec![Op::MultiPush(smallvec![
             Push::new(Register::eax),
             Push::new(Register::ebx),
             Push::new(Register::ecx),
@@ -350,7 +351,7 @@ mod tests {
     fn compile_multi_push_xmm_only() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::MultiPush(vec![
+        let operations = vec![Op::MultiPush(smallvec![
             Push::new(Register::xmm0),
             Push::new(Register::xmm1),
             Push::new(Register::xmm2),
@@ -369,7 +370,7 @@ mod tests {
     fn compile_multi_push_ymm_only() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::MultiPush(vec![
+        let operations = vec![Op::MultiPush(smallvec![
             Push::new(Register::ymm0),
             Push::new(Register::ymm1),
             Push::new(Register::ymm2),
@@ -388,7 +389,7 @@ mod tests {
     fn compile_multi_push_zmm_only() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::MultiPush(vec![
+        let operations = vec![Op::MultiPush(smallvec![
             Push::new(Register::zmm0),
             Push::new(Register::zmm1),
             Push::new(Register::zmm2),
@@ -407,7 +408,7 @@ mod tests {
     fn compile_multi_push_mixed() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::MultiPush(vec![
+        let operations = vec![Op::MultiPush(smallvec![
             Push::new(Register::eax),
             Push::new(Register::xmm0),
             Push::new(Register::ymm1),
@@ -426,7 +427,7 @@ mod tests {
     fn compile_multi_pop_basic_regs_only() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::MultiPop(vec![
+        let operations = vec![Op::MultiPop(smallvec![
             Pop::new(Register::eax),
             Pop::new(Register::ebx),
             Pop::new(Register::ecx),
@@ -445,7 +446,7 @@ mod tests {
     fn compile_multi_pop_xmm_only() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::MultiPop(vec![
+        let operations = vec![Op::MultiPop(smallvec![
             Pop::new(Register::xmm0),
             Pop::new(Register::xmm1),
             Pop::new(Register::xmm2),
@@ -464,7 +465,7 @@ mod tests {
     fn compile_multi_pop_ymm_only() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::MultiPop(vec![
+        let operations = vec![Op::MultiPop(smallvec![
             Pop::new(Register::ymm0),
             Pop::new(Register::ymm1),
             Pop::new(Register::ymm2),
@@ -483,7 +484,7 @@ mod tests {
     fn compile_multi_pop_zmm_only() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::MultiPop(vec![
+        let operations = vec![Op::MultiPop(smallvec![
             Pop::new(Register::zmm0),
             Pop::new(Register::zmm1),
             Pop::new(Register::zmm2),
@@ -502,7 +503,7 @@ mod tests {
     fn compile_multi_pop_mixed() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::MultiPop(vec![
+        let operations = vec![Op::MultiPop(smallvec![
             Pop::new(Register::eax),
             Pop::new(Register::xmm0),
             Pop::new(Register::ymm1),

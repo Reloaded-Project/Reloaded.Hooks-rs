@@ -78,7 +78,7 @@ where
 /// This process is documented in the Wiki under `Design Docs -> Wrapper Generation`.
 #[allow(warnings)]
 pub fn generate_wrapper_instructions<
-    TRegister: RegisterInfo + Clone + Hash + Eq + Copy + Default,
+    TRegister: RegisterInfo + Hash + Eq + Copy + Default,
     TFunctionAttribute: FunctionAttribute<TRegister>,
     TFunctionInfo: FunctionInfo,
 >(
@@ -92,7 +92,7 @@ pub fn generate_wrapper_instructions<
 
     // Backup Always Saved Registers (LR)
     for register in to_convention.always_saved_registers() {
-        ops.push(Push::new(register.clone()).into());
+        ops.push(Push::new(*register).into());
         stack_pointer += register.size_in_bytes();
     }
 
@@ -103,7 +103,7 @@ pub fn generate_wrapper_instructions<
     );
 
     for register in &callee_saved_regs {
-        ops.push(Push::new(register.clone()).into());
+        ops.push(Push::new(*register).into());
         stack_pointer += register.size_in_bytes();
     }
 
@@ -163,7 +163,7 @@ pub fn generate_wrapper_instructions<
 
         // Push register parameters of function returned (right to left)
         for param in fn_returned_params.1.iter().rev() {
-            setup_params_ops.push(Push::new(param.1.clone()).into());
+            setup_params_ops.push(Push::new(param.1).into());
             stack_pointer += param.0.size_in_bytes();
         }
     });
@@ -177,7 +177,7 @@ pub fn generate_wrapper_instructions<
     // Pop register parameters of the function being called (left to right)
     let fn_called_params = options.function_info.get_parameters_as_vec(from_convention);
     for param in fn_called_params.1.iter() {
-        setup_params_ops.push(Pop::new(param.1.clone()).into());
+        setup_params_ops.push(Pop::new(param.1).into());
         stack_pointer -= param.0.size_in_bytes();
     }
 
@@ -265,12 +265,12 @@ pub fn generate_wrapper_instructions<
 
     // Pop Callee Saved Registers
     for register in callee_saved_regs.iter().rev() {
-        ops.push(Pop::new(register.clone()).into());
+        ops.push(Pop::new(*register).into());
     }
 
     // Pop Always Saved Registers (like LR)
     for register in to_convention.always_saved_registers().iter().rev() {
-        ops.push(Pop::new(register.clone()).into());
+        ops.push(Pop::new(*register).into());
     }
 
     if to_convention.stack_cleanup_behaviour() == StackCleanup::Callee {
@@ -295,6 +295,7 @@ pub mod tests {
     };
 
     use super::*;
+    use smallvec::smallvec;
 
     fn get_x86_jit_capabilities() -> Vec<JitCapabilities> {
         vec![
@@ -414,7 +415,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 3);
-        assert_eq!(vec[0], MultiPush(vec![Push::new(R2), Push::new(R1)])); // push right param
+        assert_eq!(vec[0], MultiPush(smallvec![Push::new(R2), Push::new(R1)])); // push right param
         assert_eq!(vec[1], CallRel::new(4096).into());
         assert_eq!(vec[2], Return::new((nint * 2) as usize).into()); // caller stack cleanup (2 cdecl parameters)
     }

@@ -29,7 +29,7 @@ pub fn optimize_moves<T>(
     scratch_register: &Option<T>,
 ) -> Option<Vec<Operation<T>>>
 where
-    T: Eq + PartialEq + Hash + Clone,
+    T: Eq + PartialEq + Hash + Copy,
 {
     // Check if the moves are already valid.
     if (moves.is_empty()) || validate_moves(moves) {
@@ -37,7 +37,7 @@ where
     }
 
     let mut results = Vec::<Operation<T>>::with_capacity(moves.len() * 2);
-    let scratch_register: Option<T> = scratch_register.clone();
+    let scratch_register: Option<T> = *scratch_register;
     let graph = move_graph_builder::build_graph(moves);
     let mut visited: HashSet<T, BuildHasherDefault<NoHashHasher<u32>>> =
         HashSet::with_capacity_and_hasher(graph.len(), BuildHasherDefault::default());
@@ -59,14 +59,14 @@ where
     Some(results)
 }
 
-fn dfs<T: Eq + Clone + Hash>(
+fn dfs<T: Eq + Hash + Copy>(
     node: &Rc<RefCell<Node<T>>>,
     visited: &mut HashSet<T, BuildHasherDefault<NoHashHasher<u32>>>,
     rec_stack: &mut Vec<Rc<RefCell<Node<T>>>>,
     scratch_register: &Option<T>,
     results: &mut Vec<Operation<T>>,
 ) {
-    visited.insert(node.borrow().value.clone());
+    visited.insert(node.borrow().value);
     rec_stack.push(node.clone());
 
     let borrowed = &node.borrow();
@@ -89,8 +89,8 @@ fn dfs<T: Eq + Clone + Hash>(
             // We can swap them directly on architectures like x86.
             if rec_stack.len() == 2 {
                 results.push(Operation::Xchg(XChg {
-                    register1: node.borrow().value.clone(),
-                    register2: neighbour.borrow().value.clone(),
+                    register1: node.borrow().value,
+                    register2: neighbour.borrow().value,
                     scratch: None,
                 }));
 
@@ -100,12 +100,12 @@ fn dfs<T: Eq + Clone + Hash>(
             // Backup Register (or use scratch)
             if let Some(scratch) = scratch_register {
                 results.push(Operation::Mov(Mov {
-                    source: node.borrow().value.clone(),
-                    target: scratch.clone(),
+                    source: node.borrow().value,
+                    target: *scratch,
                 }));
             } else {
                 results.push(Operation::Push(Push {
-                    register: node.borrow().value.clone(),
+                    register: node.borrow().value,
                 }));
             }
 
@@ -115,12 +115,12 @@ fn dfs<T: Eq + Clone + Hash>(
             // Restore
             if let Some(scratch) = scratch_register {
                 results.push(Operation::Mov(Mov {
-                    source: scratch.clone(),
-                    target: neighbour.borrow().value.clone(),
+                    source: *scratch,
+                    target: neighbour.borrow().value,
                 }));
             } else {
                 results.push(Operation::Pop(Pop {
-                    register: neighbour.borrow().value.clone(),
+                    register: neighbour.borrow().value,
                 }));
             }
 
@@ -129,7 +129,7 @@ fn dfs<T: Eq + Clone + Hash>(
     }
 }
 
-fn unwind<T: Eq + Clone + Hash>(
+fn unwind<T: Eq + Copy + Hash>(
     rec_stack: &[Rc<RefCell<Node<T>>>],
     results: &mut Vec<Operation<T>>,
 ) {
@@ -146,8 +146,8 @@ fn unwind<T: Eq + Clone + Hash>(
 
         // Encode this as a move.
         results.push(Operation::Mov(Mov {
-            source: last.borrow().value.clone(),
-            target: current.borrow().value.clone(),
+            source: last.borrow().value,
+            target: current.borrow().value,
         }));
 
         // Move element up.

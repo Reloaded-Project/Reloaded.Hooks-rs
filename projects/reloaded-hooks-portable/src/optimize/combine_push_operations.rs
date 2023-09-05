@@ -1,7 +1,6 @@
 extern crate alloc;
-
 use crate::api::jit::operation::Operation;
-use alloc::vec::Vec;
+use smallvec::SmallVec;
 
 macro_rules! deduplicate_merge_ops {
     ($name:ident, $op:ident, $op_name:ident) => {
@@ -17,7 +16,7 @@ macro_rules! deduplicate_merge_ops {
         /// This is an optional step that can be applied within the structs that implement the JIT trait.
         /// It can be used to optimise series of multiple $ops wherever possible.
         #[allow(dead_code)]
-        pub(crate) fn $name<TRegister: Clone>(
+        pub(crate) fn $name<TRegister: Copy>(
             operations: &mut [Operation<TRegister>],
         ) -> &mut [Operation<TRegister>] {
             let mut read_idx = 0;
@@ -25,14 +24,14 @@ macro_rules! deduplicate_merge_ops {
             while read_idx < operations.len() {
                 match &operations[read_idx] {
                     Operation::$op(_) => {
-                        let mut ops = Vec::new();
+                        let mut ops = SmallVec::new();
 
                         // Collect sequential $op Operations
                         while read_idx < operations.len()
                             && matches!(operations[read_idx], Operation::$op(_))
                         {
                             if let Operation::$op(op) = &operations[read_idx] {
-                                ops.push(op.clone());
+                                ops.push(*op);
                             }
                             read_idx += 1;
                         }

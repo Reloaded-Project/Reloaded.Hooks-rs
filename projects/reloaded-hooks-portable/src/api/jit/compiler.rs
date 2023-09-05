@@ -71,7 +71,7 @@ pub enum JitError<TRegister> {
     InvalidInstruction(Operation<TRegister>),
 }
 
-pub fn transform_err<TOldRegister: Clone, TNewRegister, TConvertRegister>(
+pub fn transform_err<TOldRegister: Clone + Copy, TNewRegister, TConvertRegister>(
     err: JitError<TOldRegister>,
     f: TConvertRegister,
 ) -> JitError<TNewRegister>

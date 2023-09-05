@@ -11,7 +11,7 @@ use crate::api::{jit::operation::Operation, traits::register_info::RegisterInfo}
 /// - `pop_index` - The index of the pop operation to remove.
 /// - `new_operation` - The new operation to replace the push+pop with.
 ///                     This replaces item at push_index
-pub(crate) fn replace_optimized_operation<'a, TRegister: Clone>(
+pub(crate) fn replace_optimized_operation<'a, TRegister: Copy>(
     operations: &'a mut [Operation<TRegister>],
     push_index: usize,
     pop_index: usize,
