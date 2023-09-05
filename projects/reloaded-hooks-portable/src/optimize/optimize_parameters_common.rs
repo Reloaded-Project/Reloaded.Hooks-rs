@@ -11,23 +11,27 @@ use crate::api::{jit::operation::Operation, traits::register_info::RegisterInfo}
 /// - `pop_index` - The index of the pop operation to remove.
 /// - `new_operation` - The new operation to replace the push+pop with.
 ///                     This replaces item at push_index
+#[inline(always)]
 pub(crate) fn replace_optimized_operation<'a, TRegister: Copy>(
     operations: &'a mut [Operation<TRegister>],
     push_index: usize,
     pop_index: usize,
     new_operation: &Operation<TRegister>,
 ) -> &'a mut [Operation<TRegister>] {
-    // Replace the push operation with the new optimized operation.
-    operations[push_index] = new_operation.clone();
+    unsafe {
+        // Replace the push operation with the new optimized operation.
+        *operations.get_unchecked_mut(push_index) = new_operation.clone();
 
-    // Manually shift the elements to the left starting from pop_index
-    for x in pop_index..operations.len() - 1 {
-        operations[x] = operations[x + 1].clone();
+        // Manually shift the elements to the left starting from pop_index
+        for x in pop_index..operations.len() - 1 {
+            *operations.get_unchecked_mut(x) = operations.get_unchecked(x + 1).clone();
+        }
+
+        // Return a slice that excludes the last (removed) element
+        let num_items = operations.len();
+
+        operations.get_unchecked_mut(..num_items - 1)
     }
-
-    // Return a slice that excludes the last (removed) element
-    let num_items = operations.len();
-    &mut operations[..num_items - 1]
 }
 
 /// Finds a `pop` operation which corresponds to the current `push` operation.
