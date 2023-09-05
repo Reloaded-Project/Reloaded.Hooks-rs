@@ -86,7 +86,6 @@ pub mod optimize {
     pub mod eliminate_common_callee_saved_registers;
     pub mod merge_stackalloc_and_return;
     pub mod optimize_parameters_common;
-    pub mod optimize_reg_parameters;
-    pub mod optimize_stack_parameters;
+    pub mod optimize_push_pop_parameters;
     pub mod reorder_mov_sequence;
 }

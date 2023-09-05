@@ -40,6 +40,7 @@ pub(crate) fn encode_instruction(
         Operation::MultiPop(x) => encode_multi_pop(assembler, x),
         Operation::PushConst(x) => encode_push_constant(assembler, x),
         Operation::Return(x) => encode_return(assembler, x),
+        Operation::None => Ok(()),
     }
 }
 

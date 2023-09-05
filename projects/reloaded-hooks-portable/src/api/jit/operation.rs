@@ -20,6 +20,7 @@ pub type MultiPopVec<T> = [PopOperation<T>; 4];
 
 #[derive(Debug, Clone, PartialEq, Eq, From)]
 pub enum Operation<T> {
+    None,
     Mov(MovOperation<T>),
     MovFromStack(MovFromStackOperation<T>),
     Push(PushOperation<T>),
@@ -111,5 +112,6 @@ where
         ),
         Operation::PushConst(x) => Operation::PushConst(x),
         Operation::Return(x) => Operation::Return(x),
+        Operation::None => Operation::None,
     }
 }

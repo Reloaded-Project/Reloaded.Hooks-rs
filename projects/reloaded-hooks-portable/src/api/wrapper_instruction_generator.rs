@@ -20,8 +20,7 @@ use crate::{
         combine_push_operations::{merge_pop_operations, merge_push_operations},
         eliminate_common_callee_saved_registers::eliminate_common_callee_saved_registers,
         merge_stackalloc_and_return::merge_stackalloc_and_return,
-        optimize_reg_parameters::optimize_push_pop_parameters,
-        optimize_stack_parameters::{optimize_stack_parameters, update_stack_push_offsets},
+        optimize_push_pop_parameters::{optimize_push_pop_parameters, update_stack_push_offsets},
         reorder_mov_sequence::reorder_mov_sequence,
     },
 };
@@ -190,7 +189,6 @@ pub fn generate_wrapper_instructions<
     let mut new_optimized: Vec<Operation<TRegister>> = Vec::new();
 
     if options.enable_optimizations {
-        optimized = optimize_stack_parameters(optimized);
         optimized = optimize_push_pop_parameters(optimized);
 
         let reordered = reorder_mov_sequence(optimized, &scratch_register); // perf hit
