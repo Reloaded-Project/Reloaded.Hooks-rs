@@ -51,9 +51,8 @@ where
 {
     fn get_buffer_from_factory(&self) -> (bool, Box<dyn Buffer>) {
         let platform_functions = self.platform_functions;
-        let mut platform_lock = platform_functions.buffer_factory.write();
 
-        let buffer_factory = platform_lock.as_mut();
+        let buffer_factory = unsafe { &mut *platform_functions.buffer_factory.get() };
         let buf_opt = buffer_factory.get_buffer(
             self.proximity_target.item_size,
             self.proximity_target.target_address,
@@ -61,10 +60,10 @@ where
             <TJit as Jit<TRegister>>::code_alignment(),
         );
 
-        let has_buf_in_range = buf_opt.is_some();
+        let has_buf_in_range = buf_opt.is_ok();
         let buf_boxed: Box<dyn Buffer> = match buf_opt {
-            Some(buffer) => buffer,
-            None => buffer_factory
+            Ok(buffer) => buffer,
+            Err(_) => buffer_factory
                 .get_any_buffer(
                     self.proximity_target.item_size,
                     <TJit as Jit<TRegister>>::code_alignment(),

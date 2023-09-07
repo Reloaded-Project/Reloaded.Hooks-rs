@@ -2,22 +2,25 @@ extern crate alloc;
 use alloc::alloc::{alloc, Layout};
 use alloc::boxed::Box;
 use alloc::rc::Rc;
+use alloc::string::String;
+use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::cell::RefCell;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicBool, Ordering};
+use spin::RwLock;
 
 use super::buffer_abstractions::{Buffer, BufferFactory};
 use super::default_buffer::{AllocatedBuffer, LockedBuffer};
 
 pub struct DefaultBufferFactory {
-    buffers: Vec<Rc<AllocatedBuffer>>,
+    buffers: RwLock<Vec<Rc<AllocatedBuffer>>>,
 }
 
 impl DefaultBufferFactory {
     pub fn new() -> Self {
         DefaultBufferFactory {
-            buffers: Vec::new(),
+            buffers: RwLock::new(Vec::new()),
         }
     }
 }
@@ -28,6 +31,13 @@ impl Default for DefaultBufferFactory {
     }
 }
 
+// Safety: DefaultBufferFactory is thread safe.
+// RwLock on buffers ensures that only one thread can update the vector at a given time.
+// The buffers use `compare_exchange` for availability, ensuring thread safety in grabbing them.
+// The Rc is irrelevant because the buffer can only be held by 1 thread due to `compare_exchange`.
+unsafe impl Send for DefaultBufferFactory {}
+unsafe impl Sync for DefaultBufferFactory {}
+
 impl BufferFactory for DefaultBufferFactory {
     fn get_buffer(
         &mut self,
@@ -35,16 +45,17 @@ impl BufferFactory for DefaultBufferFactory {
         _target: usize,
         _proximity: usize,
         _alignment: u32,
-    ) -> Option<Box<dyn Buffer>> {
-        None
+    ) -> Result<Box<dyn Buffer>, String> {
+        Err("Not Supported".to_string())
     }
 
-    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Option<Box<dyn Buffer>> {
-        for buffer in &self.buffers {
+    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Result<Box<dyn Buffer>, String> {
+        let read_lock = self.buffers.read();
+        for buffer in read_lock.iter() {
             // Try to lock the buffer temporarily, to ensure thread safety.
             if buffer
                 .locked
-                .compare_exchange(false, true, Ordering::AcqRel, Ordering::Relaxed)
+                .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
                 == Ok(false)
             {
                 let current_address =
@@ -57,7 +68,7 @@ impl BufferFactory for DefaultBufferFactory {
                     // Adjust the write_offset of buffer to ensure alignment
                     *buffer.write_offset.borrow_mut() += adjustment as u32;
 
-                    return Some(Box::new(LockedBuffer {
+                    return Ok(Box::new(LockedBuffer {
                         buffer: buffer.clone(),
                     }));
                 } else {
@@ -67,11 +78,16 @@ impl BufferFactory for DefaultBufferFactory {
             }
         }
 
+        drop(read_lock);
+
         // If no buffer was found, create a new one
-        let layout = Layout::from_size_align(size as usize, alignment as usize).ok()?;
+        let mut write_lock = self.buffers.write();
+        let layout = Layout::from_size_align(size as usize, alignment as usize)
+            .map_err(|x| x.to_string())
+            .unwrap();
         let ptr = unsafe { alloc(layout) };
         if ptr.is_null() {
-            None
+            unreachable!("(M)alloc failure should panic.")
         } else {
             let buffer = Rc::new(AllocatedBuffer {
                 ptr: NonNull::new(ptr).unwrap(),
@@ -81,8 +97,10 @@ impl BufferFactory for DefaultBufferFactory {
                 locked: AtomicBool::new(true),
             });
 
-            self.buffers.push(buffer.clone());
-            Some(Box::new(LockedBuffer { buffer }))
+            write_lock.push(buffer.clone());
+            Ok(Box::new(LockedBuffer {
+                buffer: buffer.clone(),
+            }))
         }
     }
 }
@@ -100,7 +118,7 @@ mod tests {
     #[test]
     fn create_factory() {
         let factory = DefaultBufferFactory::new();
-        assert_eq!(factory.buffers.len(), 0);
+        assert_eq!(factory.buffers.read().len(), 0);
     }
 
     #[test]
@@ -110,13 +128,15 @@ mod tests {
         // Acquire a buffer and ensure it's locked.
         {
             let buffer = factory.get_any_buffer(10, 4).unwrap();
-            let concrete = buffer.as_any().downcast_ref::<LockedBuffer>().unwrap();
+            let concrete = unsafe {
+                Box::<LockedBuffer>::from_raw(Box::into_raw(buffer) as *mut LockedBuffer)
+            };
 
-            assert!(concrete.buffer.as_ref().locked.load(Ordering::Acquire));
+            assert!(concrete.buffer.locked.load(Ordering::Acquire));
         } // _buffer is dropped here, so the buffer should be unlocked
 
         // Ensure the buffer is unlocked after being dropped.
-        assert!(!factory.buffers[0].locked.load(Ordering::Acquire));
+        assert!(!factory.buffers.read()[0].locked.load(Ordering::Acquire));
     }
 
     #[test]

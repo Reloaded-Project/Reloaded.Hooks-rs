@@ -12,5 +12,8 @@
         "./projects/reloaded-hooks-buffers-common/Cargo.toml",
         "./projects/reloaded-hooks-platforms-common/Cargo.toml",
     ],
-    "discord.enabled": true
+    "discord.enabled": true,
+    "files.associations": {
+        "cstdarg": "cpp"
+    }
 }
