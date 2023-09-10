@@ -42,8 +42,3 @@ codegen-units = 1
 lto = true
 strip = true  # Automatically strip symbols from the binary.
 panic = "abort"
-
-# Benchmark Stuff
-[[bench]]
-name = "my_benchmark"
-harness = false
