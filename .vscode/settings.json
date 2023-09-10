@@ -9,7 +9,8 @@
     "rust-analyzer.linkedProjects": [
         "./projects/reloaded-hooks-portable/Cargo.toml",
         "./projects/reloaded-hooks-x86-sys/Cargo.toml",
-        "./projects/reloaded-hooks-buffers-common/Cargo.toml"
+        "./projects/reloaded-hooks-buffers-common/Cargo.toml",
+        "./projects/reloaded-hooks-aarch64-sys/Cargo.toml",
     ],
     "discord.enabled": true,
     "files.associations": {
