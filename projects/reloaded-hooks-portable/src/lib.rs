@@ -25,7 +25,11 @@ pub mod api {
     /// Platform and architecture specific integrations
     /// Note: Depends on STD crate, but implementation in crate is no-std.
     pub mod platforms {
+
+        #[allow(warnings)]
         pub mod platform_functions;
+
+        #[allow(warnings)]
         mod platform_functions_mmap_rs;
     }
 
