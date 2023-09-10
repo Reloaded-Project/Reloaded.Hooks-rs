@@ -5,14 +5,12 @@ use core::marker::PhantomData;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use crate::api::jit::operation::Operation;
+
 use super::{
-    buffers::buffer_abstractions::Buffer,
-    function_attribute::FunctionAttribute,
-    function_info::FunctionInfo,
-    integration::platform_functions::PlatformFunctions,
-    jit::{compiler::Jit, operation::Operation},
-    settings::proximity_target::ProximityTarget,
-    traits::register_info::RegisterInfo,
+    buffers::buffer_abstractions::Buffer, function_attribute::FunctionAttribute,
+    function_info::FunctionInfo, jit::compiler::Jit, platforms::platform_functions::BUFFER_FACTORY,
+    settings::proximity_target::ProximityTarget, traits::register_info::RegisterInfo,
 };
 
 /// Options and additional context necessary for the wrapper generator.
@@ -35,9 +33,6 @@ where
     /// Dynamically compiles the specified sequence of instructions
     pub jit: TJit,
 
-    /// The platform_functions.
-    pub platform_functions: &'a PlatformFunctions,
-
     /// Marker to assure Rust that TRegister is logically part of the struct.
     _marker: PhantomData<TRegister>,
 }
@@ -50,10 +45,9 @@ where
     TJit: Jit<TRegister>,
 {
     fn get_buffer_from_factory(&self) -> (bool, Box<dyn Buffer>) {
-        let platform_functions = self.platform_functions;
+        let mut buffer_factory_lock = BUFFER_FACTORY.lock();
 
-        let buffer_factory = unsafe { &mut *platform_functions.buffer_factory.get() };
-        let buf_opt = buffer_factory.get_buffer(
+        let buf_opt = buffer_factory_lock.get_buffer(
             self.proximity_target.item_size,
             self.proximity_target.target_address,
             self.proximity_target.requested_proximity,
@@ -63,7 +57,7 @@ where
         let has_buf_in_range = buf_opt.is_ok();
         let buf_boxed: Box<dyn Buffer> = match buf_opt {
             Ok(buffer) => buffer,
-            Err(_) => buffer_factory
+            Err(_) => buffer_factory_lock
                 .get_any_buffer(
                     self.proximity_target.item_size,
                     <TJit as Jit<TRegister>>::code_alignment(),
