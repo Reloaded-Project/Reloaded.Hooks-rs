@@ -69,6 +69,9 @@ pub enum JitError<TRegister> {
     /// JIT of an unrecognised instruction was requested.
     #[error("Invalid instruction provided: {0:?}")]
     InvalidInstruction(Operation<TRegister>),
+
+    #[error("Operand is out of range: {0:?}")]
+    OperandOutOfRange(String),
 }
 
 pub fn transform_err<TOldRegister: Clone + Copy, TNewRegister, TConvertRegister>(
@@ -88,5 +91,6 @@ where
         JitError::InvalidRegisterCombination(a, b) => {
             JitError::InvalidRegisterCombination(f(a), f(b))
         }
+        JitError::OperandOutOfRange(a) => JitError::OperandOutOfRange(a),
     }
 }

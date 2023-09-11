@@ -1,3 +1,5 @@
+use reloaded_hooks_portable::api::traits::register_info::RegisterInfo;
+
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum AllRegisters {
@@ -33,6 +35,7 @@ pub enum AllRegisters {
     w28,
     w29,
     w30,
+    w31,
 
     // 64 bit general purpose registers
     x0,
@@ -65,7 +68,8 @@ pub enum AllRegisters {
     x27,
     x28,
     x29,
-    x30,
+    LR,
+    SP,
 
     // 128 bit SIMD registers
     v0,
@@ -138,6 +142,7 @@ impl AllRegisters {
             AllRegisters::w28 => 4,
             AllRegisters::w29 => 4,
             AllRegisters::w30 => 4,
+            AllRegisters::w31 => 4,
 
             // 64-bit GP registers
             AllRegisters::x0 => 8,
@@ -170,7 +175,8 @@ impl AllRegisters {
             AllRegisters::x27 => 8,
             AllRegisters::x28 => 8,
             AllRegisters::x29 => 8,
-            AllRegisters::x30 => 8,
+            AllRegisters::LR => 8,
+            AllRegisters::SP => 8,
 
             // 128-bit SIMD registers
             AllRegisters::v0 => 16,
@@ -242,6 +248,7 @@ impl AllRegisters {
                 | AllRegisters::w28
                 | AllRegisters::w29
                 | AllRegisters::w30
+                | AllRegisters::w31
         )
     }
 
@@ -278,7 +285,8 @@ impl AllRegisters {
                 | AllRegisters::x27
                 | AllRegisters::x28
                 | AllRegisters::x29
-                | AllRegisters::x30
+                | AllRegisters::LR
+                | AllRegisters::SP
         )
     }
 
@@ -318,5 +326,27 @@ impl AllRegisters {
                 | AllRegisters::v30
                 | AllRegisters::v31
         )
+    }
+}
+
+impl RegisterInfo for AllRegisters {
+    fn size_in_bytes(&self) -> usize {
+        self.size()
+    }
+
+    fn is_stack_pointer(&self) -> bool {
+        self == &AllRegisters::SP
+    }
+
+    fn register_type(&self) -> usize {
+        if self.is_64() {
+            return 0;
+        } else if self.is_32() {
+            return 1;
+        } else if self.is_128() {
+            return 2;
+        } else {
+            return 3;
+        }
     }
 }

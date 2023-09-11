@@ -14,6 +14,7 @@ crate-type = ["dylib"]
 [dependencies]
 smallvec = { version = "1.11.0", features = ["const_new"] }
 reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portable" }
+rstest = "0.18.2"
 
 [dev-dependencies]
 criterion = "0.5.1"
