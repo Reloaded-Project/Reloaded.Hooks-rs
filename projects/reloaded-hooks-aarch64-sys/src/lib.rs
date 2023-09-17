@@ -4,8 +4,12 @@
 
 #[cfg(not(tarpaulin_include))]
 pub mod all_registers;
-
-/// Utility for writing aarch64 code.
-pub mod code_writer;
-
 pub mod jit;
+pub mod opcodes {
+    pub mod add_immediate;
+    pub mod ldr_immediate_post_indexed;
+    pub mod ldr_immediate_unsigned_offset;
+    pub mod orr;
+    pub mod str_immediate_pre_indexed;
+    pub mod sub_immediate;
+}

@@ -107,6 +107,43 @@ pub enum AllRegisters {
 }
 
 impl AllRegisters {
+    pub fn register_number(&self) -> u32 {
+        match *self {
+            AllRegisters::w0 | AllRegisters::x0 | AllRegisters::v0 => 0,
+            AllRegisters::w1 | AllRegisters::x1 | AllRegisters::v1 => 1,
+            AllRegisters::w2 | AllRegisters::x2 | AllRegisters::v2 => 2,
+            AllRegisters::w3 | AllRegisters::x3 | AllRegisters::v3 => 3,
+            AllRegisters::w4 | AllRegisters::x4 | AllRegisters::v4 => 4,
+            AllRegisters::w5 | AllRegisters::x5 | AllRegisters::v5 => 5,
+            AllRegisters::w6 | AllRegisters::x6 | AllRegisters::v6 => 6,
+            AllRegisters::w7 | AllRegisters::x7 | AllRegisters::v7 => 7,
+            AllRegisters::w8 | AllRegisters::x8 | AllRegisters::v8 => 8,
+            AllRegisters::w9 | AllRegisters::x9 | AllRegisters::v9 => 9,
+            AllRegisters::w10 | AllRegisters::x10 | AllRegisters::v10 => 10,
+            AllRegisters::w11 | AllRegisters::x11 | AllRegisters::v11 => 11,
+            AllRegisters::w12 | AllRegisters::x12 | AllRegisters::v12 => 12,
+            AllRegisters::w13 | AllRegisters::x13 | AllRegisters::v13 => 13,
+            AllRegisters::w14 | AllRegisters::x14 | AllRegisters::v14 => 14,
+            AllRegisters::w15 | AllRegisters::x15 | AllRegisters::v15 => 15,
+            AllRegisters::w16 | AllRegisters::x16 | AllRegisters::v16 => 16,
+            AllRegisters::w17 | AllRegisters::x17 | AllRegisters::v17 => 17,
+            AllRegisters::w18 | AllRegisters::x18 | AllRegisters::v18 => 18,
+            AllRegisters::w19 | AllRegisters::x19 | AllRegisters::v19 => 19,
+            AllRegisters::w20 | AllRegisters::x20 | AllRegisters::v20 => 20,
+            AllRegisters::w21 | AllRegisters::x21 | AllRegisters::v21 => 21,
+            AllRegisters::w22 | AllRegisters::x22 | AllRegisters::v22 => 22,
+            AllRegisters::w23 | AllRegisters::x23 | AllRegisters::v23 => 23,
+            AllRegisters::w24 | AllRegisters::x24 | AllRegisters::v24 => 24,
+            AllRegisters::w25 | AllRegisters::x25 | AllRegisters::v25 => 25,
+            AllRegisters::w26 | AllRegisters::x26 | AllRegisters::v26 => 26,
+            AllRegisters::w27 | AllRegisters::x27 | AllRegisters::v27 => 27,
+            AllRegisters::w28 | AllRegisters::x28 | AllRegisters::v28 => 28,
+            AllRegisters::w29 | AllRegisters::x29 | AllRegisters::v29 => 29,
+            AllRegisters::w30 | AllRegisters::LR | AllRegisters::v30 => 30,
+            AllRegisters::w31 | AllRegisters::SP | AllRegisters::v31 => 31,
+        }
+    }
+
     // Implement size(), is_32(), is_64() etc. functions
     pub fn size(&self) -> usize {
         match *self {

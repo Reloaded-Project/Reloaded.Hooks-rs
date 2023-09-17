@@ -72,6 +72,9 @@ pub enum JitError<TRegister> {
 
     #[error("Operand is out of range: {0:?}")]
     OperandOutOfRange(String),
+
+    #[error("Invalid offset specified: {0:?}")]
+    InvalidOffset(String),
 }
 
 pub fn transform_err<TOldRegister: Clone + Copy, TNewRegister, TConvertRegister>(
@@ -92,5 +95,6 @@ where
             JitError::InvalidRegisterCombination(f(a), f(b))
         }
         JitError::OperandOutOfRange(a) => JitError::OperandOutOfRange(a),
+        JitError::InvalidOffset(x) => JitError::InvalidOffset(x),
     }
 }

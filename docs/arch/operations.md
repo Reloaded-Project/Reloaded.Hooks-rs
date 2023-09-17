@@ -24,10 +24,18 @@
     jmp 0x200 ; Jump to address at current IP + 0x200
     ```
 
-=== "ARM64"
+=== "ARM64 (+- 128MB)"
 
     ```asm
     b 0x200 ; Branch to address at current IP + 0x200
+    ```
+
+=== "ARM64 (+- 4GB)"
+
+    ```asm
+    adrp x9, [0]        ; Load 4K page, relative to PC. (round address down to 4096)
+    ldr x9, [x9, 0x200] ; Offset in 4K page (add remainder)
+    br x9               ; Branch to location
     ```
 
 === "x86"
@@ -39,6 +47,8 @@
 ### JumpAbsoluteOperation
 
 !!! info "Represents jumping to an absolute address stored in a register or memory."
+
+!!! note "JIT is free to encode this as a relative branch if it's possible."
 
 === "Rust"
 
@@ -59,8 +69,9 @@
 === "ARM64"
 
     ```asm
-    adr x9, target_loc ; Load address of target location into x9  
-    br x9 ; Branch to address in x9
+    adrp x9, [291]       ; Load 4K page, relative to PC. (round address down to 4096)
+    ldr x9, [x9, 1110]   ; Offset in 4K page (add remainder)
+    br x9                ; Branch to location
     ```
 
 === "x86"
