@@ -7,6 +7,7 @@ pub mod all_registers;
 pub mod jit;
 pub mod instructions {
     pub mod add_immediate;
+    pub mod errors;
     pub mod ldr_immediate_post_indexed;
     pub mod ldr_immediate_unsigned_offset;
     pub mod orr;

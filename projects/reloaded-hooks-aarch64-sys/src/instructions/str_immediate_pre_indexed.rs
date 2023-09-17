@@ -1,10 +1,11 @@
-use alloc::format;
 use bitfield::bitfield;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 extern crate alloc;
 
 use crate::all_registers::AllRegisters;
+
+use super::errors::return_stack_out_of_range;
 
 // https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/STR--immediate---Store-Register--immediate--?lang=en
 bitfield! {
@@ -65,12 +66,4 @@ impl StrImmediatePreIndexed {
         value.set_rt(source);
         Ok(value)
     }
-}
-
-#[inline(never)]
-fn return_stack_out_of_range(stack_offset: i32) -> JitError<AllRegisters> {
-    JitError::OperandOutOfRange(format!(
-        "Stack Offset Exceeds Maximum Range. Offset {}",
-        stack_offset
-    ))
 }

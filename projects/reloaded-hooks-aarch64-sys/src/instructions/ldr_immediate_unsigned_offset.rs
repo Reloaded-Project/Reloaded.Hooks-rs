@@ -1,10 +1,12 @@
-use alloc::format;
+use crate::instructions::errors::return_stack_out_of_range;
 use bitfield::bitfield;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 extern crate alloc;
 
 use crate::all_registers::AllRegisters;
+
+use super::errors::return_divisible_by_value;
 
 // https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/LDR--immediate---Load-Register--immediate--?lang=en
 bitfield! {
@@ -44,7 +46,7 @@ impl LdrImmediateUnsignedOffset {
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
         // Check if divisible by 8 or 4.
-        let mut encoded_offset = if is_64bit {
+        let encoded_offset = if is_64bit {
             if (stack_offset & 0b111) != 0 {
                 return Err(return_divisible_by_value(stack_offset));
             }
@@ -82,20 +84,4 @@ impl LdrImmediateUnsignedOffset {
         value.set_rn_offset(encoded_offset as i16);
         Ok(value)
     }
-}
-
-#[inline(never)]
-fn return_stack_out_of_range(stack_offset: i32) -> JitError<AllRegisters> {
-    JitError::OperandOutOfRange(format!(
-        "Stack Offset Exceeds Maximum Range. Offset {}",
-        stack_offset
-    ))
-}
-
-#[inline(never)]
-fn return_divisible_by_value(stack_offset: i32) -> JitError<AllRegisters> {
-    JitError::InvalidOffset(format!(
-        "Offset must be divisible by the register size (4/8). {}",
-        stack_offset
-    ))
 }

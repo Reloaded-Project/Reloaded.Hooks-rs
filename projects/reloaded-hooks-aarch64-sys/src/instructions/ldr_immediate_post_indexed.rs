@@ -6,6 +6,8 @@ extern crate alloc;
 
 use crate::all_registers::AllRegisters;
 
+use super::errors::return_stack_out_of_range;
+
 // https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/LDR--immediate---Load-Register--immediate--?lang=en#iclass_post_indexed
 bitfield! {
     pub struct LdrImmediatePostIndexed(u32);
@@ -65,12 +67,4 @@ impl LdrImmediatePostIndexed {
         value.set_rt(source);
         Ok(value)
     }
-}
-
-#[inline(never)]
-fn return_stack_out_of_range(stack_offset: i32) -> JitError<AllRegisters> {
-    JitError::OperandOutOfRange(format!(
-        "Stack Offset Exceeds Maximum Range. Offset {}",
-        stack_offset
-    ))
 }
