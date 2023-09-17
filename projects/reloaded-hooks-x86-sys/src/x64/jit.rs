@@ -7,7 +7,7 @@ use crate::{
     x64::register::Register,
 };
 use alloc::{rc::Rc, string::ToString};
-use iced_x86::{code_asm::CodeAssembler, Code};
+use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::{
     compiler::{transform_err, Jit, JitCapabilities, JitError},
     operation::{transform_op, Operation},

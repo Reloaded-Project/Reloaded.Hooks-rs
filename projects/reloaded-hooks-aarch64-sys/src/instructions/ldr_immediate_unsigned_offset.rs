@@ -44,8 +44,7 @@ impl LdrImmediateUnsignedOffset {
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
         // Check if divisible by 8 or 4.
-        let mut encoded_offset = 0;
-        if is_64bit {
+        let mut encoded_offset = if is_64bit {
             if (stack_offset & 0b111) != 0 {
                 return Err(return_divisible_by_value(stack_offset));
             }
@@ -54,7 +53,7 @@ impl LdrImmediateUnsignedOffset {
                 return Err(return_stack_out_of_range(stack_offset));
             }
 
-            encoded_offset = stack_offset >> 3;
+            stack_offset >> 3
         } else {
             if (stack_offset & 0b11) != 0 {
                 return Err(return_divisible_by_value(stack_offset));
@@ -64,8 +63,8 @@ impl LdrImmediateUnsignedOffset {
                 return Err(return_stack_out_of_range(stack_offset));
             }
 
-            encoded_offset = stack_offset >> 2;
-        }
+            stack_offset >> 2
+        };
 
         // Note: Compiler is smart enough to optimize this away as a constant
         // Which is why we moved the non-constant stuff to the bottom.

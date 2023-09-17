@@ -377,13 +377,13 @@ impl RegisterInfo for AllRegisters {
 
     fn register_type(&self) -> usize {
         if self.is_64() {
-            return 0;
+            0
         } else if self.is_32() {
-            return 1;
+            1
         } else if self.is_128() {
-            return 2;
+            2
         } else {
-            return 3;
+            3
         }
     }
 }
