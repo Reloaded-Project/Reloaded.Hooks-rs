@@ -81,8 +81,10 @@ pub fn optimize_push_pop_parameters<TRegister: RegisterInfo + Copy>(
                 current_stack_offset += item_size;
 
                 // Found a push, now find the next pop.
-                let pop =
-                    find_pop_for_given_push(&operations[push_idx + 1..], current_stack_offset);
+                let pop = find_pop_for_given_push(
+                    &operations[push_idx + 1..],
+                    current_stack_offset as usize,
+                );
                 if pop.is_none() {
                     push_idx += 1;
                     continue;
@@ -113,11 +115,13 @@ pub fn optimize_push_pop_parameters<TRegister: RegisterInfo + Copy>(
             }
             Operation::Push(x) => {
                 let item_size = x.register.size_in_bytes();
-                current_stack_offset += item_size;
+                current_stack_offset += item_size as u32;
 
                 // Found a push, now find the next pop.
-                let pop =
-                    find_pop_for_given_push(&operations[push_idx + 1..], current_stack_offset);
+                let pop = find_pop_for_given_push(
+                    &operations[push_idx + 1..],
+                    current_stack_offset as usize,
+                );
                 if pop.is_none() {
                     push_idx += 1;
                     continue;
@@ -137,7 +141,7 @@ pub fn optimize_push_pop_parameters<TRegister: RegisterInfo + Copy>(
                 }
 
                 // Replace the optimized operation and insert nop.
-                current_stack_offset -= item_size;
+                current_stack_offset -= item_size as u32;
                 unsafe {
                     *operations.get_unchecked_mut(push_idx) =
                         opt_optimized_operation.unwrap_unchecked().into();
@@ -172,7 +176,7 @@ pub(crate) fn update_stack_push_offsets<TRegister: RegisterInfo>(
 ) {
     for item in items {
         if let Operation::PushStack(x) = item {
-            x.offset += offset_to_adjust_by as isize;
+            x.offset += offset_to_adjust_by as i32;
         }
     }
 }

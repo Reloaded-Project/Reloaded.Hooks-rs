@@ -25,7 +25,7 @@ pub(crate) fn find_pop_for_given_push<TRegister: RegisterInfo>(
     for item in items.iter().enumerate() {
         // Push if at top of stack
         if let Operation::PushStack(x) = item.1 {
-            current_stack_offset += x.item_size;
+            current_stack_offset += x.item_size as usize;
         } else if let Operation::Push(x) = item.1 {
             current_stack_offset += x.register.size_in_bytes();
         }

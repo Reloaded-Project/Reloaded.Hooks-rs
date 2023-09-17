@@ -21,11 +21,17 @@ use derive_new::new;
 /// use reloaded_hooks_portable::api::jit::push_stack_operation::PushStackOperation;
 /// let push_offset_from_esp = PushStackOperation { offset: 8, item_size: 4 };
 /// ```
+///
+/// # Remarks
+///
+/// Number of copied bytes should be a multiple of native register size.
+/// Other values may not be supported depending on implementation.
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct PushStackOperation {
     /// The offset from the current stack pointer in the direction opposite to the stack's growth.
-    pub offset: isize,
+    pub offset: i32,
 
     /// Size of the item to re-push to stack.
-    pub item_size: usize,
+    pub item_size: u32,
 }

@@ -21,6 +21,7 @@ pub(crate) mod jit_instructions {
     pub mod mov_from_stack;
     pub mod pop;
     pub mod push;
+    pub mod push_stack;
     pub mod stackalloc;
 }
 

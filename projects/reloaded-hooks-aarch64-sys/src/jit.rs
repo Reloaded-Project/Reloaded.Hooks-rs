@@ -17,6 +17,7 @@ use crate::{
         mov_from_stack::encode_mov_from_stack,
         pop::encode_pop,
         push::encode_push,
+        push_stack::encode_push_stack,
         stackalloc::encode_stackalloc,
     },
 };
@@ -77,7 +78,7 @@ fn encode_instruction_aarch64(
         Operation::Mov(x) => encode_mov(x, pc, buf),
         Operation::MovFromStack(x) => encode_mov_from_stack(x, pc, buf),
         Operation::Push(x) => encode_push(x, pc, buf),
-        Operation::PushStack(_) => todo!(),
+        Operation::PushStack(x) => encode_push_stack(x, pc, buf),
         Operation::PushConst(_) => todo!(),
         Operation::StackAlloc(x) => encode_stackalloc(x, pc, buf),
         Operation::Pop(x) => encode_pop(x, pc, buf),
@@ -87,8 +88,8 @@ fn encode_instruction_aarch64(
         Operation::JumpRelative(x) => encode_jump_relative(x, pc, buf),
         Operation::JumpAbsolute(_) => todo!(),
         Operation::Return(_) => todo!(),
-        Operation::CallIpRelative(_) => todo!(),
-        Operation::JumpIpRelative(_) => todo!(),
+        Operation::CallIpRelative(_) => todo!(), // Not implementable
+        Operation::JumpIpRelative(_) => todo!(), // Not implementable
         Operation::MultiPush(_) => todo!(),
         Operation::MultiPop(_) => todo!(),
     }

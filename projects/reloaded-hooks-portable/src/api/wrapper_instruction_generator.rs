@@ -157,7 +157,8 @@ pub fn generate_wrapper_instructions<
         let mut current_offset = stack_pointer as isize;
         for param in fn_returned_params.0.iter().rev() {
             let param_size_bytes = param.size_in_bytes();
-            setup_params_ops.push(PushStack::new(current_offset, param_size_bytes).into());
+            setup_params_ops
+                .push(PushStack::new(current_offset as i32, param_size_bytes as u32).into());
             current_offset += (param_size_bytes * 2) as isize;
             stack_pointer += param_size_bytes;
             callee_cleanup_return_size += param_size_bytes;
@@ -320,8 +321,11 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 5);
-        assert_eq!(vec[0], PushStack::new(nint, nint as usize).into()); // re-push right param
-        assert_eq!(vec[1], PushStack::new(nint * 3, nint as usize).into()); // re-push left param
+        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // re-push right param
+        assert_eq!(
+            vec[1],
+            PushStack::new((nint * 3) as i32, nint as u32).into()
+        ); // re-push left param
         assert_eq!(vec[2], Pop::new(R1).into()); // pop left param into reg
         assert_eq!(vec[3], CallRel::new(4096).into());
         assert_eq!(vec[4], Return::new(0).into()); // caller cleanup, so no offset here
@@ -339,7 +343,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(vec[0], PushStack::new(nint, nint as usize).into()); // re-push right param
+        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // re-push right param
         assert_eq!(vec[1], MovFromStack::new((nint * 3) as i32, R1).into()); // mov left param to register
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], Return::new(0).into()); // caller cleanup, so no offset here
@@ -357,7 +361,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 5);
-        assert_eq!(vec[0], PushStack::new(nint, nint as usize).into()); // push right param
+        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], StackAlloc::new(-(nint * 2) as i32).into()); // caller stack cleanup
@@ -376,7 +380,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(vec[0], PushStack::new(nint, nint as usize).into()); // push right param
+        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(
@@ -435,7 +439,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(vec[0], PushStack::new(nint, nint as usize).into()); // push right param
+        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], Return::new(nint as usize).into()); // callee stack cleanup (only non-register parameter)
@@ -453,7 +457,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(vec[0], PushStack::new(nint, nint as usize).into()); // re-push right param
+        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // re-push right param
         assert_eq!(vec[1], MovFromStack::new((nint * 3) as i32, R1).into()); // mov left param to register
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], Return::new((nint * 2) as usize).into()); // caller cleanup, so no offset here
