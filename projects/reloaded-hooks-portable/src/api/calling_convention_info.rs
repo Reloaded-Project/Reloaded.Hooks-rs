@@ -1,10 +1,12 @@
+use super::traits::register_info::RegisterInfo;
+
 extern crate alloc;
 
 /// This trait defines the calling convention of a function.
 ///
 /// # Generic Parameters
 /// - `TRegister`: The type of register used by the target architecture. (Enum)
-pub trait FunctionAttribute<TRegister: Copy> {
+pub trait CallingConventionInfo<TRegister: Copy + RegisterInfo> {
     /// Registers in left to right parameter order passed to the custom function.
     fn register_int_parameters(&self) -> &[TRegister];
 
@@ -47,6 +49,10 @@ pub trait FunctionAttribute<TRegister: Copy> {
 
     /// Specifies the order in which parameters are passed to the stack;
     /// either left-to-right or right-to-left.
+    ///
+    /// # Remarks
+    ///
+    /// This field is currently unused.
     fn stack_parameter_order(&self) -> StackParameterOrder;
 
     /// Required alignment of the stack pointer before the function is called.
@@ -54,10 +60,10 @@ pub trait FunctionAttribute<TRegister: Copy> {
     /// 0 bytes for x86, etc.
     fn required_stack_alignment(&self) -> u32;
 
-    /// A 'scratch' register that can be used for temporary storage when building
-    /// wrappers for this calling convention.
-    fn scratch_register(&self) -> Option<TRegister> {
-        None
+    /// Figures out available scratch register(s) that can be used for temporary storage
+    /// when building wrappers for this calling convention.
+    fn scratch_registers(&self) -> &[TRegister] {
+        todo!("Implement scratch registers for this calling convention.");
     }
 }
 

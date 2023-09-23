@@ -60,7 +60,7 @@ pub mod api {
         pub mod register_info;
     }
 
-    pub mod function_attribute;
+    pub mod calling_convention_info;
     pub mod function_info;
     pub mod wrapper_generator;
     pub mod wrapper_instruction_generator;

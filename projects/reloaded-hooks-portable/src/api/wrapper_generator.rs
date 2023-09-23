@@ -8,7 +8,7 @@ use alloc::vec::Vec;
 use crate::api::jit::operation::Operation;
 
 use super::{
-    buffers::buffer_abstractions::Buffer, function_attribute::FunctionAttribute,
+    buffers::buffer_abstractions::Buffer, calling_convention_info::CallingConventionInfo,
     function_info::FunctionInfo, jit::compiler::Jit, platforms::platform_functions::BUFFER_FACTORY,
     settings::proximity_target::ProximityTarget, traits::register_info::RegisterInfo,
 };
@@ -80,12 +80,12 @@ where
 #[allow(warnings)]
 pub fn generate_wrapper<
     TRegister: RegisterInfo + Copy,
-    TFunctionAttribute: FunctionAttribute<TRegister>,
+    TConventionInfo: CallingConventionInfo<TRegister>,
     TJit: Jit<TRegister>,
     TFunctionInfo: FunctionInfo,
 >(
-    from_convention: TFunctionAttribute,
-    to_convention: TFunctionAttribute,
+    from_convention: TConventionInfo,
+    to_convention: TConventionInfo,
     options: WrapperGenerationOptions<TFunctionInfo, TRegister, TJit>,
 ) -> *const u8 {
     let (has_buf_in_range, buf_boxed) = options.get_buffer_from_factory();

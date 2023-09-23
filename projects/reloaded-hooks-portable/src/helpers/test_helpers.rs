@@ -3,7 +3,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use crate::api::{
-    function_attribute::{FunctionAttribute, StackCleanup, StackParameterOrder},
+    calling_convention_info::*,
     function_info::{FunctionInfo, ParameterType},
     traits::register_info::RegisterInfo,
 };
@@ -13,14 +13,17 @@ use lazy_static;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub enum MockRegister {
     #[default]
+    R0,
     R1,
     R2,
     R3,
     R4,
+    F0,
     F1,
     F2,
     F3,
     F4,
+    V0,
     V1,
     V2,
     V3,
@@ -34,14 +37,17 @@ pub enum MockRegister {
 impl RegisterInfo for MockRegister {
     fn size_in_bytes(&self) -> usize {
         match self {
+            MockRegister::R0 => 4,
             MockRegister::R1 => 4,
             MockRegister::R2 => 4,
             MockRegister::R3 => 4,
             MockRegister::R4 => 4,
+            MockRegister::F0 => 4,
             MockRegister::F1 => 4,
             MockRegister::F2 => 4,
             MockRegister::F3 => 4,
             MockRegister::F4 => 4,
+            MockRegister::V0 => 4,
             MockRegister::V1 => 4,
             MockRegister::V2 => 4,
             MockRegister::V3 => 4,
@@ -57,12 +63,14 @@ impl RegisterInfo for MockRegister {
 
     fn register_type(&self) -> usize {
         match self {
+            MockRegister::R0 => 0,
             MockRegister::R1 => 0,
             MockRegister::R2 => 0,
             MockRegister::R3 => 0,
             MockRegister::R4 => 0,
             MockRegister::SP => 0,
 
+            MockRegister::F0 => 1,
             MockRegister::F1 => 1,
             MockRegister::F2 => 1,
             MockRegister::F3 => 1,
@@ -70,6 +78,7 @@ impl RegisterInfo for MockRegister {
 
             MockRegister::LR => 2,
 
+            MockRegister::V0 => 3,
             MockRegister::V1 => 3,
             MockRegister::V2 => 3,
             MockRegister::V3 => 3,
@@ -109,7 +118,7 @@ impl Default for MockFunctionAttribute {
     }
 }
 
-impl FunctionAttribute<MockRegister> for MockFunctionAttribute {
+impl CallingConventionInfo<MockRegister> for MockFunctionAttribute {
     fn register_int_parameters(&self) -> &[MockRegister] {
         &self.int_params
     }

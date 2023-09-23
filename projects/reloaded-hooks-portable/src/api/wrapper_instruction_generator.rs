@@ -6,15 +6,15 @@ use alloc::vec::Vec;
 use smallvec::SmallVec;
 
 use super::{
-    function_attribute::FunctionAttribute,
+    calling_convention_info::CallingConventionInfo,
     function_info::{FunctionInfo, ParameterType},
     jit::{compiler::JitCapabilities, operation::Operation, return_operation::ReturnOperation},
     traits::register_info::RegisterInfo,
 };
 use crate::{
     api::{
-        errors::wrapper_generation_error::WrapperGenerationError, function_attribute::StackCleanup,
-        jit::operation_aliases::*,
+        calling_convention_info::StackCleanup,
+        errors::wrapper_generation_error::WrapperGenerationError, jit::operation_aliases::*,
     },
     optimize::{
         combine_push_operations::{merge_pop_operations, merge_push_operations},
@@ -78,7 +78,7 @@ where
 #[allow(warnings)]
 pub fn generate_wrapper_instructions<
     TRegister: RegisterInfo + Hash + Eq + Copy + Default,
-    TFunctionAttribute: FunctionAttribute<TRegister>,
+    TFunctionAttribute: CallingConventionInfo<TRegister>,
     TFunctionInfo: FunctionInfo,
 >(
     from_convention: &TFunctionAttribute,
@@ -185,14 +185,14 @@ pub fn generate_wrapper_instructions<
     }
 
     // Optimize the parameter pushing process
-    let scratch_register = from_convention.scratch_register();
+    let scratch_registers = from_convention.scratch_registers();
     let mut optimized = setup_params_ops.as_mut_slice();
     let mut new_optimized: Vec<Operation<TRegister>> = Vec::new();
 
     if options.enable_optimizations {
         optimized = optimize_push_pop_parameters(optimized);
 
-        let reordered = reorder_mov_sequence(optimized, &scratch_register); // perf hit
+        let reordered = reorder_mov_sequence(optimized, &scratch_registers); // perf hit
         if reordered.is_some() {
             new_optimized = unsafe { reordered.unwrap_unchecked() };
             optimized = &mut new_optimized[..];
@@ -232,7 +232,7 @@ pub fn generate_wrapper_instructions<
     if options.can_generate_relative_jumps {
         ops.push(CallRel::new(options.target_address).into());
     } else {
-        if scratch_register.is_none() {
+        if scratch_registers.len() == 0 {
             return Err(WrapperGenerationError::NoScratchRegister(
                 "Needed for Absolute Call.".to_string(),
             ));
@@ -240,7 +240,7 @@ pub fn generate_wrapper_instructions<
 
         ops.push(
             CallAbs {
-                scratch_register: scratch_register.unwrap(),
+                scratch_register: scratch_registers[0],
                 target_address: options.target_address,
             }
             .into(),
