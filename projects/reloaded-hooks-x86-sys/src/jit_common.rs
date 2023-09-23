@@ -282,7 +282,7 @@ macro_rules! encode_push_stack_impl {
 
 fn encode_push_stack(
     a: &mut CodeAssembler,
-    push: &PushStack,
+    push: &PushStack<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     match a.bitness() {
         32 => {

@@ -58,10 +58,7 @@ pub mod tests {
     fn find_pop_for_given_push_basic() {
         let ops = vec![
             Operation::Push(Push { register: R1 }),
-            Operation::PushStack(PushStack {
-                item_size: 4,
-                offset: 4,
-            }),
+            Operation::PushStack(PushStack::with_offset_and_size(4, 4)),
             Operation::Pop(Pop { register: R1 }),
             Operation::Pop(Pop { register: R2 }),
         ];
@@ -75,10 +72,7 @@ pub mod tests {
     fn find_pop_for_given_push_no_matching_pop() {
         let ops = vec![
             Operation::Push(Push { register: R1 }),
-            Operation::PushStack(PushStack {
-                item_size: 8,
-                offset: 4,
-            }),
+            Operation::PushStack(PushStack::with_offset_and_size(4, 8)),
             Operation::Push(Push { register: R2 }),
         ];
 
@@ -91,10 +85,7 @@ pub mod tests {
     fn find_pop_for_given_push_missing_just_one_pop() {
         let ops = vec![
             Operation::Push(Push { register: R1 }),
-            Operation::PushStack(PushStack {
-                item_size: 4,
-                offset: 4,
-            }),
+            Operation::PushStack(PushStack::with_offset_and_size(4, 4)),
             Operation::Pop(Pop { register: R1 }),
         ];
 
@@ -107,10 +98,8 @@ pub mod tests {
     fn find_pop_for_given_push_stack_and_register() {
         let ops = vec![
             Operation::Push(Push { register: R1 }),
-            Operation::PushStack(PushStack {
-                item_size: 8, // This register is double the size; so offsets the pops by 1.
-                offset: 4,
-            }),
+            // Size: This register is double the size; so offsets the pops by 1.
+            Operation::PushStack(PushStack::with_offset_and_size(4, 8)),
             Operation::Push(Push { register: R3 }),
             Operation::Pop(Pop { register: R4 }),
             Operation::Pop(Pop { register: R1 }),

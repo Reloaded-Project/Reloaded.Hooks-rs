@@ -158,6 +158,10 @@ impl CallingConventionInfo<MockRegister> for MockFunctionAttribute {
     fn required_stack_alignment(&self) -> u32 {
         self.required_stack_alignment
     }
+
+    fn scratch_registers(&self) -> &[MockRegister] {
+        &[]
+    }
 }
 
 pub struct MockFunction {

@@ -7,7 +7,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 
 pub fn encode_push_stack(
-    x: &PushStackOperation,
+    x: &PushStackOperation<AllRegisters>,
     pc: &mut usize,
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {

@@ -201,7 +201,7 @@ fn encode_push_pop_to_mov<TRegister: Copy + RegisterInfo>(
 /// Accepts a push stack operation and a pop operation, and returns a mov operation that
 /// is equivalent to both the operations.
 fn encode_push_stack_to_mov<TRegister: Copy + RegisterInfo>(
-    push_stack: &PushStack,
+    push_stack: &PushStack<TRegister>,
     pop: &Pop<TRegister>,
 ) -> Option<MovFromStack<TRegister>> {
     Some(MovFromStack {
@@ -323,107 +323,65 @@ mod tests {
     #[test]
     fn update_stack_push_offsets_no_change() {
         let mut ops: Vec<Operation<MockRegister>> = vec![
-            Operation::PushStack(PushStack {
-                offset: 0,
-                item_size: 4,
-            }),
-            Operation::PushStack(PushStack {
-                offset: 10,
-                item_size: 4,
-            }),
+            Operation::PushStack(PushStack::with_offset_and_size(0, 4)),
+            Operation::PushStack(PushStack::with_offset_and_size(10, 4)),
         ];
 
         update_stack_push_offsets(&mut ops, 10);
 
         assert_eq!(
             ops[0],
-            Operation::PushStack(PushStack {
-                offset: 10,
-                item_size: 4,
-            })
+            Operation::PushStack(PushStack::with_offset_and_size(10, 4))
         );
         assert_eq!(
             ops[1],
-            Operation::PushStack(PushStack {
-                offset: 20,
-                item_size: 4,
-            })
+            Operation::PushStack(PushStack::with_offset_and_size(20, 4))
         );
     }
 
     #[test]
     fn update_stack_push_offsets_with_sp() {
         let mut ops: Vec<Operation<MockRegister>> = vec![
-            Operation::PushStack(PushStack {
-                offset: 0,
-                item_size: 4,
-            }),
-            Operation::PushStack(PushStack {
-                offset: 10,
-                item_size: 4,
-            }),
+            Operation::PushStack(PushStack::with_offset_and_size(0, 4)),
+            Operation::PushStack(PushStack::with_offset_and_size(10, 4)),
         ];
 
         update_stack_push_offsets(&mut ops, 10);
 
         assert_eq!(
             ops[0],
-            Operation::PushStack(PushStack {
-                offset: 10,
-                item_size: 4,
-            })
+            Operation::PushStack(PushStack::with_offset_and_size(10, 4))
         );
         assert_eq!(
             ops[1],
-            Operation::PushStack(PushStack {
-                offset: 20,
-                item_size: 4,
-            })
+            Operation::PushStack(PushStack::with_offset_and_size(20, 4))
         );
     }
 
     #[test]
     fn update_stack_push_offsets_negative_adjustment() {
         let mut ops: Vec<Operation<MockRegister>> = vec![
-            Operation::PushStack(PushStack {
-                offset: 10,
-                item_size: 4,
-            }),
-            Operation::PushStack(PushStack {
-                offset: 10,
-                item_size: 4,
-            }),
+            Operation::PushStack(PushStack::with_offset_and_size(10, 4)),
+            Operation::PushStack(PushStack::with_offset_and_size(10, 4)),
         ];
 
         update_stack_push_offsets(&mut ops, -5);
 
         assert_eq!(
             ops[0],
-            Operation::PushStack(PushStack {
-                offset: 5,
-                item_size: 4,
-            })
+            Operation::PushStack(PushStack::with_offset_and_size(5, 4))
         );
         assert_eq!(
             ops[1],
-            Operation::PushStack(PushStack {
-                offset: 5,
-                item_size: 4,
-            })
+            Operation::PushStack(PushStack::with_offset_and_size(5, 4))
         );
     }
 
     #[test]
     fn optimize_push_stack_basic() {
         let mut operations = vec![
-            Operation::PushStack(PushStack {
-                item_size: 4,
-                offset: 4,
-            }),
-            Operation::PushStack(PushStack {
-                item_size: 4,
-                offset: 12,
-            }),
+            Operation::PushStack(PushStack::with_offset_and_size(4, 4)),
+            Operation::PushStack(PushStack::with_offset_and_size(12, 4)),
             Operation::Pop(Pop { register: R1 }),
             Operation::Pop(Pop { register: R2 }),
         ];
@@ -446,10 +404,7 @@ mod tests {
 
     #[test]
     fn optimize_push_stack_no_matching_pop() {
-        let mut operations = vec![Operation::PushStack(PushStack {
-            item_size: 4,
-            offset: 4,
-        })];
+        let mut operations = vec![Operation::PushStack(PushStack::with_offset_and_size(4, 4))];
 
         let optimized: &mut [Operation<MockRegister>] =
             optimize_push_pop_parameters(&mut operations);

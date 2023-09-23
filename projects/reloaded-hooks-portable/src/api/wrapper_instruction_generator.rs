@@ -89,6 +89,17 @@ pub fn generate_wrapper_instructions<
     let mut stack_pointer =
         options.stack_entry_alignment + from_convention.reserved_stack_space() as usize;
 
+    // Note: Scratch registers are sourced from method returned (wrapper), not method called (wrapped),
+    //       based on caller saved registers.
+    //
+    // In case of a hook of a custom method
+    //    - from_convention (wrapped): cdecl
+    //    - to_convention (wrapper): 'usercall'
+    //
+    // In this case, we are calling `from_convention` from the wrapper we create which is still
+    // `to_convention`. Therefore, we need to use the scratch registers of `to_convention`.
+    let scratch_registers = to_convention.scratch_registers();
+
     // Backup Always Saved Registers (LR)
     for register in to_convention.always_saved_registers() {
         ops.push(Push::new(*register).into());
@@ -157,8 +168,14 @@ pub fn generate_wrapper_instructions<
         let mut current_offset = stack_pointer as isize;
         for param in fn_returned_params.0.iter().rev() {
             let param_size_bytes = param.size_in_bytes();
-            setup_params_ops
-                .push(PushStack::new(current_offset as i32, param_size_bytes as u32).into());
+            setup_params_ops.push(
+                PushStack::with_scratch_registers(
+                    current_offset as i32,
+                    param_size_bytes as u32,
+                    scratch_registers,
+                )
+                .into(),
+            );
             current_offset += (param_size_bytes * 2) as isize;
             stack_pointer += param_size_bytes;
             callee_cleanup_return_size += param_size_bytes;
@@ -185,7 +202,6 @@ pub fn generate_wrapper_instructions<
     }
 
     // Optimize the parameter pushing process
-    let scratch_registers = from_convention.scratch_registers();
     let mut optimized = setup_params_ops.as_mut_slice();
     let mut new_optimized: Vec<Operation<TRegister>> = Vec::new();
 
@@ -321,10 +337,13 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 5);
-        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // re-push right param
+        assert_eq!(
+            vec[0],
+            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
+        ); // re-push right param
         assert_eq!(
             vec[1],
-            PushStack::new((nint * 3) as i32, nint as u32).into()
+            PushStack::with_offset_and_size((nint * 3) as i32, nint as u32).into()
         ); // re-push left param
         assert_eq!(vec[2], Pop::new(R1).into()); // pop left param into reg
         assert_eq!(vec[3], CallRel::new(4096).into());
@@ -343,7 +362,10 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // re-push right param
+        assert_eq!(
+            vec[0],
+            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
+        ); // re-push right param
         assert_eq!(vec[1], MovFromStack::new((nint * 3) as i32, R1).into()); // mov left param to register
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], Return::new(0).into()); // caller cleanup, so no offset here
@@ -361,7 +383,10 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 5);
-        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // push right param
+        assert_eq!(
+            vec[0],
+            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
+        ); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], StackAlloc::new(-(nint * 2) as i32).into()); // caller stack cleanup
@@ -380,7 +405,10 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // push right param
+        assert_eq!(
+            vec[0],
+            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
+        ); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(
@@ -439,7 +467,10 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // push right param
+        assert_eq!(
+            vec[0],
+            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
+        ); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], Return::new(nint as usize).into()); // callee stack cleanup (only non-register parameter)
@@ -457,7 +488,10 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(vec[0], PushStack::new(nint as i32, nint as u32).into()); // re-push right param
+        assert_eq!(
+            vec[0],
+            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
+        ); // re-push right param
         assert_eq!(vec[1], MovFromStack::new((nint * 3) as i32, R1).into()); // mov left param to register
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], Return::new((nint * 2) as usize).into()); // caller cleanup, so no offset here
