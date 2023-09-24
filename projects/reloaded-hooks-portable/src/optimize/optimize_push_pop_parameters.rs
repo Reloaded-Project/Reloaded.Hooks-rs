@@ -176,7 +176,7 @@ pub(crate) fn update_stack_push_offsets<TRegister: RegisterInfo>(
 ) {
     for item in items {
         if let Operation::PushStack(x) = item {
-            x.offset += offset_to_adjust_by as i32;
+            x.offset += offset_to_adjust_by;
         }
     }
 }
@@ -205,7 +205,7 @@ fn encode_push_stack_to_mov<TRegister: Copy + RegisterInfo>(
     pop: &Pop<TRegister>,
 ) -> Option<MovFromStack<TRegister>> {
     Some(MovFromStack {
-        stack_offset: push_stack.offset as i32,
+        stack_offset: push_stack.offset,
         target: pop.register,
     })
 }

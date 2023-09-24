@@ -68,8 +68,8 @@ where
 ///
 /// # Parameters
 ///
-/// - `from_convention` - The calling convention to convert to `to_convention`. This is the convention of the function (`options.target_address`) called.
-/// - `to_convention` - The target convention to which convert to `from_convention`. This is the convention of the function returned.
+/// - `conv_called` - The calling convention to convert to `conv_current`. This is the convention of the function (`options.target_address`) called.
+/// - `conv_current` - The target convention to which convert to `conv_called`. This is the convention of the function returned.
 /// - `options` - The parameters for this wrapper generation task.
 ///
 /// # Remarks
@@ -81,35 +81,103 @@ pub fn generate_wrapper_instructions<
     TFunctionAttribute: CallingConventionInfo<TRegister>,
     TFunctionInfo: FunctionInfo,
 >(
-    from_convention: &TFunctionAttribute,
-    to_convention: &TFunctionAttribute,
+    conv_called: &TFunctionAttribute,
+    conv_current: &TFunctionAttribute,
     options: WrapperInstructionGeneratorOptions<TFunctionInfo>,
 ) -> Result<Vec<Operation<TRegister>>, WrapperGenerationError> {
     let mut ops = Vec::<Operation<TRegister>>::with_capacity(32);
     let mut stack_pointer =
-        options.stack_entry_alignment + from_convention.reserved_stack_space() as usize;
+        options.stack_entry_alignment + conv_called.reserved_stack_space() as usize;
+
+    /*
+        Rough Summary of this function.
+        To whoever reads this, god bless you.
+
+        1. **Initialize Operations Vector**
+        - Initializes a vector `ops` to hold the generated operations.
+        - Sets the initial `stack_pointer` position based on `options.stack_entry_alignment` and
+          `conv_called.reserved_stack_space()`.
+
+        2. **Backup Registers**
+        - Backs up the "always saved" registers and the callee-saved registers of `conv_current`.
+        - The callee-saved registers common to both conventions are not backed up.
+
+        3. **Insert Dummy Stack Allocation**
+        - Inserts a dummy `StackAlloc` operation for stack alignment, which will be updated later.
+        - This is used to align stack to the required alignment of `conv_called`.
+
+        4. **Re-push Stack and Register Parameters**
+        - Re-pushes the stack and register parameters of `conv_current` to stack.
+        - Adjusts the `stack_pointer` accordingly.
+
+        5. **Inject Parameter (If Applicable)**
+        - If there is an injected parameter specified in `options`, it pushes it onto the stack and
+          adjusts the `stack_pointer`.
+
+        6. **Pop Register Parameters of the Called Function**
+        - Pops the register parameters of the function being called (`conv_called`).
+        - Adjusts the `stack_pointer` accordingly.
+
+        7. **Optimize Parameter Pushing and Popping**
+        - If optimizations are enabled, it optimizes the push/pop operations generated in steps 4-6.
+        - This includes reordering, merging, and optimizing the move sequences.
+
+        8. **Update Stack Alignment**
+        - Calculates the stack misalignment and updates the previously inserted dummy `StackAlloc`
+          operation with the correct value.
+        - Updates the offsets of stack push operations accordingly.
+
+        9. **Reserve Stack Space for Called Function**
+        - Reserves the required stack space for the function being called as specified by `conv_called`.
+
+        10. **Call the Target Method**
+        - Depending on the availability of relative jumps and scratch registers, it generates either
+            a relative or an absolute call to the target method specified in `options`.
+
+        11. **Move Return Value to Proper Register**
+        - If the return registers of the called and returned functions differ, it generates a move
+            operation to place the return value in the correct register.
+
+        12. **Fix the Stack**
+        - Adjusts the stack pointer based on the stack cleanup behaviour of the `conv_called`.
+
+        13. **Restore Callee Saved Registers**
+        - Pops the callee-saved registers and always saved registers (in reverse order they were pushed).
+
+        14. **Return Operation**
+        - Generates a return operation with appropriate stack cleanup size, based on the `conv_current`
+          stack cleanup behavior.
+
+        15. **Merge StackAlloc and Return Operations (If Optimizations Enabled)**
+        - If optimizations are enabled, it merges contiguous `StackAlloc` and `ReturnOperation` to
+          reduce the number of operations.
+
+        16. **Return Generated Operations**
+        - Returns the generated list of operations as `Ok(ops)`, or an error if any issues are
+          encountered during the generation.
+    */
 
     // Note: Scratch registers are sourced from method returned (wrapper), not method called (wrapped),
     //       based on caller saved registers.
     //
     // In case of a hook of a custom method
-    //    - from_convention (wrapped): cdecl
-    //    - to_convention (wrapper): 'usercall'
+    //    - conv_called (wrapped): cdecl
+    //    - conv_current (wrapper): 'usercall'
     //
-    // In this case, we are calling `from_convention` from the wrapper we create which is still
-    // `to_convention`. Therefore, we need to use the scratch registers of `to_convention`.
-    let scratch_registers = to_convention.scratch_registers();
+    // In this case, we are calling `conv_called` from the wrapper we create which is still
+    // `conv_current`. Therefore, we need to use the scratch registers of `conv_current`.
+    let scratch_registers = conv_current.scratch_registers();
 
-    // Backup Always Saved Registers (LR)
-    for register in to_convention.always_saved_registers() {
+    // Backup Always Saved Registers (LR, etc.)
+    for register in conv_current.always_saved_registers() {
         ops.push(Push::new(*register).into());
         stack_pointer += register.size_in_bytes();
     }
 
     // Backup callee saved registers
     let callee_saved_regs = eliminate_common_callee_saved_registers(
-        from_convention.callee_saved_registers(),
-        to_convention.callee_saved_registers(),
+        conv_called.callee_saved_registers(),
+        conv_current.callee_saved_registers(),
     );
 
     for register in &callee_saved_regs {
@@ -147,7 +215,7 @@ pub fn generate_wrapper_instructions<
         };
 
         let fn_returned_params = options.function_info.get_parameters_as_slice(
-            to_convention,
+            conv_current,
             &mut returned_stack_params_buf,
             &mut returned_reg_params_buf,
         );
@@ -165,6 +233,7 @@ pub fn generate_wrapper_instructions<
             raising as we push more.
         */
 
+        // Re-push stack parameters of function returned (right to left)
         let mut current_offset = stack_pointer as isize;
         for param in fn_returned_params.0.iter().rev() {
             let param_size_bytes = param.size_in_bytes();
@@ -195,7 +264,7 @@ pub fn generate_wrapper_instructions<
     }
 
     // Pop register parameters of the function being called (left to right)
-    let fn_called_params = options.function_info.get_parameters_as_vec(from_convention);
+    let fn_called_params = options.function_info.get_parameters_as_vec(conv_called);
     for param in fn_called_params.1.iter() {
         setup_params_ops.push(Pop::new(param.1).into());
         stack_pointer -= param.0.size_in_bytes();
@@ -226,7 +295,7 @@ pub fn generate_wrapper_instructions<
     // Now write the correct stack alignment value, and correct offsets
     // We wrote the code earlier, ignoring stack alignment because we didn't know it yet, but now
     // we know, so items might need adjusting here.
-    let stack_misalignment = stack_pointer as u32 % from_convention.required_stack_alignment();
+    let stack_misalignment = stack_pointer as u32 % conv_called.required_stack_alignment();
     if stack_misalignment != 0 {
         ops[align_stack_idx] = StackAlloc::new(stack_misalignment as i32).into();
         stack_pointer += stack_misalignment as usize;
@@ -238,10 +307,10 @@ pub fn generate_wrapper_instructions<
     ops.extend_from_slice(optimized);
 
     // Reserve required space for function called
-    let reserved_space = from_convention.reserved_stack_space() as i32;
+    let reserved_space = conv_called.reserved_stack_space() as i32;
     if reserved_space != 0 {
         ops.push(StackAlloc::new(reserved_space).into());
-        stack_pointer += from_convention.reserved_stack_space() as usize;
+        stack_pointer += conv_called.reserved_stack_space() as usize;
     }
 
     // Call the Method
@@ -264,14 +333,14 @@ pub fn generate_wrapper_instructions<
     }
 
     // Move return value to proper register
-    let fn_called_return_reg = from_convention.return_register();
-    let fn_returned_return_reg = to_convention.return_register();
+    let fn_called_return_reg = conv_called.return_register();
+    let fn_returned_return_reg = conv_current.return_register();
     if fn_called_return_reg != fn_returned_return_reg {
         ops.push(Mov::new(fn_called_return_reg, fn_returned_return_reg).into());
     }
 
     // Fix the stack
-    let stack_ofs = if from_convention.stack_cleanup_behaviour() == StackCleanup::Callee {
+    let stack_ofs = if conv_called.stack_cleanup_behaviour() == StackCleanup::Callee {
         stack_misalignment as isize
     } else {
         after_backup_sp as isize - stack_pointer as isize
@@ -287,11 +356,11 @@ pub fn generate_wrapper_instructions<
     }
 
     // Pop Always Saved Registers (like LR)
-    for register in to_convention.always_saved_registers().iter().rev() {
+    for register in conv_current.always_saved_registers().iter().rev() {
         ops.push(Pop::new(*register).into());
     }
 
-    if to_convention.stack_cleanup_behaviour() == StackCleanup::Callee {
+    if conv_current.stack_cleanup_behaviour() == StackCleanup::Callee {
         ops.push(ReturnOperation::new(callee_cleanup_return_size).into());
     } else {
         ops.push(ReturnOperation::new(0).into());
@@ -501,12 +570,12 @@ pub mod tests {
     ///
     /// # Parameters
     ///
-    /// - `from_convention` - The calling convention to convert to `to_convention`. This is the convention of the function (`options.target_address`) called.
-    /// - `to_convention` - The target convention to which convert to `from_convention`. This is the convention of the function returned.
+    /// - `conv_called` - The calling convention to convert to `conv_current`. This is the convention of the function (`options.target_address`) called.
+    /// - `conv_current` - The target convention to which convert to `conv_called`. This is the convention of the function returned.
     /// - `optimized` - Whether to generate optimized code
     fn two_parameters(
-        from_convention: &MockFunctionAttribute,
-        to_convention: &MockFunctionAttribute,
+        conv_called: &MockFunctionAttribute,
+        conv_current: &MockFunctionAttribute,
         optimized: bool,
     ) -> Result<Vec<Operation<MockRegister>>, WrapperGenerationError> {
         // Two parameters
@@ -516,7 +585,7 @@ pub mod tests {
 
         let capabiltiies = get_x86_jit_capabilities();
         let options = get_common_options(optimized, &mock_function, &capabiltiies);
-        generate_wrapper_instructions(from_convention, to_convention, options)
+        generate_wrapper_instructions(conv_called, conv_current, options)
     }
 
     fn get_common_options<'a>(

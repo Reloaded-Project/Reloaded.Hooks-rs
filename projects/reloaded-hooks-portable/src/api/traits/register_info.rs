@@ -51,3 +51,17 @@ pub trait RegisterInfo {
     /// attempt to optimize them together.
     fn register_type(&self) -> usize;
 }
+
+pub fn find_register_with_same_type<TRegister: Copy + RegisterInfo>(
+    register: TRegister,
+    available_registers: &[TRegister],
+) -> Option<TRegister> {
+    let expected_type = register.register_type();
+    for register in available_registers {
+        if register.register_type() == expected_type {
+            return Some(*register);
+        }
+    }
+
+    None
+}

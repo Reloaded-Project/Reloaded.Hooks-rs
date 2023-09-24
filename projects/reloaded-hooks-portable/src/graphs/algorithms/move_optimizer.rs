@@ -88,7 +88,7 @@ fn dfs<TRegister: Eq + Hash + Copy + RegisterInfo>(
             // Special case: There are only 2 nodes, and they are in a cycle.
             // We can swap them directly on architectures like x86.
             if rec_stack.len() == 2 {
-                let scratch_register = find_scractch_register_with_same_type(
+                let scratch_register = find_scratch_register_with_same_type(
                     neighbour.borrow().value,
                     scratch_registers,
                 );
@@ -105,11 +105,11 @@ fn dfs<TRegister: Eq + Hash + Copy + RegisterInfo>(
             // Backup Register (or use scratch)
 
             let scratch_register =
-                find_scractch_register_with_same_type(node.borrow().value, scratch_registers);
-            if scratch_register.is_some() {
+                find_scratch_register_with_same_type(node.borrow().value, scratch_registers);
+            if let Some(scratch) = scratch_register {
                 results.push(Operation::Mov(Mov {
                     source: node.borrow().value,
-                    target: scratch_register.unwrap(),
+                    target: scratch,
                 }));
             } else {
                 results.push(Operation::Push(Push {
@@ -121,9 +121,9 @@ fn dfs<TRegister: Eq + Hash + Copy + RegisterInfo>(
             unwind(rec_stack, results);
 
             // Restore
-            if scratch_register.is_some() {
+            if let Some(scratch) = scratch_register {
                 results.push(Operation::Mov(Mov {
-                    source: scratch_register.unwrap(),
+                    source: scratch,
                     target: neighbour.borrow().value,
                 }));
             } else {
@@ -137,7 +137,7 @@ fn dfs<TRegister: Eq + Hash + Copy + RegisterInfo>(
     }
 }
 
-fn find_scractch_register_with_same_type<TRegister: Eq + Hash + Copy + RegisterInfo>(
+fn find_scratch_register_with_same_type<TRegister: Eq + Hash + Copy + RegisterInfo>(
     register: TRegister,
     scratch_registers: &[TRegister],
 ) -> Option<TRegister> {

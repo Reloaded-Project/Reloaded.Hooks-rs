@@ -54,6 +54,19 @@ impl<T> Default for PushStackOperation<T> {
 }
 
 impl<T> PushStackOperation<T> {
+    /// Creates a new `PushStackOperation` with the given offset and item size.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use reloaded_hooks_portable::api::jit::push_stack_operation::PushStackOperation;
+    ///
+    /// let push_op = PushStackOperation::<i32>::with_offset_and_size(0, 4);
+    /// assert_eq!(push_op.offset, 0);
+    /// assert_eq!(push_op.item_size, 4);
+    /// assert_eq!(push_op.scratch_1, None);
+    /// assert_eq!(push_op.scratch_2, None);
+    /// ```
     pub fn with_offset_and_size(offset: i32, item_size: u32) -> Self {
         Self {
             offset,
@@ -62,9 +75,49 @@ impl<T> PushStackOperation<T> {
             scratch_2: None,
         }
     }
+
+    /// Returns the number of scratch registers used in the push operation.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use reloaded_hooks_portable::api::jit::push_stack_operation::PushStackOperation;
+    ///
+    /// let push_op = PushStackOperation::<i32>::with_offset_and_size(0, 4);
+    /// assert_eq!(push_op.num_scratch_registers(), 0);
+    ///
+    /// let push_op = PushStackOperation::<i32>::with_scratch_registers(0, 4, &[1]);
+    /// assert_eq!(push_op.num_scratch_registers(), 1);
+    ///
+    /// let push_op = PushStackOperation::<i32>::with_scratch_registers(0, 4, &[1, 2]);
+    /// assert_eq!(push_op.num_scratch_registers(), 2);
+    /// ```
+    pub fn num_scratch_registers(&self) -> usize {
+        let mut count = 0;
+        if self.scratch_1.is_some() {
+            count += 1;
+        }
+        if self.scratch_2.is_some() {
+            count += 1;
+        }
+        count
+    }
 }
 
 impl<T: Copy> PushStackOperation<T> {
+    /// Creates a new `PushStackOperation` with scratch registers.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use reloaded_hooks_portable::api::jit::push_stack_operation::PushStackOperation;
+    ///
+    /// let push_op = PushStackOperation::<i32>::with_scratch_registers(0, 4, &[1, 2]);
+    /// assert_eq!(push_op.offset, 0);
+    /// assert_eq!(push_op.item_size, 4);
+    /// assert_eq!(push_op.scratch_1, Some(1));
+    /// assert_eq!(push_op.scratch_2, Some(2));
+    /// ```
     pub fn with_scratch_registers(offset: i32, item_size: u32, registers: &[T]) -> Self {
         let mut me = Self::with_offset_and_size(offset, item_size);
         if registers.len() > 1 {

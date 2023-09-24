@@ -18,6 +18,17 @@ pub fn encode_push_stack(
         ));
     }
 
+    let num_regs = x.num_scratch_registers();
+    if num_regs >= 2 {
+        todo!();
+    } else if num_regs == 1 {
+        todo!();
+    } else {
+        return Err(JitError::ThirdPartyAssemblerError(
+            "No scratch register available".to_string(),
+        ));
+    }
+
     let mut remaining_bytes = x.item_size;
 
     while remaining_bytes > 0 {
