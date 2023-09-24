@@ -1,4 +1,6 @@
-use reloaded_hooks_portable::api::traits::register_info::RegisterInfo;
+use reloaded_hooks_portable::api::traits::register_info::{
+    KnownRegisterType, KnownRegisterType::*, RegisterInfo,
+};
 
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
@@ -375,15 +377,15 @@ impl RegisterInfo for AllRegisters {
         self == &AllRegisters::SP
     }
 
-    fn register_type(&self) -> usize {
+    fn register_type(&self) -> KnownRegisterType {
         if self.is_64() {
-            0
+            GeneralPurpose64
         } else if self.is_32() {
-            1
+            GeneralPurpose32
         } else if self.is_128() {
-            2
+            Vector128
         } else {
-            3
+            Unknown
         }
     }
 }

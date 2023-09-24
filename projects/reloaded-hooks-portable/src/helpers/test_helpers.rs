@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use crate::api::{
     calling_convention_info::*,
     function_info::{FunctionInfo, ParameterType},
-    traits::register_info::RegisterInfo,
+    traits::register_info::{KnownRegisterType, KnownRegisterType::*, RegisterInfo},
 };
 use lazy_static;
 
@@ -61,28 +61,27 @@ impl RegisterInfo for MockRegister {
         self == &MockRegister::SP
     }
 
-    fn register_type(&self) -> usize {
+    fn register_type(&self) -> KnownRegisterType {
         match self {
-            MockRegister::R0 => 0,
-            MockRegister::R1 => 0,
-            MockRegister::R2 => 0,
-            MockRegister::R3 => 0,
-            MockRegister::R4 => 0,
-            MockRegister::SP => 0,
+            MockRegister::R0 => GeneralPurpose64,
+            MockRegister::R1 => GeneralPurpose64,
+            MockRegister::R2 => GeneralPurpose64,
+            MockRegister::R3 => GeneralPurpose64,
+            MockRegister::R4 => GeneralPurpose64,
+            MockRegister::SP => GeneralPurpose64,
+            MockRegister::LR => GeneralPurpose64,
 
-            MockRegister::F0 => 1,
-            MockRegister::F1 => 1,
-            MockRegister::F2 => 1,
-            MockRegister::F3 => 1,
-            MockRegister::F4 => 1,
+            MockRegister::F0 => FloatingPoint,
+            MockRegister::F1 => FloatingPoint,
+            MockRegister::F2 => FloatingPoint,
+            MockRegister::F3 => FloatingPoint,
+            MockRegister::F4 => FloatingPoint,
 
-            MockRegister::LR => 2,
-
-            MockRegister::V0 => 3,
-            MockRegister::V1 => 3,
-            MockRegister::V2 => 3,
-            MockRegister::V3 => 3,
-            MockRegister::V4 => 3,
+            MockRegister::V0 => Vector128,
+            MockRegister::V1 => Vector128,
+            MockRegister::V2 => Vector128,
+            MockRegister::V3 => Vector128,
+            MockRegister::V4 => Vector128,
         }
     }
 }

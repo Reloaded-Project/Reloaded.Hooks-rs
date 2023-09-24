@@ -49,7 +49,7 @@ pub trait RegisterInfo {
     /// To prevent this from happening, you set a different register type for floating
     /// point registers and general purpose registers, so the optimizer will not
     /// attempt to optimize them together.
-    fn register_type(&self) -> usize;
+    fn register_type(&self) -> KnownRegisterType;
 
     /// Finds a register with the same type as the given register.
     ///
@@ -74,4 +74,109 @@ pub trait RegisterInfo {
 
         None
     }
+}
+
+/// Enum representing different known register types.
+///
+/// This enum is used to differentiate between different types of registers
+/// available in a computer architecture. Different register types are used
+/// for different kinds of operations and data.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+pub enum KnownRegisterType {
+    /// An unknown register type.
+    Unknown = 0,
+
+    /// A 128-bit general purpose register.
+    ///
+    /// General purpose registers are used to store temporary data during
+    /// the execution of a program and are used for various integer operations.
+    GeneralPurpose128 = 0b1000,
+
+    /// A 64-bit general purpose register.
+    ///
+    /// Suitable for storing addresses and integers on 64-bit architectures.
+    GeneralPurpose64,
+
+    /// A 32-bit general purpose register.
+    ///
+    /// Commonly used in 32-bit and 64-bit architectures for integer operations.
+    GeneralPurpose32,
+
+    /// A 16-bit general purpose register.
+    ///
+    /// Used for smaller integer values, particularly in older 16-bit architectures.
+    GeneralPurpose16,
+
+    /// An 8-bit general purpose register.
+    ///
+    /// Used for byte-sized integer values.
+    GeneralPurpose8,
+
+    /// A floating-point register.
+    ///
+    /// Used to store floating-point numbers and perform floating-point arithmetic.
+    /// For example, x87 registers in x86 architecture.
+    FloatingPoint = 0b10000,
+
+    /// A 512-bit vector register.
+    ///
+    /// Suitable for SIMD (Single Instruction, Multiple Data) operations,
+    /// such as those available with AVX512 instructions in x86_64 architecture.
+    Vector512 = 0b100000,
+
+    /// A 256-bit vector register.
+    ///
+    /// Used for SIMD operations, commonly available in modern CPU architectures.
+    Vector256,
+
+    /// A 128-bit vector register.
+    ///
+    /// Suitable for SIMD operations and commonly used for multimedia instructions.
+    Vector128,
+
+    /// A 64-bit vector register.
+    ///
+    /// Used for smaller SIMD operations.
+    Vector64,
+
+    /// A 32-bit vector register.
+    ///
+    /// Suitable for SIMD operations on small data types like bytes and short integers.
+    Vector32,
+}
+
+impl KnownRegisterType {
+    /// Determines the high-level category of the register type.
+    ///
+    /// # Returns
+    ///
+    /// * `GeneralPurpose` - if the register is a general-purpose register.
+    /// * `FloatingPoint` - if the register is a floating-point register.
+    /// * `Vector` - if the register is a vector register.
+    pub fn category(&self) -> RegisterCategory {
+        match self {
+            KnownRegisterType::GeneralPurpose128
+            | KnownRegisterType::GeneralPurpose64
+            | KnownRegisterType::GeneralPurpose32
+            | KnownRegisterType::GeneralPurpose16
+            | KnownRegisterType::GeneralPurpose8 => RegisterCategory::GeneralPurpose,
+
+            KnownRegisterType::FloatingPoint => RegisterCategory::FloatingPoint,
+
+            KnownRegisterType::Vector512
+            | KnownRegisterType::Vector256
+            | KnownRegisterType::Vector128
+            | KnownRegisterType::Vector64
+            | KnownRegisterType::Vector32 => RegisterCategory::Vector,
+            KnownRegisterType::Unknown => RegisterCategory::Unknown,
+        }
+    }
+}
+
+/// Enum representing the high-level category of a register.
+pub enum RegisterCategory {
+    Unknown,
+    GeneralPurpose,
+    FloatingPoint,
+    Vector,
 }

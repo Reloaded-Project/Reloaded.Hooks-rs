@@ -1,4 +1,4 @@
-use reloaded_hooks_portable::api::traits::register_info::RegisterInfo;
+use reloaded_hooks_portable::api::traits::register_info::{KnownRegisterType, RegisterInfo};
 
 /// Defines a full size x86 register, used in specifying custom calling conventions.
 #[allow(non_camel_case_types)]
@@ -118,7 +118,7 @@ impl RegisterInfo for Register {
         self == &Register::esp
     }
 
-    fn register_type(&self) -> usize {
+    fn register_type(&self) -> KnownRegisterType {
         match self {
             Register::eax
             | Register::ebx
@@ -127,7 +127,7 @@ impl RegisterInfo for Register {
             | Register::esi
             | Register::edi
             | Register::ebp
-            | Register::esp => 0,
+            | Register::esp => KnownRegisterType::GeneralPurpose32,
             Register::st0
             | Register::st1
             | Register::st2
@@ -135,7 +135,7 @@ impl RegisterInfo for Register {
             | Register::st4
             | Register::st5
             | Register::st6
-            | Register::st7 => 1,
+            | Register::st7 => KnownRegisterType::FloatingPoint,
             Register::xmm0
             | Register::xmm1
             | Register::xmm2
@@ -143,23 +143,23 @@ impl RegisterInfo for Register {
             | Register::xmm4
             | Register::xmm5
             | Register::xmm6
-            | Register::xmm7
-            | Register::ymm0
+            | Register::xmm7 => KnownRegisterType::Vector128,
+            Register::ymm0
             | Register::ymm1
             | Register::ymm2
             | Register::ymm3
             | Register::ymm4
             | Register::ymm5
             | Register::ymm6
-            | Register::ymm7
-            | Register::zmm0
+            | Register::ymm7 => KnownRegisterType::Vector256,
+            Register::zmm0
             | Register::zmm1
             | Register::zmm2
             | Register::zmm3
             | Register::zmm4
             | Register::zmm5
             | Register::zmm6
-            | Register::zmm7 => 2,
+            | Register::zmm7 => KnownRegisterType::Vector512,
         }
     }
 }

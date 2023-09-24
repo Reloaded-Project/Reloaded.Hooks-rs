@@ -1,4 +1,4 @@
-use reloaded_hooks_portable::api::traits::register_info::RegisterInfo;
+use reloaded_hooks_portable::api::traits::register_info::{KnownRegisterType, RegisterInfo};
 
 /// Defines a full size x64 register, used in specifying custom calling conventions.
 #[allow(non_camel_case_types)]
@@ -184,7 +184,7 @@ impl RegisterInfo for Register {
         self == &Register::rsp
     }
 
-    fn register_type(&self) -> usize {
+    fn register_type(&self) -> KnownRegisterType {
         match self {
             Register::rax
             | Register::rbx
@@ -201,7 +201,8 @@ impl RegisterInfo for Register {
             | Register::r12
             | Register::r13
             | Register::r14
-            | Register::r15 => 0,
+            | Register::r15 => KnownRegisterType::GeneralPurpose64,
+
             Register::st0
             | Register::st1
             | Register::st2
@@ -209,7 +210,8 @@ impl RegisterInfo for Register {
             | Register::st4
             | Register::st5
             | Register::st6
-            | Register::st7 => 1,
+            | Register::st7 => KnownRegisterType::FloatingPoint,
+
             Register::xmm0
             | Register::xmm1
             | Register::xmm2
@@ -225,8 +227,9 @@ impl RegisterInfo for Register {
             | Register::xmm12
             | Register::xmm13
             | Register::xmm14
-            | Register::xmm15
-            | Register::ymm0
+            | Register::xmm15 => KnownRegisterType::Vector128,
+
+            Register::ymm0
             | Register::ymm1
             | Register::ymm2
             | Register::ymm3
@@ -241,8 +244,9 @@ impl RegisterInfo for Register {
             | Register::ymm12
             | Register::ymm13
             | Register::ymm14
-            | Register::ymm15
-            | Register::zmm0
+            | Register::ymm15 => KnownRegisterType::Vector256,
+
+            Register::zmm0
             | Register::zmm1
             | Register::zmm2
             | Register::zmm3
@@ -257,7 +261,7 @@ impl RegisterInfo for Register {
             | Register::zmm12
             | Register::zmm13
             | Register::zmm14
-            | Register::zmm15 => 2,
+            | Register::zmm15 => KnownRegisterType::Vector512,
         }
     }
 }
