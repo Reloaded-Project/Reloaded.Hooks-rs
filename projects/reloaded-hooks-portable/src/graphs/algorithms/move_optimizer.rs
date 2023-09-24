@@ -88,10 +88,10 @@ fn dfs<TRegister: Eq + Hash + Copy + RegisterInfo>(
             // Special case: There are only 2 nodes, and they are in a cycle.
             // We can swap them directly on architectures like x86.
             if rec_stack.len() == 2 {
-                let scratch_register = find_scratch_register_with_same_type(
-                    neighbour.borrow().value,
-                    scratch_registers,
-                );
+                let scratch_register = neighbour
+                    .borrow()
+                    .value
+                    .find_register_with_same_type(scratch_registers);
 
                 results.push(Operation::Xchg(XChg {
                     register1: node.borrow().value,
@@ -103,9 +103,11 @@ fn dfs<TRegister: Eq + Hash + Copy + RegisterInfo>(
             }
 
             // Backup Register (or use scratch)
+            let scratch_register = node
+                .borrow()
+                .value
+                .find_register_with_same_type(scratch_registers);
 
-            let scratch_register =
-                find_scratch_register_with_same_type(node.borrow().value, scratch_registers);
             if let Some(scratch) = scratch_register {
                 results.push(Operation::Mov(Mov {
                     source: node.borrow().value,
@@ -135,20 +137,6 @@ fn dfs<TRegister: Eq + Hash + Copy + RegisterInfo>(
             return;
         }
     }
-}
-
-fn find_scratch_register_with_same_type<TRegister: Eq + Hash + Copy + RegisterInfo>(
-    register: TRegister,
-    scratch_registers: &[TRegister],
-) -> Option<TRegister> {
-    let expected_type = register.register_type();
-    for register in scratch_registers {
-        if register.register_type() == expected_type {
-            return Some(*register);
-        }
-    }
-
-    None
 }
 
 fn unwind<T: Eq + Copy + Hash>(

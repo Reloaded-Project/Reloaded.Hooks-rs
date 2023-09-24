@@ -50,18 +50,28 @@ pub trait RegisterInfo {
     /// point registers and general purpose registers, so the optimizer will not
     /// attempt to optimize them together.
     fn register_type(&self) -> usize;
-}
 
-pub fn find_register_with_same_type<TRegister: Copy + RegisterInfo>(
-    register: TRegister,
-    available_registers: &[TRegister],
-) -> Option<TRegister> {
-    let expected_type = register.register_type();
-    for register in available_registers {
-        if register.register_type() == expected_type {
-            return Some(*register);
+    /// Finds a register with the same type as the given register.
+    ///
+    /// # Arguments
+    ///
+    /// * `available_registers` - The slice of available registers to search through.
+    ///
+    /// # Returns
+    ///
+    /// Returns the first register with the same type as the given register, or `None` if no match is found.
+    /// ```
+    fn find_register_with_same_type<TRegister: Copy + RegisterInfo>(
+        &self,
+        available_registers: &[TRegister],
+    ) -> Option<TRegister> {
+        let expected_type = self.register_type();
+        for register in available_registers {
+            if register.register_type() == expected_type {
+                return Some(*register);
+            }
         }
-    }
 
-    None
+        None
+    }
 }
