@@ -84,6 +84,10 @@ impl RegisterInfo for MockRegister {
             MockRegister::V4 => Vector128,
         }
     }
+
+    fn extend(&self) -> Self {
+        *self
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

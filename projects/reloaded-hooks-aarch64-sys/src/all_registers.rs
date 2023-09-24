@@ -1,3 +1,5 @@
+use core::mem::transmute;
+
 use reloaded_hooks_portable::api::traits::register_info::{
     KnownRegisterType, KnownRegisterType::*, RegisterInfo,
 };
@@ -5,8 +7,9 @@ use reloaded_hooks_portable::api::traits::register_info::{
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum AllRegisters {
+    // Range 0b00000 - 0b11111 (0-31)
     // 32 bit general purpose registers
-    w0,
+    w0, // 0b00000
     w1,
     w2,
     w3,
@@ -37,10 +40,12 @@ pub enum AllRegisters {
     w28,
     w29,
     w30,
-    w31,
+    w31, // 0b11111
 
+    // Range 0b00000 - 0b11111 (0-31)
+    // XOR bit 0b100000 to toggle between w and x registers.
     // 64 bit general purpose registers
-    x0,
+    x0, // 0b100000
     x1,
     x2,
     x3,
@@ -71,10 +76,10 @@ pub enum AllRegisters {
     x28,
     x29,
     LR,
-    SP,
+    SP, // 0b111111
 
     // 128 bit SIMD registers
-    v0,
+    v0, // 0b1000000
     v1,
     v2,
     v3,
@@ -105,266 +110,38 @@ pub enum AllRegisters {
     v28,
     v29,
     v30,
-    v31,
+    v31, // 0b1011111
 }
 
 impl AllRegisters {
     pub fn register_number(&self) -> u32 {
-        match *self {
-            AllRegisters::w0 | AllRegisters::x0 | AllRegisters::v0 => 0,
-            AllRegisters::w1 | AllRegisters::x1 | AllRegisters::v1 => 1,
-            AllRegisters::w2 | AllRegisters::x2 | AllRegisters::v2 => 2,
-            AllRegisters::w3 | AllRegisters::x3 | AllRegisters::v3 => 3,
-            AllRegisters::w4 | AllRegisters::x4 | AllRegisters::v4 => 4,
-            AllRegisters::w5 | AllRegisters::x5 | AllRegisters::v5 => 5,
-            AllRegisters::w6 | AllRegisters::x6 | AllRegisters::v6 => 6,
-            AllRegisters::w7 | AllRegisters::x7 | AllRegisters::v7 => 7,
-            AllRegisters::w8 | AllRegisters::x8 | AllRegisters::v8 => 8,
-            AllRegisters::w9 | AllRegisters::x9 | AllRegisters::v9 => 9,
-            AllRegisters::w10 | AllRegisters::x10 | AllRegisters::v10 => 10,
-            AllRegisters::w11 | AllRegisters::x11 | AllRegisters::v11 => 11,
-            AllRegisters::w12 | AllRegisters::x12 | AllRegisters::v12 => 12,
-            AllRegisters::w13 | AllRegisters::x13 | AllRegisters::v13 => 13,
-            AllRegisters::w14 | AllRegisters::x14 | AllRegisters::v14 => 14,
-            AllRegisters::w15 | AllRegisters::x15 | AllRegisters::v15 => 15,
-            AllRegisters::w16 | AllRegisters::x16 | AllRegisters::v16 => 16,
-            AllRegisters::w17 | AllRegisters::x17 | AllRegisters::v17 => 17,
-            AllRegisters::w18 | AllRegisters::x18 | AllRegisters::v18 => 18,
-            AllRegisters::w19 | AllRegisters::x19 | AllRegisters::v19 => 19,
-            AllRegisters::w20 | AllRegisters::x20 | AllRegisters::v20 => 20,
-            AllRegisters::w21 | AllRegisters::x21 | AllRegisters::v21 => 21,
-            AllRegisters::w22 | AllRegisters::x22 | AllRegisters::v22 => 22,
-            AllRegisters::w23 | AllRegisters::x23 | AllRegisters::v23 => 23,
-            AllRegisters::w24 | AllRegisters::x24 | AllRegisters::v24 => 24,
-            AllRegisters::w25 | AllRegisters::x25 | AllRegisters::v25 => 25,
-            AllRegisters::w26 | AllRegisters::x26 | AllRegisters::v26 => 26,
-            AllRegisters::w27 | AllRegisters::x27 | AllRegisters::v27 => 27,
-            AllRegisters::w28 | AllRegisters::x28 | AllRegisters::v28 => 28,
-            AllRegisters::w29 | AllRegisters::x29 | AllRegisters::v29 => 29,
-            AllRegisters::w30 | AllRegisters::LR | AllRegisters::v30 => 30,
-            AllRegisters::w31 | AllRegisters::SP | AllRegisters::v31 => 31,
-        }
+        // Mask the lower 5 bits to get the register number
+        (*self as u32) & 0b11111
     }
 
     // Implement size(), is_32(), is_64() etc. functions
     pub fn size(&self) -> usize {
-        match *self {
-            // 32-bit GP registers
-            AllRegisters::w0 => 4,
-            AllRegisters::w1 => 4,
-            AllRegisters::w2 => 4,
-            AllRegisters::w3 => 4,
-            AllRegisters::w4 => 4,
-            AllRegisters::w5 => 4,
-            AllRegisters::w6 => 4,
-            AllRegisters::w7 => 4,
-            AllRegisters::w8 => 4,
-            AllRegisters::w9 => 4,
-            AllRegisters::w10 => 4,
-            AllRegisters::w11 => 4,
-            AllRegisters::w12 => 4,
-            AllRegisters::w13 => 4,
-            AllRegisters::w14 => 4,
-            AllRegisters::w15 => 4,
-            AllRegisters::w16 => 4,
-            AllRegisters::w17 => 4,
-            AllRegisters::w18 => 4,
-            AllRegisters::w19 => 4,
-            AllRegisters::w20 => 4,
-            AllRegisters::w21 => 4,
-            AllRegisters::w22 => 4,
-            AllRegisters::w23 => 4,
-            AllRegisters::w24 => 4,
-            AllRegisters::w25 => 4,
-            AllRegisters::w26 => 4,
-            AllRegisters::w27 => 4,
-            AllRegisters::w28 => 4,
-            AllRegisters::w29 => 4,
-            AllRegisters::w30 => 4,
-            AllRegisters::w31 => 4,
+        let register_value = *self as u32;
 
-            // 64-bit GP registers
-            AllRegisters::x0 => 8,
-            AllRegisters::x1 => 8,
-            AllRegisters::x2 => 8,
-            AllRegisters::x3 => 8,
-            AllRegisters::x4 => 8,
-            AllRegisters::x5 => 8,
-            AllRegisters::x6 => 8,
-            AllRegisters::x7 => 8,
-            AllRegisters::x8 => 8,
-            AllRegisters::x9 => 8,
-            AllRegisters::x10 => 8,
-            AllRegisters::x11 => 8,
-            AllRegisters::x12 => 8,
-            AllRegisters::x13 => 8,
-            AllRegisters::x14 => 8,
-            AllRegisters::x15 => 8,
-            AllRegisters::x16 => 8,
-            AllRegisters::x17 => 8,
-            AllRegisters::x18 => 8,
-            AllRegisters::x19 => 8,
-            AllRegisters::x20 => 8,
-            AllRegisters::x21 => 8,
-            AllRegisters::x22 => 8,
-            AllRegisters::x23 => 8,
-            AllRegisters::x24 => 8,
-            AllRegisters::x25 => 8,
-            AllRegisters::x26 => 8,
-            AllRegisters::x27 => 8,
-            AllRegisters::x28 => 8,
-            AllRegisters::x29 => 8,
-            AllRegisters::LR => 8,
-            AllRegisters::SP => 8,
-
-            // 128-bit SIMD registers
-            AllRegisters::v0 => 16,
-            AllRegisters::v1 => 16,
-            AllRegisters::v2 => 16,
-            AllRegisters::v3 => 16,
-            AllRegisters::v4 => 16,
-            AllRegisters::v5 => 16,
-            AllRegisters::v6 => 16,
-            AllRegisters::v7 => 16,
-            AllRegisters::v8 => 16,
-            AllRegisters::v9 => 16,
-            AllRegisters::v10 => 16,
-            AllRegisters::v11 => 16,
-            AllRegisters::v12 => 16,
-            AllRegisters::v13 => 16,
-            AllRegisters::v14 => 16,
-            AllRegisters::v15 => 16,
-            AllRegisters::v16 => 16,
-            AllRegisters::v17 => 16,
-            AllRegisters::v18 => 16,
-            AllRegisters::v19 => 16,
-            AllRegisters::v20 => 16,
-            AllRegisters::v21 => 16,
-            AllRegisters::v22 => 16,
-            AllRegisters::v23 => 16,
-            AllRegisters::v24 => 16,
-            AllRegisters::v25 => 16,
-            AllRegisters::v26 => 16,
-            AllRegisters::v27 => 16,
-            AllRegisters::v28 => 16,
-            AllRegisters::v29 => 16,
-            AllRegisters::v30 => 16,
-            AllRegisters::v31 => 16,
+        if register_value & 0b1000000 != 0 {
+            16
+        } else if register_value & 0b100000 != 0 {
+            8
+        } else {
+            4
         }
     }
 
     pub fn is_32(&self) -> bool {
-        matches!(
-            self,
-            AllRegisters::w0
-                | AllRegisters::w1
-                | AllRegisters::w2
-                | AllRegisters::w3
-                | AllRegisters::w4
-                | AllRegisters::w5
-                | AllRegisters::w6
-                | AllRegisters::w7
-                | AllRegisters::w8
-                | AllRegisters::w9
-                | AllRegisters::w10
-                | AllRegisters::w11
-                | AllRegisters::w12
-                | AllRegisters::w13
-                | AllRegisters::w14
-                | AllRegisters::w15
-                | AllRegisters::w16
-                | AllRegisters::w17
-                | AllRegisters::w18
-                | AllRegisters::w19
-                | AllRegisters::w20
-                | AllRegisters::w21
-                | AllRegisters::w22
-                | AllRegisters::w23
-                | AllRegisters::w24
-                | AllRegisters::w25
-                | AllRegisters::w26
-                | AllRegisters::w27
-                | AllRegisters::w28
-                | AllRegisters::w29
-                | AllRegisters::w30
-                | AllRegisters::w31
-        )
+        *self as u32 <= 0b11111
     }
 
     pub fn is_64(&self) -> bool {
-        matches!(
-            self,
-            AllRegisters::x0
-                | AllRegisters::x1
-                | AllRegisters::x2
-                | AllRegisters::x3
-                | AllRegisters::x4
-                | AllRegisters::x5
-                | AllRegisters::x6
-                | AllRegisters::x7
-                | AllRegisters::x8
-                | AllRegisters::x9
-                | AllRegisters::x10
-                | AllRegisters::x11
-                | AllRegisters::x12
-                | AllRegisters::x13
-                | AllRegisters::x14
-                | AllRegisters::x15
-                | AllRegisters::x16
-                | AllRegisters::x17
-                | AllRegisters::x18
-                | AllRegisters::x19
-                | AllRegisters::x20
-                | AllRegisters::x21
-                | AllRegisters::x22
-                | AllRegisters::x23
-                | AllRegisters::x24
-                | AllRegisters::x25
-                | AllRegisters::x26
-                | AllRegisters::x27
-                | AllRegisters::x28
-                | AllRegisters::x29
-                | AllRegisters::LR
-                | AllRegisters::SP
-        )
+        *self as u32 & 0b100000 != 0
     }
 
     pub fn is_128(&self) -> bool {
-        matches!(
-            self,
-            AllRegisters::v0
-                | AllRegisters::v1
-                | AllRegisters::v2
-                | AllRegisters::v3
-                | AllRegisters::v4
-                | AllRegisters::v5
-                | AllRegisters::v6
-                | AllRegisters::v7
-                | AllRegisters::v8
-                | AllRegisters::v9
-                | AllRegisters::v10
-                | AllRegisters::v11
-                | AllRegisters::v12
-                | AllRegisters::v13
-                | AllRegisters::v14
-                | AllRegisters::v15
-                | AllRegisters::v16
-                | AllRegisters::v17
-                | AllRegisters::v18
-                | AllRegisters::v19
-                | AllRegisters::v20
-                | AllRegisters::v21
-                | AllRegisters::v22
-                | AllRegisters::v23
-                | AllRegisters::v24
-                | AllRegisters::v25
-                | AllRegisters::v26
-                | AllRegisters::v27
-                | AllRegisters::v28
-                | AllRegisters::v29
-                | AllRegisters::v30
-                | AllRegisters::v31
-        )
+        *self as u32 & 0b1000000 != 0
     }
 }
 
@@ -387,5 +164,538 @@ impl RegisterInfo for AllRegisters {
         } else {
             Unknown
         }
+    }
+
+    fn extend(&self) -> Self {
+        let value = *self as u32;
+        if self.is_32() {
+            return unsafe { transmute((value + 0b100000) as u8) };
+        }
+
+        *self
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::all_registers::AllRegisters;
+    use crate::all_registers::AllRegisters::*;
+    use crate::all_registers::KnownRegisterType::*;
+    use reloaded_hooks_portable::api::traits::register_info::KnownRegisterType;
+    use reloaded_hooks_portable::api::traits::register_info::RegisterInfo;
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(w0, 0)]
+    #[case(w1, 1)]
+    #[case(w2, 2)]
+    #[case(w3, 3)]
+    #[case(w4, 4)]
+    #[case(w5, 5)]
+    #[case(w6, 6)]
+    #[case(w7, 7)]
+    #[case(w8, 8)]
+    #[case(w9, 9)]
+    #[case(w10, 10)]
+    #[case(w11, 11)]
+    #[case(w12, 12)]
+    #[case(w13, 13)]
+    #[case(w14, 14)]
+    #[case(w15, 15)]
+    #[case(w16, 16)]
+    #[case(w17, 17)]
+    #[case(w18, 18)]
+    #[case(w19, 19)]
+    #[case(w20, 20)]
+    #[case(w21, 21)]
+    #[case(w22, 22)]
+    #[case(w23, 23)]
+    #[case(w24, 24)]
+    #[case(w25, 25)]
+    #[case(w26, 26)]
+    #[case(w27, 27)]
+    #[case(w28, 28)]
+    #[case(w29, 29)]
+    #[case(w30, 30)]
+    #[case(w31, 31)]
+    #[case(x0, 0)]
+    #[case(x1, 1)]
+    #[case(x2, 2)]
+    #[case(x3, 3)]
+    #[case(x4, 4)]
+    #[case(x5, 5)]
+    #[case(x6, 6)]
+    #[case(x7, 7)]
+    #[case(x8, 8)]
+    #[case(x9, 9)]
+    #[case(x10, 10)]
+    #[case(x11, 11)]
+    #[case(x12, 12)]
+    #[case(x13, 13)]
+    #[case(x14, 14)]
+    #[case(x15, 15)]
+    #[case(x16, 16)]
+    #[case(x17, 17)]
+    #[case(x18, 18)]
+    #[case(x19, 19)]
+    #[case(x20, 20)]
+    #[case(x21, 21)]
+    #[case(x22, 22)]
+    #[case(x23, 23)]
+    #[case(x24, 24)]
+    #[case(x25, 25)]
+    #[case(x26, 26)]
+    #[case(x27, 27)]
+    #[case(x28, 28)]
+    #[case(x29, 29)]
+    #[case(LR, 30)]
+    #[case(SP, 31)]
+    #[case(v0, 0)]
+    #[case(v1, 1)]
+    #[case(v2, 2)]
+    #[case(v3, 3)]
+    #[case(v4, 4)]
+    #[case(v5, 5)]
+    #[case(v6, 6)]
+    #[case(v7, 7)]
+    #[case(v8, 8)]
+    #[case(v9, 9)]
+    #[case(v10, 10)]
+    #[case(v11, 11)]
+    #[case(v12, 12)]
+    #[case(v13, 13)]
+    #[case(v14, 14)]
+    #[case(v15, 15)]
+    #[case(v16, 16)]
+    #[case(v17, 17)]
+    #[case(v18, 18)]
+    #[case(v19, 19)]
+    #[case(v20, 20)]
+    #[case(v21, 21)]
+    #[case(v22, 22)]
+    #[case(v23, 23)]
+    #[case(v24, 24)]
+    #[case(v25, 25)]
+    #[case(v26, 26)]
+    #[case(v27, 27)]
+    #[case(v28, 28)]
+    #[case(v29, 29)]
+    #[case(v30, 30)]
+    #[case(v31, 31)]
+    fn register_number(#[case] register: AllRegisters, #[case] expected_number: u32) {
+        assert_eq!(register.register_number(), expected_number);
+    }
+
+    #[rstest]
+    #[case(x1, 8)]
+    #[case(x2, 8)]
+    #[case(x3, 8)]
+    #[case(x4, 8)]
+    #[case(x5, 8)]
+    #[case(x6, 8)]
+    #[case(x7, 8)]
+    #[case(x8, 8)]
+    #[case(x9, 8)]
+    #[case(x10, 8)]
+    #[case(x11, 8)]
+    #[case(x12, 8)]
+    #[case(x13, 8)]
+    #[case(x14, 8)]
+    #[case(x15, 8)]
+    #[case(x16, 8)]
+    #[case(x17, 8)]
+    #[case(x18, 8)]
+    #[case(x19, 8)]
+    #[case(x20, 8)]
+    #[case(x21, 8)]
+    #[case(x22, 8)]
+    #[case(x23, 8)]
+    #[case(x24, 8)]
+    #[case(x25, 8)]
+    #[case(x26, 8)]
+    #[case(x27, 8)]
+    #[case(x28, 8)]
+    #[case(x29, 8)]
+    #[case(LR, 8)]
+    #[case(SP, 8)]
+    #[case(w1, 4)]
+    #[case(w2, 4)]
+    #[case(w3, 4)]
+    #[case(w4, 4)]
+    #[case(w5, 4)]
+    #[case(w6, 4)]
+    #[case(w7, 4)]
+    #[case(w8, 4)]
+    #[case(w9, 4)]
+    #[case(w10, 4)]
+    #[case(w11, 4)]
+    #[case(w12, 4)]
+    #[case(w13, 4)]
+    #[case(w14, 4)]
+    #[case(w15, 4)]
+    #[case(w16, 4)]
+    #[case(w17, 4)]
+    #[case(w18, 4)]
+    #[case(w19, 4)]
+    #[case(w20, 4)]
+    #[case(w21, 4)]
+    #[case(w22, 4)]
+    #[case(w23, 4)]
+    #[case(w24, 4)]
+    #[case(w25, 4)]
+    #[case(w26, 4)]
+    #[case(w27, 4)]
+    #[case(w28, 4)]
+    #[case(w29, 4)]
+    #[case(w30, 4)]
+    #[case(w31, 4)]
+    #[case(v1, 16)]
+    #[case(v2, 16)]
+    #[case(v3, 16)]
+    #[case(v4, 16)]
+    #[case(v5, 16)]
+    #[case(v6, 16)]
+    #[case(v7, 16)]
+    #[case(v8, 16)]
+    #[case(v9, 16)]
+    #[case(v10, 16)]
+    #[case(v11, 16)]
+    #[case(v12, 16)]
+    #[case(v13, 16)]
+    #[case(v14, 16)]
+    #[case(v15, 16)]
+    #[case(v16, 16)]
+    #[case(v17, 16)]
+    #[case(v18, 16)]
+    #[case(v19, 16)]
+    #[case(v20, 16)]
+    #[case(v21, 16)]
+    #[case(v22, 16)]
+    #[case(v23, 16)]
+    #[case(v24, 16)]
+    #[case(v25, 16)]
+    #[case(v26, 16)]
+    #[case(v27, 16)]
+    #[case(v28, 16)]
+    #[case(v29, 16)]
+    #[case(v30, 16)]
+    #[case(v31, 16)]
+    fn register_size(#[case] register: AllRegisters, #[case] expected_size: usize) {
+        assert_eq!(register.size(), expected_size);
+    }
+
+    #[rstest]
+    #[case(w0, true, false, false)]
+    #[case(w1, true, false, false)]
+    #[case(w2, true, false, false)]
+    #[case(w3, true, false, false)]
+    #[case(w4, true, false, false)]
+    #[case(w5, true, false, false)]
+    #[case(w6, true, false, false)]
+    #[case(w7, true, false, false)]
+    #[case(w8, true, false, false)]
+    #[case(w9, true, false, false)]
+    #[case(w10, true, false, false)]
+    #[case(w11, true, false, false)]
+    #[case(w12, true, false, false)]
+    #[case(w13, true, false, false)]
+    #[case(w14, true, false, false)]
+    #[case(w15, true, false, false)]
+    #[case(w16, true, false, false)]
+    #[case(w17, true, false, false)]
+    #[case(w18, true, false, false)]
+    #[case(w19, true, false, false)]
+    #[case(w20, true, false, false)]
+    #[case(w21, true, false, false)]
+    #[case(w22, true, false, false)]
+    #[case(w23, true, false, false)]
+    #[case(w24, true, false, false)]
+    #[case(w25, true, false, false)]
+    #[case(w26, true, false, false)]
+    #[case(w27, true, false, false)]
+    #[case(w28, true, false, false)]
+    #[case(w29, true, false, false)]
+    #[case(w30, true, false, false)]
+    #[case(w31, true, false, false)]
+    #[case(x0, false, true, false)]
+    #[case(x1, false, true, false)]
+    #[case(x2, false, true, false)]
+    #[case(x3, false, true, false)]
+    #[case(x4, false, true, false)]
+    #[case(x5, false, true, false)]
+    #[case(x6, false, true, false)]
+    #[case(x7, false, true, false)]
+    #[case(x8, false, true, false)]
+    #[case(x9, false, true, false)]
+    #[case(x10, false, true, false)]
+    #[case(x11, false, true, false)]
+    #[case(x12, false, true, false)]
+    #[case(x13, false, true, false)]
+    #[case(x14, false, true, false)]
+    #[case(x15, false, true, false)]
+    #[case(x16, false, true, false)]
+    #[case(x17, false, true, false)]
+    #[case(x18, false, true, false)]
+    #[case(x19, false, true, false)]
+    #[case(x20, false, true, false)]
+    #[case(x21, false, true, false)]
+    #[case(x22, false, true, false)]
+    #[case(x23, false, true, false)]
+    #[case(x24, false, true, false)]
+    #[case(x25, false, true, false)]
+    #[case(x26, false, true, false)]
+    #[case(x27, false, true, false)]
+    #[case(x28, false, true, false)]
+    #[case(x29, false, true, false)]
+    #[case(LR, false, true, false)]
+    #[case(SP, false, true, false)]
+    #[case(v0, false, false, true)]
+    #[case(v1, false, false, true)]
+    #[case(v2, false, false, true)]
+    #[case(v3, false, false, true)]
+    #[case(v4, false, false, true)]
+    #[case(v5, false, false, true)]
+    #[case(v6, false, false, true)]
+    #[case(v7, false, false, true)]
+    #[case(v8, false, false, true)]
+    #[case(v9, false, false, true)]
+    #[case(v10, false, false, true)]
+    #[case(v11, false, false, true)]
+    #[case(v12, false, false, true)]
+    #[case(v13, false, false, true)]
+    #[case(v14, false, false, true)]
+    #[case(v15, false, false, true)]
+    #[case(v16, false, false, true)]
+    #[case(v17, false, false, true)]
+    #[case(v18, false, false, true)]
+    #[case(v19, false, false, true)]
+    #[case(v20, false, false, true)]
+    #[case(v21, false, false, true)]
+    #[case(v22, false, false, true)]
+    #[case(v23, false, false, true)]
+    #[case(v24, false, false, true)]
+    #[case(v25, false, false, true)]
+    #[case(v26, false, false, true)]
+    #[case(v27, false, false, true)]
+    #[case(v28, false, false, true)]
+    #[case(v29, false, false, true)]
+    #[case(v30, false, false, true)]
+    #[case(v31, false, false, true)]
+    fn register_bit_width(
+        #[case] register: AllRegisters,
+        #[case] is_32: bool,
+        #[case] is_64: bool,
+        #[case] is_128: bool,
+    ) {
+        assert_eq!(register.is_32(), is_32);
+        assert_eq!(register.is_64(), is_64);
+        assert_eq!(register.is_128(), is_128);
+    }
+
+    #[rstest]
+    #[case(w0, GeneralPurpose32)]
+    #[case(w1, GeneralPurpose32)]
+    #[case(w2, GeneralPurpose32)]
+    #[case(w3, GeneralPurpose32)]
+    #[case(w4, GeneralPurpose32)]
+    #[case(w5, GeneralPurpose32)]
+    #[case(w6, GeneralPurpose32)]
+    #[case(w7, GeneralPurpose32)]
+    #[case(w8, GeneralPurpose32)]
+    #[case(w9, GeneralPurpose32)]
+    #[case(w10, GeneralPurpose32)]
+    #[case(w11, GeneralPurpose32)]
+    #[case(w12, GeneralPurpose32)]
+    #[case(w13, GeneralPurpose32)]
+    #[case(w14, GeneralPurpose32)]
+    #[case(w15, GeneralPurpose32)]
+    #[case(w16, GeneralPurpose32)]
+    #[case(w17, GeneralPurpose32)]
+    #[case(w18, GeneralPurpose32)]
+    #[case(w19, GeneralPurpose32)]
+    #[case(w20, GeneralPurpose32)]
+    #[case(w21, GeneralPurpose32)]
+    #[case(w22, GeneralPurpose32)]
+    #[case(w23, GeneralPurpose32)]
+    #[case(w24, GeneralPurpose32)]
+    #[case(w25, GeneralPurpose32)]
+    #[case(w26, GeneralPurpose32)]
+    #[case(w27, GeneralPurpose32)]
+    #[case(w28, GeneralPurpose32)]
+    #[case(w29, GeneralPurpose32)]
+    #[case(w30, GeneralPurpose32)]
+    #[case(w31, GeneralPurpose32)]
+    #[case(x0, GeneralPurpose64)]
+    #[case(x1, GeneralPurpose64)]
+    #[case(x2, GeneralPurpose64)]
+    #[case(x3, GeneralPurpose64)]
+    #[case(x4, GeneralPurpose64)]
+    #[case(x5, GeneralPurpose64)]
+    #[case(x6, GeneralPurpose64)]
+    #[case(x7, GeneralPurpose64)]
+    #[case(x8, GeneralPurpose64)]
+    #[case(x9, GeneralPurpose64)]
+    #[case(x10, GeneralPurpose64)]
+    #[case(x11, GeneralPurpose64)]
+    #[case(x12, GeneralPurpose64)]
+    #[case(x13, GeneralPurpose64)]
+    #[case(x14, GeneralPurpose64)]
+    #[case(x15, GeneralPurpose64)]
+    #[case(x16, GeneralPurpose64)]
+    #[case(x17, GeneralPurpose64)]
+    #[case(x18, GeneralPurpose64)]
+    #[case(x19, GeneralPurpose64)]
+    #[case(x20, GeneralPurpose64)]
+    #[case(x21, GeneralPurpose64)]
+    #[case(x22, GeneralPurpose64)]
+    #[case(x23, GeneralPurpose64)]
+    #[case(x24, GeneralPurpose64)]
+    #[case(x25, GeneralPurpose64)]
+    #[case(x26, GeneralPurpose64)]
+    #[case(x27, GeneralPurpose64)]
+    #[case(x28, GeneralPurpose64)]
+    #[case(x29, GeneralPurpose64)]
+    #[case(LR, GeneralPurpose64)]
+    #[case(SP, GeneralPurpose64)]
+    #[case(v0, Vector128)]
+    #[case(v1, Vector128)]
+    #[case(v2, Vector128)]
+    #[case(v3, Vector128)]
+    #[case(v4, Vector128)]
+    #[case(v5, Vector128)]
+    #[case(v6, Vector128)]
+    #[case(v7, Vector128)]
+    #[case(v8, Vector128)]
+    #[case(v9, Vector128)]
+    #[case(v10, Vector128)]
+    #[case(v11, Vector128)]
+    #[case(v12, Vector128)]
+    #[case(v13, Vector128)]
+    #[case(v14, Vector128)]
+    #[case(v15, Vector128)]
+    #[case(v16, Vector128)]
+    #[case(v17, Vector128)]
+    #[case(v18, Vector128)]
+    #[case(v19, Vector128)]
+    #[case(v20, Vector128)]
+    #[case(v21, Vector128)]
+    #[case(v22, Vector128)]
+    #[case(v23, Vector128)]
+    #[case(v24, Vector128)]
+    #[case(v25, Vector128)]
+    #[case(v26, Vector128)]
+    #[case(v27, Vector128)]
+    #[case(v28, Vector128)]
+    #[case(v29, Vector128)]
+    #[case(v30, Vector128)]
+    #[case(v31, Vector128)]
+    fn register_type(#[case] register: AllRegisters, #[case] expected_type: KnownRegisterType) {
+        assert_eq!(register.register_type(), expected_type);
+    }
+
+    #[rstest]
+    #[case(w0, x0)]
+    #[case(w1, x1)]
+    #[case(w2, x2)]
+    #[case(w3, x3)]
+    #[case(w4, x4)]
+    #[case(w5, x5)]
+    #[case(w6, x6)]
+    #[case(w7, x7)]
+    #[case(w8, x8)]
+    #[case(w9, x9)]
+    #[case(w10, x10)]
+    #[case(w11, x11)]
+    #[case(w12, x12)]
+    #[case(w13, x13)]
+    #[case(w14, x14)]
+    #[case(w15, x15)]
+    #[case(w16, x16)]
+    #[case(w17, x17)]
+    #[case(w18, x18)]
+    #[case(w19, x19)]
+    #[case(w20, x20)]
+    #[case(w21, x21)]
+    #[case(w22, x22)]
+    #[case(w23, x23)]
+    #[case(w24, x24)]
+    #[case(w25, x25)]
+    #[case(w26, x26)]
+    #[case(w27, x27)]
+    #[case(w28, x28)]
+    #[case(w29, x29)]
+    #[case(w30, LR)]
+    #[case(w31, SP)]
+    fn extend_register(#[case] input: AllRegisters, #[case] expected: AllRegisters) {
+        assert_eq!(input.extend(), expected);
+    }
+
+    #[rstest]
+    #[case(x0)]
+    #[case(x1)]
+    #[case(x2)]
+    #[case(x3)]
+    #[case(x4)]
+    #[case(x5)]
+    #[case(x6)]
+    #[case(x7)]
+    #[case(x8)]
+    #[case(x9)]
+    #[case(x10)]
+    #[case(x11)]
+    #[case(x12)]
+    #[case(x13)]
+    #[case(x14)]
+    #[case(x15)]
+    #[case(x16)]
+    #[case(x17)]
+    #[case(x18)]
+    #[case(x19)]
+    #[case(x20)]
+    #[case(x21)]
+    #[case(x22)]
+    #[case(x23)]
+    #[case(x24)]
+    #[case(x25)]
+    #[case(x26)]
+    #[case(x27)]
+    #[case(x28)]
+    #[case(x29)]
+    #[case(LR)]
+    #[case(SP)]
+    #[case(v0)]
+    #[case(v1)]
+    #[case(v2)]
+    #[case(v3)]
+    #[case(v4)]
+    #[case(v5)]
+    #[case(v6)]
+    #[case(v7)]
+    #[case(v8)]
+    #[case(v9)]
+    #[case(v10)]
+    #[case(v11)]
+    #[case(v12)]
+    #[case(v13)]
+    #[case(v14)]
+    #[case(v15)]
+    #[case(v16)]
+    #[case(v17)]
+    #[case(v18)]
+    #[case(v19)]
+    #[case(v20)]
+    #[case(v21)]
+    #[case(v22)]
+    #[case(v23)]
+    #[case(v24)]
+    #[case(v25)]
+    #[case(v26)]
+    #[case(v27)]
+    #[case(v28)]
+    #[case(v29)]
+    #[case(v30)]
+    #[case(v31)]
+    fn extend_non_w_registers(#[case] register: AllRegisters) {
+        assert_eq!(register.extend(), register);
     }
 }

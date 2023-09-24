@@ -6,6 +6,32 @@ pub trait RegisterInfo {
     /// True if the register is a stack pointer.
     fn is_stack_pointer(&self) -> bool;
 
+    /// Extends the register to the maximum size of this specific register available on this system.
+    ///
+    /// The `extend` method is responsible for converting a register representation to its largest
+    /// form available. For instance, in a 64-bit x86 architecture, calling `extend` on an object
+    /// representing `EAX` (a 32-bit register) would return an object representing `RAX`
+    /// (a 64-bit register).
+    ///
+    /// # Examples
+    ///
+    /// (Note: Not rustdoc typed because no arch specific stuff in this package)
+    ///
+    /// ```ignore
+    /// let eax = Register::EAX;
+    /// let rax = eax.extend(); // now we have "rax"
+    /// ```
+    ///
+    /// On a system without EAX.
+    ///
+    /// # Remarks
+    ///
+    /// This method is particularly useful in scenarios where operations need to be performed
+    /// with registers in their extended forms to leverage the full data capacity. The actual
+    /// implementation may vary depending on the architecture and register types, ensuring the
+    /// correct handling of different register varieties and their extensions.
+    fn extend(&self) -> Self;
+
     /// Returns the 'type' of register this individual register represents.  
     ///
     /// The wrapper generator optimizer will prevent registers from different 'types'
@@ -74,6 +100,30 @@ pub trait RegisterInfo {
 
         None
     }
+
+    /// Finds a register with the same type as the given register.
+    ///
+    /// # Arguments
+    ///
+    /// * `available_registers` - The slice of available registers to search through.
+    ///
+    /// # Returns
+    ///
+    /// Returns the first register with the same type as the given register, or `None` if no match is found.
+    /// ```
+    fn find_register_with_category<TRegister: Copy + RegisterInfo>(
+        &self,
+        available_registers: &[TRegister],
+    ) -> Option<TRegister> {
+        let expected_type = self.register_type();
+        for register in available_registers {
+            if register.register_type() == expected_type {
+                return Some(*register);
+            }
+        }
+
+        None
+    }
 }
 
 /// Enum representing different known register types.
@@ -81,6 +131,11 @@ pub trait RegisterInfo {
 /// This enum is used to differentiate between different types of registers
 /// available in a computer architecture. Different register types are used
 /// for different kinds of operations and data.
+///
+/// # Remarks
+///
+/// The values are assigned such that you can figure out the category of the register using bit
+/// flag comparisons.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum KnownRegisterType {
     /// An unknown register type.
@@ -154,21 +209,15 @@ impl KnownRegisterType {
     /// * `FloatingPoint` - if the register is a floating-point register.
     /// * `Vector` - if the register is a vector register.
     pub fn category(&self) -> RegisterCategory {
-        match self {
-            KnownRegisterType::GeneralPurpose128
-            | KnownRegisterType::GeneralPurpose64
-            | KnownRegisterType::GeneralPurpose32
-            | KnownRegisterType::GeneralPurpose16
-            | KnownRegisterType::GeneralPurpose8 => RegisterCategory::GeneralPurpose,
-
-            KnownRegisterType::FloatingPoint => RegisterCategory::FloatingPoint,
-
-            KnownRegisterType::Vector512
-            | KnownRegisterType::Vector256
-            | KnownRegisterType::Vector128
-            | KnownRegisterType::Vector64
-            | KnownRegisterType::Vector32 => RegisterCategory::Vector,
-            KnownRegisterType::Unknown => RegisterCategory::Unknown,
+        let value = *self as u32;
+        if value & 0b1000 != 0 {
+            RegisterCategory::GeneralPurpose
+        } else if value & 0b10000 != 0 {
+            RegisterCategory::FloatingPoint
+        } else if value & 0b100000 != 0 {
+            RegisterCategory::Vector
+        } else {
+            RegisterCategory::Unknown
         }
     }
 }
