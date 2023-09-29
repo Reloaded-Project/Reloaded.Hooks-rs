@@ -66,7 +66,7 @@ pub trait FunctionInfo {
     /// These are the original passed in slices, sliced to contain just the filled in elements.
     fn get_parameters_as_slice<
         'a,
-        TRegister: Clone + Copy + RegisterInfo,
+        TRegister: Clone + Copy + RegisterInfo + PartialEq + 'static,
         T: CallingConventionInfo<TRegister>,
     >(
         &self,
@@ -132,7 +132,7 @@ pub trait FunctionInfo {
     /// Tuple of (stack parameters, register parameters) as vectors
     /// These are the original passed in slices, sliced to contain just the filled in elements.
     fn get_parameters_as_vec<
-        TRegister: Clone + Copy + RegisterInfo,
+        TRegister: Clone + Copy + RegisterInfo + PartialEq + 'static,
         T: CallingConventionInfo<TRegister>,
     >(
         &self,

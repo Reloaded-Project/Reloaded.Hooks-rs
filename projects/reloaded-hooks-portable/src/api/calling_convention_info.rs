@@ -1,12 +1,13 @@
 use super::traits::register_info::RegisterInfo;
 
+use alloc::vec::Vec;
 extern crate alloc;
 
 /// This trait defines the calling convention of a function.
 ///
 /// # Generic Parameters
 /// - `TRegister`: The type of register used by the target architecture. (Enum)
-pub trait CallingConventionInfo<TRegister: Copy + RegisterInfo> {
+pub trait CallingConventionInfo<TRegister: Copy + RegisterInfo + PartialEq + 'static> {
     /// Registers in left to right parameter order passed to the custom function.
     fn register_int_parameters(&self) -> &[TRegister];
 
@@ -33,6 +34,11 @@ pub trait CallingConventionInfo<TRegister: Copy + RegisterInfo> {
     fn reserved_stack_space(&self) -> u32;
 
     /// Specifies all the registers whose values are expected to be preserved by the function.
+    ///
+    /// # Remarks
+    ///
+    /// Provide the full sized registers only. For example, if you are on x64, supply `rax`, `rbx`, `rcx`, etc.
+    /// Do not supply `eax`, `ax`, `al`, etc,  or match register sizes.
     fn callee_saved_registers(&self) -> &[TRegister];
 
     /// Specifies all the callee saved registers which will always be preserved by the function; and
@@ -42,6 +48,9 @@ pub trait CallingConventionInfo<TRegister: Copy + RegisterInfo> {
     ///
     /// This is usually only used for architectures which have registers which are both caller
     /// and callee saved, such as the link register in RISC architectures.
+    ///
+    /// Please provide the full sized registers only. For example, if you are on x64, supply `rax`, `rbx`, `rcx`, etc.
+    /// Do not supply `eax`, `ax`, `al`, etc,  or match register sizes.
     fn always_saved_registers(&self) -> &[TRegister];
 
     /// Specifies how the stack is cleaned up after a function call.
@@ -60,10 +69,21 @@ pub trait CallingConventionInfo<TRegister: Copy + RegisterInfo> {
     /// 0 bytes for x86, etc.
     fn required_stack_alignment(&self) -> u32;
 
-    /// Figures out available scratch register(s) that can be used for temporary storage
-    /// when building wrappers for this calling convention.
-    fn scratch_registers(&self) -> &[TRegister] {
-        todo!("Implement scratch registers for this calling convention.");
+    /// This is automatically determined based on [`callee_saved_registers`](#method.callee_saved_registers)
+    /// and [`always_saved_registers`](#method.always_saved_registers). Returns all registers not listed
+    /// there.
+    fn caller_saved_registers(&self) -> Vec<TRegister> {
+        let callee_saved = self.callee_saved_registers();
+        let always_saved = self.always_saved_registers();
+        let all_registers = TRegister::all_registers();
+
+        let vec: Vec<TRegister> = all_registers
+            .iter()
+            .filter(|reg| !callee_saved.contains(reg) && !always_saved.contains(reg))
+            .copied()
+            .collect();
+
+        vec
     }
 }
 
@@ -117,4 +137,25 @@ pub enum StackParameterOrder {
 
     /// This is currently not supported in this library, and will throw an error.
     LeftToRight,
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        api::calling_convention_info::CallingConventionInfo,
+        helpers::test_helpers::{
+            MockRegister::{self, *},
+            CDECL_LIKE_FUNCTION_ATTRIBUTE,
+        },
+    };
+
+    #[test]
+    fn cdecl_like_saved_registers() {
+        // Removed both always saved (LR, SP), and callee saved (R3, R4, F3, F4, V3, V4).
+        let mut caller_saved = CDECL_LIKE_FUNCTION_ATTRIBUTE.caller_saved_registers();
+        let mut expected: Vec<MockRegister> = vec![R0, R1, R2, F0, F1, F2, V0, V1, V2, SP, LR];
+        caller_saved.sort();
+        expected.sort();
+        assert_eq!(caller_saved, expected);
+    }
 }

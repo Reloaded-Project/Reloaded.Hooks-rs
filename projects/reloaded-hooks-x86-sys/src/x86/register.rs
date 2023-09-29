@@ -1,9 +1,10 @@
 use core::mem::transmute;
+use derive_enum_all_values::AllValues;
 use reloaded_hooks_portable::api::traits::register_info::{KnownRegisterType, RegisterInfo};
 
 /// Defines a full size x86 register, used in specifying custom calling conventions.
 #[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default, AllValues)]
 pub enum Register {
     // 0b10000 - 0b11111
     // x87 Floating-point stack registers (8 registers, 8 reserved)
@@ -113,6 +114,13 @@ impl RegisterInfo for Register {
         // General-purpose and Floating-point registers do not have a larger counterpart in this enum.
         // Return the same register.
         *self
+    }
+
+    fn all_registers() -> &'static [Self]
+    where
+        Self: Sized,
+    {
+        Self::all_values()
     }
 }
 

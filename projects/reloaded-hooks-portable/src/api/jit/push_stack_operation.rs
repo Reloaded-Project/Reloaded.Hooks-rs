@@ -102,6 +102,30 @@ impl<T> PushStackOperation<T> {
         }
         count
     }
+
+    /// Returns true if this operation has the provided offset and size.
+    ///
+    /// # Parameters
+    /// - `offset`: The offset to check against.
+    /// - `item_size`: The item size to check against.
+    ///
+    /// # Returns
+    /// Returns `true` if the `offset` and `item_size` of the operation match the provided values,
+    /// otherwise returns `false`.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use reloaded_hooks_portable::api::jit::push_stack_operation::PushStackOperation;
+    ///
+    /// let push_op = PushStackOperation::<i32>::with_offset_and_size(0, 4);
+    /// assert!(push_op.has_offset_and_size(0, 4));  // This will return true
+    /// assert!(!push_op.has_offset_and_size(1, 4));  // This will return false
+    /// assert!(!push_op.has_offset_and_size(0, 2));  // This will return false
+    /// ```
+    pub fn has_offset_and_size(&self, offset: i32, item_size: u32) -> bool {
+        self.offset == offset && self.item_size == item_size
+    }
 }
 
 impl<T: Copy> PushStackOperation<T> {

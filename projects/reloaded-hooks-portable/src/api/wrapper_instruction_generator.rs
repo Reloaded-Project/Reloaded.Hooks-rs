@@ -9,7 +9,7 @@ use super::{
     calling_convention_info::CallingConventionInfo,
     function_info::{FunctionInfo, ParameterType},
     jit::{compiler::JitCapabilities, operation::Operation, return_operation::ReturnOperation},
-    traits::register_info::RegisterInfo,
+    traits::register_info::{find_register_with_category, RegisterCategory, RegisterInfo},
 };
 use crate::{
     api::{
@@ -77,7 +77,7 @@ where
 /// This process is documented in the Wiki under `Design Docs -> Wrapper Generation`.
 #[allow(warnings)]
 pub fn generate_wrapper_instructions<
-    TRegister: RegisterInfo + Hash + Eq + Copy + Default,
+    TRegister: RegisterInfo + Hash + Eq + Copy + Default + 'static,
     TFunctionAttribute: CallingConventionInfo<TRegister>,
     TFunctionInfo: FunctionInfo,
 >(
@@ -166,7 +166,7 @@ pub fn generate_wrapper_instructions<
     //
     // In this case, we are calling `conv_called` from the wrapper we create which is still
     // `conv_current`. Therefore, we need to use the scratch registers of `conv_current`.
-    let scratch_registers = conv_current.scratch_registers();
+    let scratch_registers = conv_current.caller_saved_registers();
 
     // Backup Always Saved Registers (LR, etc.)
     for register in conv_current.always_saved_registers() {
@@ -241,7 +241,7 @@ pub fn generate_wrapper_instructions<
                 PushStack::with_scratch_registers(
                     current_offset as i32,
                     param_size_bytes as u32,
-                    scratch_registers,
+                    &scratch_registers,
                 )
                 .into(),
             );
@@ -317,15 +317,18 @@ pub fn generate_wrapper_instructions<
     if options.can_generate_relative_jumps {
         ops.push(CallRel::new(options.target_address).into());
     } else {
-        if scratch_registers.len() == 0 {
+        let abs_call_register =
+            find_register_with_category(RegisterCategory::GeneralPurpose, &scratch_registers);
+
+        if abs_call_register.is_none() {
             return Err(WrapperGenerationError::NoScratchRegister(
-                "Needed for Absolute Call.".to_string(),
+                "No General Purpose Scratch Register Found. Needed for Absolute Call.".to_string(),
             ));
         }
 
         ops.push(
             CallAbs {
-                scratch_register: scratch_registers[0],
+                scratch_register: unsafe { abs_call_register.unwrap_unchecked().extend() },
                 target_address: options.target_address,
             }
             .into(),
@@ -392,6 +395,28 @@ pub mod tests {
         ]
     }
 
+    // EXTRA TESTS //
+
+    #[test]
+    fn ms_thiscall_to_cdecl_unoptimized_with_call_absolute() {
+        let nint = size_of::<isize>() as isize;
+        let result = two_parameters_with_address(
+            &THISCALL_LIKE_FUNCTION_ATTRIBUTE,
+            &CDECL_LIKE_FUNCTION_ATTRIBUTE,
+            false,
+            0xFFFFFFFF,
+        );
+
+        assert!(result.is_ok());
+        let vec: Vec<Operation<MockRegister>> = result.unwrap();
+        assert_eq!(vec.len(), 5);
+        assert_push_stack(&vec[0], nint, nint); // re-push right param
+        assert_push_stack(&vec[1], nint * 3, nint); // re-push left param
+        assert_eq!(vec[2], Pop::new(R1).into()); // pop left param into reg
+        assert_eq!(vec[3], CallAbs::new(0xFFFFFFFF).into());
+        assert_eq!(vec[4], Return::new(0).into()); // caller cleanup, so no offset here
+    }
+
     // X86-LIKE TESTS //
 
     #[test]
@@ -406,14 +431,9 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 5);
-        assert_eq!(
-            vec[0],
-            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
-        ); // re-push right param
-        assert_eq!(
-            vec[1],
-            PushStack::with_offset_and_size((nint * 3) as i32, nint as u32).into()
-        ); // re-push left param
+
+        assert_push_stack(&vec[0], nint, nint); // re-push right param
+        assert_push_stack(&vec[1], nint * 3, nint); // re-push left param
         assert_eq!(vec[2], Pop::new(R1).into()); // pop left param into reg
         assert_eq!(vec[3], CallRel::new(4096).into());
         assert_eq!(vec[4], Return::new(0).into()); // caller cleanup, so no offset here
@@ -431,10 +451,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(
-            vec[0],
-            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
-        ); // re-push right param
+        assert_push_stack(&vec[0], nint, nint); // re-push right param
         assert_eq!(vec[1], MovFromStack::new((nint * 3) as i32, R1).into()); // mov left param to register
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], Return::new(0).into()); // caller cleanup, so no offset here
@@ -452,10 +469,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 5);
-        assert_eq!(
-            vec[0],
-            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
-        ); // push right param
+        assert_push_stack(&vec[0], nint, nint); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], StackAlloc::new(-(nint * 2) as i32).into()); // caller stack cleanup
@@ -474,10 +488,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(
-            vec[0],
-            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
-        ); // push right param
+        assert_push_stack(&vec[0], nint, nint); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(
@@ -536,10 +547,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(
-            vec[0],
-            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
-        ); // push right param
+        assert_push_stack(&vec[0], nint, nint); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], Return::new(nint as usize).into()); // callee stack cleanup (only non-register parameter)
@@ -557,10 +565,7 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
         assert_eq!(vec.len(), 4);
-        assert_eq!(
-            vec[0],
-            PushStack::with_offset_and_size(nint as i32, nint as u32).into()
-        ); // re-push right param
+        assert_push_stack(&vec[0], nint, nint); // re-push right param
         assert_eq!(vec[1], MovFromStack::new((nint * 3) as i32, R1).into()); // mov left param to register
         assert_eq!(vec[2], CallRel::new(4096).into());
         assert_eq!(vec[3], Return::new((nint * 2) as usize).into()); // caller cleanup, so no offset here
@@ -578,29 +583,60 @@ pub mod tests {
         conv_current: &MockFunctionAttribute,
         optimized: bool,
     ) -> Result<Vec<Operation<MockRegister>>, WrapperGenerationError> {
+        two_parameters_with_address(conv_called, conv_current, optimized, 4096)
+    }
+
+    /// Creates the instructions responsible for wrapping one object kind to another.
+    ///
+    /// # Parameters
+    ///
+    /// - `conv_called` - The calling convention to convert to `conv_current`. This is the convention of the function (`options.target_address`) called.
+    /// - `conv_current` - The target convention to which convert to `conv_called`. This is the convention of the function returned.
+    /// - `optimized` - Whether to generate optimized code
+    /// - `target_address` - Address to jump to.
+    fn two_parameters_with_address(
+        conv_called: &MockFunctionAttribute,
+        conv_current: &MockFunctionAttribute,
+        optimized: bool,
+        target_address: usize,
+    ) -> Result<Vec<Operation<MockRegister>>, WrapperGenerationError> {
         // Two parameters
         let mock_function = MockFunction {
             parameters: vec![ParameterType::nint, ParameterType::nint],
         };
 
         let capabiltiies = get_x86_jit_capabilities();
-        let options = get_common_options(optimized, &mock_function, &capabiltiies);
+        let options = get_common_options(
+            optimized,
+            target_address,
+            target_address < 0x7FFFFFFF,
+            &mock_function,
+            &capabiltiies,
+        );
         generate_wrapper_instructions(conv_called, conv_current, options)
     }
 
     fn get_common_options<'a>(
         optimized: bool,
+        target_address: usize,
+        can_generate_relative: bool,
         mock_function: &'a MockFunction,
         capabilties: &'a [JitCapabilities],
     ) -> WrapperInstructionGeneratorOptions<'a, MockFunction> {
         WrapperInstructionGeneratorOptions {
             stack_entry_alignment: size_of::<isize>(), // no_alignment
-            target_address: 0x1000,                    // some arbitrary address
+            target_address,                            // some arbitrary address
             function_info: mock_function,
             injected_parameter: None, // some arbitrary value
             jit_capabilities: capabilties,
-            can_generate_relative_jumps: true,
+            can_generate_relative_jumps: can_generate_relative,
             enable_optimizations: optimized,
+        }
+    }
+
+    fn assert_push_stack(op: &Operation<MockRegister>, offset: isize, item_size: isize) {
+        if let Operation::PushStack(x) = op {
+            assert!(x.has_offset_and_size(offset as i32, item_size as u32));
         }
     }
 }

@@ -77,6 +77,16 @@ pub trait RegisterInfo {
     /// attempt to optimize them together.
     fn register_type(&self) -> KnownRegisterType;
 
+    /// Retrieves all of the available values for the current register type.
+    ///
+    /// # Returns
+    ///
+    /// All possible values for the type implementing RegisterInfo.
+    /// ```
+    fn all_registers() -> &'static [Self]
+    where
+        Self: Sized;
+
     /// Finds a register with the same type as the given register.
     ///
     /// # Arguments
@@ -100,30 +110,30 @@ pub trait RegisterInfo {
 
         None
     }
+}
 
-    /// Finds a register with the same type as the given register.
-    ///
-    /// # Arguments
-    ///
-    /// * `available_registers` - The slice of available registers to search through.
-    ///
-    /// # Returns
-    ///
-    /// Returns the first register with the same type as the given register, or `None` if no match is found.
-    /// ```
-    fn find_register_with_category<TRegister: Copy + RegisterInfo>(
-        &self,
-        available_registers: &[TRegister],
-    ) -> Option<TRegister> {
-        let expected_type = self.register_type();
-        for register in available_registers {
-            if register.register_type() == expected_type {
-                return Some(*register);
-            }
+/// Finds a register with a given category.
+///
+/// # Arguments
+///
+/// * `category` - The category of register to search for.
+/// * `available_registers` - The slice of available registers to search through.
+///
+/// # Returns
+///
+/// Returns the first register with the same type as the given register, or `None` if no match is found.
+/// ```
+pub(crate) fn find_register_with_category<TRegister: Copy + RegisterInfo>(
+    category: RegisterCategory,
+    available_registers: &[TRegister],
+) -> Option<TRegister> {
+    for register in available_registers {
+        if register.register_type().category() == category {
+            return Some(*register);
         }
-
-        None
     }
+
+    None
 }
 
 /// Enum representing different known register types.
@@ -223,6 +233,7 @@ impl KnownRegisterType {
 }
 
 /// Enum representing the high-level category of a register.
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum RegisterCategory {
     Unknown,
     GeneralPurpose,

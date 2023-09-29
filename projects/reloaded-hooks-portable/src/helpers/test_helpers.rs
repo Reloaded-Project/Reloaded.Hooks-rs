@@ -1,6 +1,7 @@
 extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
+use derive_enum_all_values::AllValues;
 
 use crate::api::{
     calling_convention_info::*,
@@ -10,7 +11,7 @@ use crate::api::{
 use lazy_static;
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, AllValues, Ord, PartialOrd)]
 pub enum MockRegister {
     #[default]
     R0,
@@ -88,6 +89,13 @@ impl RegisterInfo for MockRegister {
     fn extend(&self) -> Self {
         *self
     }
+
+    fn all_registers() -> &'static [Self]
+    where
+        Self: Sized,
+    {
+        MockRegister::all_values()
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -161,10 +169,6 @@ impl CallingConventionInfo<MockRegister> for MockFunctionAttribute {
     fn required_stack_alignment(&self) -> u32 {
         self.required_stack_alignment
     }
-
-    fn scratch_registers(&self) -> &[MockRegister] {
-        &[]
-    }
 }
 
 pub struct MockFunction {
@@ -187,7 +191,7 @@ lazy_static::lazy_static! {
         vector_params: vec![],
         return_reg: MockRegister::R1,
         reserved_stack: 0,
-        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        callee_saved: vec![MockRegister::R3, MockRegister::R4, MockRegister::F3, MockRegister::F4, MockRegister::V3, MockRegister::V4],
         always_saved: vec![],
         stack_cleanup: StackCleanup::Caller,
         stack_param_order: StackParameterOrder::RightToLeft,
@@ -201,7 +205,7 @@ lazy_static::lazy_static! {
         vector_params: vec![],
         return_reg: MockRegister::R1,
         reserved_stack: 0,
-        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        callee_saved: vec![MockRegister::R3, MockRegister::R4, MockRegister::F3, MockRegister::F4, MockRegister::V3, MockRegister::V4],
         always_saved: vec![],
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,
@@ -215,7 +219,7 @@ lazy_static::lazy_static! {
         vector_params: vec![],
         return_reg: MockRegister::R1,
         reserved_stack: 0,
-        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        callee_saved: vec![MockRegister::R3, MockRegister::R4, MockRegister::F3, MockRegister::F4, MockRegister::V3, MockRegister::V4],
         always_saved: vec![],
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,
@@ -229,7 +233,7 @@ lazy_static::lazy_static! {
         vector_params: vec![],
         return_reg: MockRegister::R1,
         reserved_stack: 0,
-        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        callee_saved: vec![MockRegister::R3, MockRegister::R4, MockRegister::F3, MockRegister::F4, MockRegister::V3, MockRegister::V4],
         always_saved: vec![],
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,
@@ -243,7 +247,7 @@ lazy_static::lazy_static! {
         vector_params: vec![],
         return_reg: MockRegister::R1,
         reserved_stack: 32,
-        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        callee_saved: vec![MockRegister::R3, MockRegister::R4, MockRegister::F3, MockRegister::F4, MockRegister::V3, MockRegister::V4],
         always_saved: vec![],
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,

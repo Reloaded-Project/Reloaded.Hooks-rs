@@ -1,11 +1,12 @@
 use core::mem::transmute;
 
+use derive_enum_all_values::AllValues;
 use reloaded_hooks_portable::api::traits::register_info::{
     KnownRegisterType, KnownRegisterType::*, RegisterInfo,
 };
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, AllValues)]
 pub enum AllRegisters {
     // Range 0b00000 - 0b11111 (0-31)
     // 32 bit general purpose registers
@@ -173,6 +174,13 @@ impl RegisterInfo for AllRegisters {
         }
 
         *self
+    }
+
+    fn all_registers() -> &'static [Self]
+    where
+        Self: Sized,
+    {
+        Self::all_values()
     }
 }
 
