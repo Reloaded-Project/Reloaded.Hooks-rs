@@ -14,12 +14,8 @@ bitfield! {
     impl Debug;
     u8;
 
-    /// Constant field, set to 1.
-    /// In future, used by size register.
-    const_one, set_const_one: 31;
-
     /// Size field. 1 if 64-bit register, else 0.
-    size, set_size: 30;
+    size, set_size: 31, 30;
 
     /// The raw opcode used for this operation.
     opcode, set_opcode: 29, 24;
@@ -53,7 +49,6 @@ impl LdrImmediatePostIndexed {
         // Note: Compiler is smart enough to optimize this away as a constant
         // Which is why we moved the non-constant stuff to the bottom.
         let mut value = LdrImmediatePostIndexed(0);
-        value.set_const_one(true);
         value.set_opcode(0b111000); // post-index variant
         value.set_opc(0b010);
         value.set_unk(0b01);
@@ -62,7 +57,7 @@ impl LdrImmediatePostIndexed {
         value.set_rn(31);
 
         // Set parameters
-        value.set_size(is_64bit);
+        value.set_size(if is_64bit { 11 } else { 10 });
         value.set_rn_offset(stack_offset as i16);
         value.set_rt(source);
         Ok(value)

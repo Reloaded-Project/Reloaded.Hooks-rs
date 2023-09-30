@@ -35,11 +35,15 @@ pub fn encode_mov_from_stack(
 }
 
 fn encode_mov_from_stack_vector(
-    _x: &MovFromStack<AllRegisters>,
-    _pc: &mut usize,
-    _buf: &mut Vec<i32>,
+    x: &MovFromStack<AllRegisters>,
+    pc: &mut usize,
+    buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
-    todo!()
+    let rd = x.target.register_number();
+    let ldr = LdrImmediateUnsignedOffset::new_mov_from_stack_vector(rd as u8, x.stack_offset)?;
+    *pc += 4;
+    buf.push(ldr.0.to_le() as i32);
+    Ok(())
 }
 
 #[cfg(test)]
@@ -55,7 +59,9 @@ mod tests {
     #[case(w0, 4, "e00740b9", false)]
     #[case(x0, 8, "e00740f9", false)]
     #[case(w0, 8, "e00b40b9", false)]
-    // #[case(AllRegisters::V0, 16, "expected_hex_value3")] // vector, assuming you implement this
+    // Vector cases
+    #[case(v0, 16, "e007c03d", false)]
+    #[case(v31, 16, "ff07c03d", false)]
     fn test_encode_mov_from_stack(
         #[case] target: AllRegisters,
         #[case] stack_offset: i32,

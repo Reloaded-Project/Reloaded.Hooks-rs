@@ -16,12 +16,8 @@ bitfield! {
     impl Debug;
     u8;
 
-    /// Constant field, set to 1.
-    /// In future, used by size register.
-    const_one, set_const_one: 31;
-
     /// Size field. 1 if 64-bit register, else 0.
-    size, set_size: 30;
+    size, set_size: 31, 30;
 
     /// The raw opcode used for this operation.
     opcode, set_opcode: 29, 24;
@@ -71,7 +67,6 @@ impl LdrImmediateUnsignedOffset {
         // Note: Compiler is smart enough to optimize this away as a constant
         // Which is why we moved the non-constant stuff to the bottom.
         let mut value = LdrImmediateUnsignedOffset(0);
-        value.set_const_one(true);
         value.set_opcode(0b111001);
         value.set_opc(0b01);
 
@@ -80,7 +75,39 @@ impl LdrImmediateUnsignedOffset {
 
         // Set parameters
         value.set_rt(destination);
-        value.set_size(is_64bit);
+        value.set_size(if is_64bit { 11 } else { 10 });
+        value.set_rn_offset(encoded_offset as i16);
+        Ok(value)
+    }
+
+    pub fn new_mov_from_stack_vector(
+        destination: u8,
+        stack_offset: i32,
+    ) -> Result<Self, JitError<AllRegisters>> {
+        // Check if divisible by 16.
+        if (stack_offset & 0b1111) != 0 {
+            return Err(return_divisible_by_value(stack_offset));
+        }
+
+        // Verify it's in range
+        if !(-65536..=65520).contains(&stack_offset) {
+            return Err(return_stack_out_of_range(stack_offset));
+        }
+
+        let encoded_offset = stack_offset >> 4;
+
+        // Note: Compiler is smart enough to optimize this away as a constant
+        // Which is why we moved the non-constant stuff to the bottom.
+        let mut value = LdrImmediateUnsignedOffset(0);
+        value.set_opcode(0b111101);
+        value.set_opc(0b11); // 11 for 128-bit
+        value.set_size(00); // 128-bit
+
+        // Set Stack Pointer as Source Register
+        value.set_rn(31);
+
+        // Set parameters
+        value.set_rt(destination);
         value.set_rn_offset(encoded_offset as i16);
         Ok(value)
     }
