@@ -11,6 +11,7 @@ pub mod instructions {
     pub mod ldr_immediate_post_indexed;
     pub mod ldr_immediate_unsigned_offset;
     pub mod orr;
+    pub mod orr_vector;
     pub mod str_immediate_pre_indexed;
     pub mod sub_immediate;
 }

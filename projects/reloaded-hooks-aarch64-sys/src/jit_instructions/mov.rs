@@ -1,6 +1,9 @@
 use reloaded_hooks_portable::api::jit::{compiler::JitError, mov_operation::MovOperation};
 extern crate alloc;
-use crate::{all_registers::AllRegisters, instructions::orr::Orr};
+use crate::{
+    all_registers::AllRegisters,
+    instructions::{orr::Orr, orr_vector::OrrVector},
+};
 use alloc::vec::Vec;
 
 /// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/MOV--register---Move--register---an-alias-of-ORR--shifted-register--
@@ -38,12 +41,19 @@ pub fn encode_mov(
 ///
 /// Part of encode_mov, assumes validation already done.
 fn encode_mov_vector(
-    _x: &MovOperation<AllRegisters>,
-    _pc: &mut usize,
-    _buf: &mut Vec<i32>,
+    x: &MovOperation<AllRegisters>,
+    pc: &mut usize,
+    buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
     // Note: Validation was already done
-    todo!();
+    let rm = x.source.register_number();
+    let rd = x.target.register_number();
+    let orr = OrrVector::new_mov(rd as u8, rm as u8);
+
+    *pc += 4;
+    buf.push(orr.0.to_le() as i32);
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -59,7 +69,9 @@ mod tests {
     #[case(w0, w1, 4, 4, "e003012a")]
     #[case(x0, x1, 8, 8, "e00301aa")]
     #[case(w0, x1, 4, 8, "fail")] // should fail
-                                  // #[case(v0, v1, 16, 16, "some_hex_value4")] // vector
+
+    // Vector operations
+    #[case(v0, v1, 16, 16, "201ca14e")]
     fn test_encode_mov(
         #[case] target: AllRegisters,
         #[case] source: AllRegisters,
