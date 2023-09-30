@@ -6,6 +6,8 @@ use crate::all_registers::AllRegisters;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
+// TODO: Disabled because optimised version relies on MultiPop / MultiPush.
+
 pub fn encode_push_stack(
     x: &PushStackOperation<AllRegisters>,
     pc: &mut usize,

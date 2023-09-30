@@ -6,7 +6,7 @@
 
 ## Needed for Basic Hooking Support
 
-### JumpRelativeOperation
+### JumpRelative
 
 !!! info "Represents jumping to a relative offset from current instruction pointer."
 
@@ -44,7 +44,7 @@
     jmp 0x200 ; Jump to address at current IP + 0x200
     ```
 
-### JumpAbsoluteOperation
+### JumpAbsolute
 
 !!! info "Represents jumping to an absolute address stored in a register or memory."
 
@@ -85,7 +85,7 @@
 
 !!! info "This includes functionality like 'parameter injection'."
 
-### MovOperation
+### Mov
 
 !!! info "Represents a move operation between two registers."
 
@@ -116,7 +116,7 @@
     mov ebx, eax ; Move eax into ebx
     ```
 
-### MovFromStackOperation
+### MovFromStack
 
 !!! info "Represents a move operation from the stack into a register."
 
@@ -147,7 +147,7 @@
     mov ebx, [esp + 8] ; Move value at esp + 8 into ebx
     ```
 
-### PushOperation
+### Push
 
 !!! info "Represents pushing a register onto the stack."
 
@@ -178,7 +178,7 @@
     push ebx ; Push ebx onto the stack
     ```
 
-### PushStackOperation
+### PushStack
 
 !!! info "Represents pushing a value from the stack to the stack."
 
@@ -211,7 +211,7 @@
     push [esp + 8] ; Push value at esp + 8 onto the stack
     ```
 
-### PushConstantOperation  
+### PushConstant
 
 !!! info "Represents pushing a constant value onto the stack."
 
@@ -243,7 +243,7 @@
     push 10 ; Push constant value 10 onto stack
     ```
 
-### StackAllocOperation
+### StackAlloc
 
 !!! info "Represents adjusting the stack pointer."
 
@@ -273,7 +273,7 @@
     sub esp, 8 ; Decrement esp by 8
     ```
 
-### PopOperation
+### Pop
 
 !!! info "Represents popping a value from the stack into a register."
 
@@ -304,7 +304,7 @@
     pop ebx ; Pop value from stack into ebx
     ```
 
-### XChgOperation
+### XChg
 
 !!! info "Represents exchanging the contents of two registers."
 
@@ -341,7 +341,7 @@
     xchg eax, ebx ; Swap eax and ebx
     ```
 
-### CallAbsoluteOperation
+### CallAbsolute
 
 !!! info "Represents calling an absolute address stored in a register or memory."
 
@@ -375,7 +375,7 @@
     call eax ; Call address in eax
     ```
 
-### CallRelativeOperation
+### CallRelative
 
 !!! info "Represents calling a relative offset from current instruction pointer."
 
@@ -405,7 +405,7 @@
     call 0x200 ; Call address at current IP + 0x200
     ```
 
-### ReturnOperation
+### Return
 
 !!! info "Represents returning from a function call."
 
@@ -447,7 +447,7 @@
 
 !!! tip "Enabled by setting `JitCapabilities::CanEncodeIPRelativeCall` and `JitCapabilities::CanEncodeIPRelativeJump` in JIT."
 
-### CallIpRelativeOperation
+### CallIpRelative
 
 !!! info "Represents calling an IP-relative offset where target address is stored."
 
@@ -465,7 +465,7 @@
     call qword [rip - 16] ; Address 0x1000 is at RIP-16 and contains raw address to call
     ```
 
-### JumpIpRelativeOperation
+### JumpIpRelative
 
 !!! info "Represents jumping to an IP-relative offset where target address is stored."
 
@@ -487,9 +487,11 @@
 
 !!! tip "Enabled by setting `JitCapabilities::CanMultiPush` in JIT."
 
-### MultiPushOperation
+### MultiPush
 
 !!! info "Represents pushing multiple registers onto the stack."
+
+!!! note "Implementations must support push/pop of mixed registers (e.g. Reg+Vector)."
 
 === "Rust"
 
@@ -530,9 +532,11 @@
     push edx ; Push ebx, eax, ecx, edx onto the stack
     ```
 
-### MultiPopOperation
+### MultiPop
 
 !!! info "Represents popping multiple registers from the stack."
+
+!!! note "Implementations must support push/pop of mixed registers (e.g. Reg+Vector)."
 
 === "Rust" 
 

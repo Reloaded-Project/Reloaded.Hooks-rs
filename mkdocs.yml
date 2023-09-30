@@ -56,6 +56,7 @@ nav:
   - Architectures:
     - Overview: arch/overview.md
     - Operations: arch/operations.md
+    - Operations (Implemented): arch/operations-impl.md
     - x86_64: arch/x86_64.md
     - x86: arch/x86.md
     - arm64: arch/arm64.md
