@@ -40,6 +40,25 @@ impl LdpImmediate {
         dst_2: u8,
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
+        Self::ldp_common(is_64bit, dst_1, dst_2, stack_offset, 0b10100011) // post index
+    }
+
+    pub fn new_mov_from_stack(
+        is_64bit: bool,
+        dst_1: u8,
+        dst_2: u8,
+        stack_offset: i32,
+    ) -> Result<Self, JitError<AllRegisters>> {
+        Self::ldp_common(is_64bit, dst_1, dst_2, stack_offset, 0b10100101) // signed offset
+    }
+
+    fn ldp_common(
+        is_64bit: bool,
+        dst_1: u8,
+        dst_2: u8,
+        stack_offset: i32,
+        opcode: u8,
+    ) -> Result<LdpImmediate, JitError<AllRegisters>> {
         // Check if divisible by 8 or 4, and fits in range.
         let encoded_offset = if is_64bit {
             if (stack_offset & 0b111) != 0 {
@@ -66,7 +85,7 @@ impl LdpImmediate {
         // Note: Compiler is smart enough to optimize this away as a constant
         // Which is why we moved the non-constant stuff to the bottom.
         let mut value = LdpImmediate(0);
-        value.set_opcode(0b10100011); // post-index variant
+        value.set_opcode(opcode); // variant-specific opcode
         value.set_size(if is_64bit { 10 } else { 0 });
 
         // Set Stack Pointer as Source Register
@@ -85,6 +104,23 @@ impl LdpImmediate {
         dst_2: u8,
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
+        Self::ldp_common_vector(dst_1, dst_2, stack_offset, 0b10110011) // post index
+    }
+
+    pub fn new_mov_from_stack_vector(
+        dst_1: u8,
+        dst_2: u8,
+        stack_offset: i32,
+    ) -> Result<Self, JitError<AllRegisters>> {
+        Self::ldp_common_vector(dst_1, dst_2, stack_offset, 0b10110101) // signed offset
+    }
+
+    fn ldp_common_vector(
+        dst_1: u8,
+        dst_2: u8,
+        stack_offset: i32,
+        opcode: u8,
+    ) -> Result<LdpImmediate, JitError<AllRegisters>> {
         // Check if divisible by 16
         if (stack_offset & 0b1111) != 0 {
             return Err(return_divisible_by_value(stack_offset));
@@ -99,7 +135,7 @@ impl LdpImmediate {
         // Note: Compiler is smart enough to optimize this away as a constant
         // Which is why we moved the non-constant stuff to the bottom.
         let mut value = LdpImmediate(0);
-        value.set_opcode(0b10110011); // post-index variant
+        value.set_opcode(opcode); // opcode passed as argument
         value.set_size(10);
 
         // Set Stack Pointer as Source Register
