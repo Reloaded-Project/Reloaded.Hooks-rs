@@ -14,35 +14,20 @@ pub fn encode_mov_from_stack(
 ) -> Result<(), JitError<AllRegisters>> {
     let target_size = x.target.size();
 
-    // TODO: Handle Vector Registers
-    let is_64bit = if target_size == 8 {
-        true
+    let rd = x.target.register_number();
+    let ldr = if target_size == 8 {
+        LdrImmediateUnsignedOffset::new_mov_from_stack(true, rd as u8, x.stack_offset)?.0
     } else if target_size == 4 {
-        false
+        LdrImmediateUnsignedOffset::new_mov_from_stack(false, rd as u8, x.stack_offset)?.0
     } else if target_size == 16 {
-        return encode_mov_from_stack_vector(x, pc, buf);
+        LdrImmediateUnsignedOffset::new_mov_from_stack_vector(rd as u8, x.stack_offset)?.0
     } else {
         return Err(JitError::InvalidRegister(x.target));
     };
 
-    let rd = x.target.register_number();
-    let ldr = LdrImmediateUnsignedOffset::new_mov_from_stack(is_64bit, rd as u8, x.stack_offset)?;
-
     *pc += 4;
-    buf.push(ldr.0.to_le() as i32);
+    buf.push(ldr.to_le() as i32);
 
-    Ok(())
-}
-
-fn encode_mov_from_stack_vector(
-    x: &MovFromStack<AllRegisters>,
-    pc: &mut usize,
-    buf: &mut Vec<i32>,
-) -> Result<(), JitError<AllRegisters>> {
-    let rd = x.target.register_number();
-    let ldr = LdrImmediateUnsignedOffset::new_mov_from_stack_vector(rd as u8, x.stack_offset)?;
-    *pc += 4;
-    buf.push(ldr.0.to_le() as i32);
     Ok(())
 }
 

@@ -15,43 +15,21 @@ pub fn encode_mov(
     let source_size = x.source.size();
     let target_size = x.target.size();
 
-    // TODO: Handle Vector Registers
-    // a.k.a. `sf` flag
-    let is_64bit = if source_size == 8 && target_size == 8 {
-        true
+    let rm = x.source.register_number();
+    let rd = x.target.register_number();
+
+    let orr = if source_size == 8 && target_size == 8 {
+        Orr::new_mov(true, rd as u8, rm as u8).0
     } else if source_size == 16 && target_size == 16 {
-        return encode_mov_vector(x, pc, buf);
+        OrrVector::new_mov(rd as u8, rm as u8).0
     } else if source_size == 4 && target_size == 4 {
-        false
+        Orr::new_mov(false, rd as u8, rm as u8).0
     } else {
         return Err(JitError::InvalidRegisterCombination(x.source, x.target));
     };
 
-    let rm = x.source.register_number();
-    let rd = x.target.register_number();
-    let orr = Orr::new_mov(is_64bit, rd as u8, rm as u8);
-
     *pc += 4;
-    buf.push(orr.0.to_le() as i32);
-
-    Ok(())
-}
-
-/// # Remarks
-///
-/// Part of encode_mov, assumes validation already done.
-fn encode_mov_vector(
-    x: &MovOperation<AllRegisters>,
-    pc: &mut usize,
-    buf: &mut Vec<i32>,
-) -> Result<(), JitError<AllRegisters>> {
-    // Note: Validation was already done
-    let rm = x.source.register_number();
-    let rd = x.target.register_number();
-    let orr = OrrVector::new_mov(rd as u8, rm as u8);
-
-    *pc += 4;
-    buf.push(orr.0.to_le() as i32);
+    buf.push(orr.to_le() as i32);
 
     Ok(())
 }
