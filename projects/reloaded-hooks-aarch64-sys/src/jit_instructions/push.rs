@@ -12,29 +12,19 @@ pub fn encode_push(
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
     let size = x.register.size();
-    if size == 8 {
-        let str = StrImmediatePreIndexed::new_push_register(true, x.register as u8, -8)?;
-        buf.push(str.0.to_le() as i32);
-        *pc += 4;
-        Ok(())
+    let op = if size == 8 {
+        StrImmediatePreIndexed::new_push_register(true, x.register as u8, -8)?.0
     } else if size == 4 {
-        let str = StrImmediatePreIndexed::new_push_register(false, x.register as u8, -4)?;
-        buf.push(str.0.to_le() as i32);
-        *pc += 4;
-        Ok(())
+        StrImmediatePreIndexed::new_push_register(false, x.register as u8, -4)?.0
     } else if size == 16 {
-        return encode_push_vector(x, pc, buf);
+        StrImmediatePreIndexed::new_push_vector(x.register as u8, -16)?.0
     } else {
         return Err(JitError::InvalidRegister(x.register));
-    }
-}
+    };
 
-fn encode_push_vector(
-    _x: &PushOperation<AllRegisters>,
-    _pc: &mut usize,
-    _buf: &mut Vec<i32>,
-) -> Result<(), JitError<AllRegisters>> {
-    todo!()
+    buf.push(op.to_le() as i32);
+    *pc += 4;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -49,10 +39,11 @@ mod tests {
     #[rstest]
     #[case(x0, 4, "e08f1ff8", false)]
     #[case(w0, 4, "e0cf1fb8", false)]
-    // #[case(v0, 16, "expected_hex_value_for_vector", false)] // if you implement this
+    // Vector cases
+    #[case(v0, 4, "e00f9f3c", false)]
     fn test_encode_push(
         #[case] register: AllRegisters,
-        #[case] expected_size: usize,
+        #[case] expected_pc: usize,
         #[case] expected_hex: &str,
         #[case] is_err: bool,
     ) {
@@ -69,6 +60,6 @@ mod tests {
         // If the encoding is successful, compare with the expected hex value
         assert!(encode_push(&operation, &mut pc, &mut buf).is_ok());
         assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(expected_size, pc);
+        assert_eq!(expected_pc, pc);
     }
 }

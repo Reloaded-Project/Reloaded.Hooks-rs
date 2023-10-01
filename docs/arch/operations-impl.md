@@ -47,9 +47,9 @@
 
 | Architecture | Register | Vector |
 | ------------ | -------- | ------ |
-| x64          | ✅        | ❌      |
-| x86          | ✅        | ❌      |
-| ARM64        | ✅        | ❌      |
+| x64          | ✅        | ✅      |
+| x86          | ✅        | ✅      |
+| ARM64        | ✅        | ✅      |
 
 ### [PushStack](./operations.md#pushstack)
 
