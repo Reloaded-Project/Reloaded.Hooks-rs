@@ -1,4 +1,4 @@
-use crate::instructions::errors::return_stack_out_of_range;
+use alloc::format;
 use bitfield::bitfield;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
 
@@ -6,13 +6,11 @@ extern crate alloc;
 
 use crate::all_registers::AllRegisters;
 
-use super::errors::return_divisible_by_value;
+use super::errors::{return_divisible_by_value, return_stack_out_of_range};
 
-// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/LDR--immediate---Load-Register--immediate--?lang=en
+// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/LDP--Load-Pair-of-Registers-?lang=en
 bitfield! {
-    /// `LDR` represents the bitfields of the LDR immediate instruction
-    /// in AArch64 architecture. The bitfields are described as follows:
-    pub struct LdrImmediateUnsignedOffset(u32);
+    pub struct LdpImmediate(u32);
     impl Debug;
     u8;
 
@@ -20,13 +18,13 @@ bitfield! {
     size, set_size: 31, 30;
 
     /// The raw opcode used for this operation.
-    opcode, set_opcode: 29, 24;
+    opcode, set_opcode: 29, 22;
 
-    /// The operation used, dictates if this is a load or store.
-    opc, set_opc: 23, 22;
+    /// The offset from rn, counted in register size increments.
+    offset, set_rn_offset: 21, 15;
 
-    /// Source register to which the immediate offset is added.
-    i16, rn_offset, set_rn_offset: 21, 10;
+    /// The second destination register.
+    rt2, set_rt2: 14, 10;
 
     /// Register number for the first operand (source), 31 for SP.
     rn, set_rn: 9, 5;
@@ -35,19 +33,20 @@ bitfield! {
     rt, set_rt: 4, 0;
 }
 
-impl LdrImmediateUnsignedOffset {
-    pub fn new_mov_from_stack(
+impl LdpImmediate {
+    pub fn new_pop_registers(
         is_64bit: bool,
-        destination: u8,
+        dst_1: u8,
+        dst_2: u8,
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
-        // Check if divisible by 8 or 4.
+        // Check if divisible by 8 or 4, and fits in range.
         let encoded_offset = if is_64bit {
             if (stack_offset & 0b111) != 0 {
                 return Err(return_divisible_by_value(stack_offset));
             }
 
-            if !(0..=32760).contains(&stack_offset) {
+            if !(-512..=504).contains(&stack_offset) {
                 return Err(return_stack_out_of_range(stack_offset));
             }
 
@@ -57,7 +56,7 @@ impl LdrImmediateUnsignedOffset {
                 return Err(return_divisible_by_value(stack_offset));
             }
 
-            if !(0..=16380).contains(&stack_offset) {
+            if !(-256..=252).contains(&stack_offset) {
                 return Err(return_stack_out_of_range(stack_offset));
             }
 
@@ -66,31 +65,32 @@ impl LdrImmediateUnsignedOffset {
 
         // Note: Compiler is smart enough to optimize this away as a constant
         // Which is why we moved the non-constant stuff to the bottom.
-        let mut value = LdrImmediateUnsignedOffset(0);
-        value.set_opcode(0b111001);
-        value.set_opc(0b01);
+        let mut value = LdpImmediate(0);
+        value.set_opcode(0b10100011); // post-index variant
+        value.set_size(if is_64bit { 10 } else { 0 });
 
         // Set Stack Pointer as Source Register
         value.set_rn(31);
 
         // Set parameters
-        value.set_rt(destination);
-        value.set_size(if is_64bit { 11 } else { 10 });
-        value.set_rn_offset(encoded_offset as i16);
+        value.set_rn_offset(encoded_offset as u8);
+        value.set_rt(dst_1);
+        value.set_rt2(dst_2);
+
         Ok(value)
     }
 
-    pub fn new_mov_from_stack_vector(
-        destination: u8,
+    pub fn new_pop_registers_vector(
+        dst_1: u8,
+        dst_2: u8,
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
-        // Check if divisible by 16.
+        // Check if divisible by 16
         if (stack_offset & 0b1111) != 0 {
             return Err(return_divisible_by_value(stack_offset));
         }
 
-        // Verify it's in range
-        if !(0..=65520).contains(&stack_offset) {
+        if !(-1024..=1008).contains(&stack_offset) {
             return Err(return_stack_out_of_range(stack_offset));
         }
 
@@ -98,17 +98,18 @@ impl LdrImmediateUnsignedOffset {
 
         // Note: Compiler is smart enough to optimize this away as a constant
         // Which is why we moved the non-constant stuff to the bottom.
-        let mut value = LdrImmediateUnsignedOffset(0);
-        value.set_opcode(0b111101);
-        value.set_opc(0b11); // 11 for 128-bit
-        value.set_size(00); // 128-bit
+        let mut value = LdpImmediate(0);
+        value.set_opcode(0b10110011); // post-index variant
+        value.set_size(10);
 
         // Set Stack Pointer as Source Register
         value.set_rn(31);
 
         // Set parameters
-        value.set_rt(destination);
-        value.set_rn_offset(encoded_offset as i16);
+        value.set_rn_offset(encoded_offset as u8);
+        value.set_rt(dst_1);
+        value.set_rt2(dst_2);
+
         Ok(value)
     }
 }

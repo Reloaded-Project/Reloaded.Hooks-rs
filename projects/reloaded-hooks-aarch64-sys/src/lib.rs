@@ -8,6 +8,7 @@ pub mod jit;
 pub mod instructions {
     pub mod add_immediate;
     pub mod errors;
+    pub mod ldp_immediate;
     pub mod ldr_immediate_post_indexed;
     pub mod ldr_immediate_unsigned_offset;
     pub mod orr;
@@ -21,6 +22,7 @@ pub(crate) mod jit_instructions {
     pub mod mov;
     pub mod mov_from_stack;
     pub mod pop;
+    pub mod pop_two;
     pub mod push;
     pub mod push_stack;
     pub mod stackalloc;

@@ -7,12 +7,12 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 
 // TODO: Disabled because optimised version relies on MultiPop / MultiPush.
-
 pub fn encode_push_stack(
     x: &PushStackOperation<AllRegisters>,
     pc: &mut usize,
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
+    /*
     // Validate remaining size is usable.
     if x.item_size % 4 != 0 {
         return Err(JitError::ThirdPartyAssemblerError(
@@ -20,20 +20,20 @@ pub fn encode_push_stack(
         ));
     }
 
-    let num_regs = x.num_scratch_registers();
+    // A free vector register, let's go !
     let mut remaining_bytes = x.item_size;
-
-    if num_regs >= 2 {
-        todo!();
-    } else if num_regs == 1 {
-        todo!();
+    if let Some(vec_reg) = x.scratch.iter().find(|reg| reg.is_128()) {
+        // Vectorised variant.
+    } else if let Some(two_reg) = get_two_64_bit_registers(*x.scratch) {
+        // Two register variant
+    } else if let Some(single_reg) = x.scratch.iter().find(|reg| reg.is_64()) {
+        // Single register fallback
     } else {
         return Err(JitError::ThirdPartyAssemblerError(
             "No scratch register available".to_string(),
         ));
     }
 
-    /*
     while remaining_bytes > 0 {
         if remaining_bytes >= 16 {
             // Push Multiple Register
@@ -49,6 +49,12 @@ pub fn encode_push_stack(
     */
 
     Ok(())
+}
+fn get_two_64_bit_registers(vec: Vec<AllRegisters>) -> Option<(AllRegisters, AllRegisters)> {
+    let mut iter = vec.iter().filter(|reg| reg.is_64());
+    let reg1 = iter.next()?;
+    let reg2 = iter.next()?;
+    Some((*reg1, *reg2))
 }
 
 #[cfg(test)]
