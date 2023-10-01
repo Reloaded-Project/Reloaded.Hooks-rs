@@ -1,3 +1,7 @@
+extern crate alloc;
+
+use alloc::rc::Rc;
+use alloc::vec::Vec;
 use derive_new::new;
 
 /// Represents a push stack operation which pushes a value onto the stack from an
@@ -27,7 +31,7 @@ use derive_new::new;
 /// Number of copied bytes should be a multiple of native register size.
 /// Other values may not be supported depending on implementation.
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
+#[derive(Debug, Clone, PartialEq, Eq, new)]
 pub struct PushStackOperation<T> {
     /// The offset from the current stack pointer in the direction opposite to the stack's growth.
     pub offset: i32,
@@ -35,11 +39,8 @@ pub struct PushStackOperation<T> {
     /// Size of the item to re-push to stack.
     pub item_size: u32,
 
-    /// Scratch register to use for the push operation. (Needed for some architectures)
-    pub scratch_1: Option<T>,
-
-    /// Scratch register to use for the push operation. (Needed for some architectures)
-    pub scratch_2: Option<T>,
+    /// Scratch registers to use for the push operation. (Needed for some architectures)
+    pub scratch: Rc<Vec<T>>,
 }
 
 impl<T> Default for PushStackOperation<T> {
@@ -47,8 +48,7 @@ impl<T> Default for PushStackOperation<T> {
         Self {
             offset: Default::default(),
             item_size: Default::default(),
-            scratch_1: Default::default(),
-            scratch_2: Default::default(),
+            scratch: Default::default(),
         }
     }
 }
@@ -64,43 +64,13 @@ impl<T> PushStackOperation<T> {
     /// let push_op = PushStackOperation::<i32>::with_offset_and_size(0, 4);
     /// assert_eq!(push_op.offset, 0);
     /// assert_eq!(push_op.item_size, 4);
-    /// assert_eq!(push_op.scratch_1, None);
-    /// assert_eq!(push_op.scratch_2, None);
     /// ```
     pub fn with_offset_and_size(offset: i32, item_size: u32) -> Self {
         Self {
             offset,
             item_size,
-            scratch_1: None,
-            scratch_2: None,
+            scratch: Default::default(),
         }
-    }
-
-    /// Returns the number of scratch registers used in the push operation.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use reloaded_hooks_portable::api::jit::push_stack_operation::PushStackOperation;
-    ///
-    /// let push_op = PushStackOperation::<i32>::with_offset_and_size(0, 4);
-    /// assert_eq!(push_op.num_scratch_registers(), 0);
-    ///
-    /// let push_op = PushStackOperation::<i32>::with_scratch_registers(0, 4, &[1]);
-    /// assert_eq!(push_op.num_scratch_registers(), 1);
-    ///
-    /// let push_op = PushStackOperation::<i32>::with_scratch_registers(0, 4, &[1, 2]);
-    /// assert_eq!(push_op.num_scratch_registers(), 2);
-    /// ```
-    pub fn num_scratch_registers(&self) -> usize {
-        let mut count = 0;
-        if self.scratch_1.is_some() {
-            count += 1;
-        }
-        if self.scratch_2.is_some() {
-            count += 1;
-        }
-        count
     }
 
     /// Returns true if this operation has the provided offset and size.
@@ -125,32 +95,5 @@ impl<T> PushStackOperation<T> {
     /// ```
     pub fn has_offset_and_size(&self, offset: i32, item_size: u32) -> bool {
         self.offset == offset && self.item_size == item_size
-    }
-}
-
-impl<T: Copy> PushStackOperation<T> {
-    /// Creates a new `PushStackOperation` with scratch registers.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use reloaded_hooks_portable::api::jit::push_stack_operation::PushStackOperation;
-    ///
-    /// let push_op = PushStackOperation::<i32>::with_scratch_registers(0, 4, &[1, 2]);
-    /// assert_eq!(push_op.offset, 0);
-    /// assert_eq!(push_op.item_size, 4);
-    /// assert_eq!(push_op.scratch_1, Some(1));
-    /// assert_eq!(push_op.scratch_2, Some(2));
-    /// ```
-    pub fn with_scratch_registers(offset: i32, item_size: u32, registers: &[T]) -> Self {
-        let mut me = Self::with_offset_and_size(offset, item_size);
-        if registers.len() > 1 {
-            me.scratch_1 = Some(registers[0]);
-            me.scratch_2 = Some(registers[1]);
-        } else if !registers.is_empty() {
-            me.scratch_1 = Some(registers[0]);
-        }
-
-        me
     }
 }

@@ -1,5 +1,6 @@
 extern crate alloc;
 
+use alloc::rc::Rc;
 use derive_more::From;
 use smallvec::SmallVec;
 
@@ -66,8 +67,7 @@ where
         Operation::PushStack(inner_op) => Operation::PushStack(PushStackOperation {
             offset: inner_op.offset,
             item_size: inner_op.item_size,
-            scratch_1: inner_op.scratch_1.map(&f),
-            scratch_2: inner_op.scratch_2.map(&f),
+            scratch: Rc::new(inner_op.scratch.iter().map(|x| f(*x)).collect()),
         }),
         Operation::StackAlloc(inner_op) => Operation::StackAlloc(StackAllocOperation {
             operand: inner_op.operand,

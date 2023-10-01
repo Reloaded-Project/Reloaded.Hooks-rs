@@ -1,8 +1,8 @@
 extern crate alloc;
 use core::{hash::Hash, mem::size_of, slice};
 
-use alloc::string::ToString;
 use alloc::vec::Vec;
+use alloc::{rc::Rc, string::ToString};
 use smallvec::SmallVec;
 
 use super::{
@@ -166,7 +166,7 @@ pub fn generate_wrapper_instructions<
     //
     // In this case, we are calling `conv_called` from the wrapper we create which is still
     // `conv_current`. Therefore, we need to use the scratch registers of `conv_current`.
-    let scratch_registers = conv_current.caller_saved_registers();
+    let scratch_registers = Rc::new(conv_current.caller_saved_registers());
 
     // Backup Always Saved Registers (LR, etc.)
     for register in conv_current.always_saved_registers() {
@@ -238,10 +238,10 @@ pub fn generate_wrapper_instructions<
         for param in fn_returned_params.0.iter().rev() {
             let param_size_bytes = param.size_in_bytes();
             setup_params_ops.push(
-                PushStack::with_scratch_registers(
+                PushStack::new(
                     current_offset as i32,
                     param_size_bytes as u32,
-                    &scratch_registers,
+                    scratch_registers.clone(),
                 )
                 .into(),
             );
