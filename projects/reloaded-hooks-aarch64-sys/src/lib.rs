@@ -13,6 +13,7 @@ pub mod instructions {
     pub mod ldr_immediate_unsigned_offset;
     pub mod orr;
     pub mod orr_vector;
+    pub mod stp_immediate;
     pub mod str_immediate_pre_indexed;
     pub mod sub_immediate;
 }
@@ -25,6 +26,7 @@ pub(crate) mod jit_instructions {
     pub mod pop_two;
     pub mod push;
     pub mod push_stack;
+    pub mod push_two;
     pub mod stackalloc;
 }
 
