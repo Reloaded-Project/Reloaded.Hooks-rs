@@ -19,3 +19,11 @@ pub fn return_divisible_by_value(stack_offset: i32) -> JitError<AllRegisters> {
         stack_offset
     ))
 }
+
+#[inline(never)]
+pub fn invalid_shift_amount(shift: u8) -> JitError<AllRegisters> {
+    JitError::InvalidOffset(format!(
+        "Invalid shift amount {}. Amount should be 0, 16, 32 or 48.",
+        shift
+    ))
+}
