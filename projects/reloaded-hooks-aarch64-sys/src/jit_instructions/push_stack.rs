@@ -1,3 +1,5 @@
+use reloaded_hooks_portable::api::jit::operation_aliases::MovFromStack;
+use reloaded_hooks_portable::api::jit::push_operation::PushOperation;
 use reloaded_hooks_portable::api::jit::{
     compiler::JitError, push_stack_operation::PushStackOperation,
 };
@@ -6,13 +8,17 @@ use crate::all_registers::AllRegisters;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
+use super::mov_from_stack::{self, encode_mov_from_stack};
+use super::mov_two_from_stack::encode_mov_two_from_stack;
+use super::push::encode_push;
+use super::push_two::encode_push_two;
+
 // TODO: Disabled because optimised version relies on MultiPop / MultiPush.
 pub fn encode_push_stack(
     x: &PushStackOperation<AllRegisters>,
     pc: &mut usize,
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
-    /*
     // Validate remaining size is usable.
     if x.item_size % 4 != 0 {
         return Err(JitError::ThirdPartyAssemblerError(
@@ -22,43 +28,106 @@ pub fn encode_push_stack(
 
     // A free vector register, let's go !
     let mut remaining_bytes = x.item_size;
-    if let Some(vec_reg) = x.scratch.iter().find(|reg| reg.is_128()) {
-        // Vectorised variant.
-    } else if let Some(two_reg) = get_two_64_bit_registers(*x.scratch) {
+    if let Some(regs) = get_two_vector_one_scalar_register(&x.scratch) {
+        // Vectorised variant (2 vector regs + 1 scalar reg)
         // Two register variant
-    } else if let Some(single_reg) = x.scratch.iter().find(|reg| reg.is_64()) {
+        while remaining_bytes > 0 {
+            if remaining_bytes >= 32 {
+                // Push Two Vectors
+                encode_mov_two_from_stack(&regs.0, &regs.1, x.offset, pc, buf)?;
+                encode_push_two(&regs.0, &regs.1, pc, buf)?;
+                remaining_bytes -= 32;
+            } else if remaining_bytes >= 16 {
+                // Push Single Vector
+                encode_mov_from_stack(&MovFromStack::new(x.offset, regs.0), pc, buf)?;
+                encode_push(&PushOperation::new(regs.0), pc, buf)?;
+                remaining_bytes -= 16;
+            } else if remaining_bytes >= 8 {
+                // Push Single Register
+                encode_mov_from_stack(&MovFromStack::new(x.offset, regs.2), pc, buf)?;
+                encode_push(&PushOperation::new(regs.2), pc, buf)?;
+                remaining_bytes -= 8;
+            } else {
+                // Push Remaining Multiple of 4
+                encode_mov_from_stack(&MovFromStack::new(x.offset, regs.2.shrink_to32()), pc, buf)?;
+                encode_push(&PushOperation::new(regs.2.shrink_to32()), pc, buf)?;
+                remaining_bytes -= 4;
+            }
+        }
+    } else if let Some(two_reg) = get_two_64_bit_registers(&x.scratch) {
+        // Two register variant
+        while remaining_bytes > 0 {
+            if remaining_bytes >= 16 {
+                // Push Two Registers
+                encode_mov_two_from_stack(&two_reg.0, &two_reg.1, x.offset, pc, buf)?;
+                encode_push_two(&two_reg.0, &two_reg.1, pc, buf)?;
+                remaining_bytes -= 16;
+            } else if remaining_bytes >= 8 {
+                // Push Single Register
+                encode_mov_from_stack(&MovFromStack::new(x.offset, two_reg.0), pc, buf)?;
+                encode_push(&PushOperation::new(two_reg.0), pc, buf)?;
+                remaining_bytes -= 8;
+            } else {
+                // Push Remaining Multiple of 4
+                encode_mov_from_stack(
+                    &MovFromStack::new(x.offset, two_reg.0.shrink_to32()),
+                    pc,
+                    buf,
+                )?;
+                encode_push(&PushOperation::new(two_reg.0.shrink_to32()), pc, buf)?;
+                remaining_bytes -= 4;
+            }
+        }
+    } else if let Some(reg) = x.scratch.iter().find(|reg| reg.is_64()) {
         // Single register fallback
+        while remaining_bytes > 0 {
+            if remaining_bytes >= 8 {
+                // Push Single Register
+                encode_mov_from_stack(&MovFromStack::new(x.offset, *reg), pc, buf)?;
+                encode_push(&PushOperation::new(*reg), pc, buf)?;
+                remaining_bytes -= 8;
+            } else {
+                // Push Remaining Multiple of 4
+                encode_mov_from_stack(&MovFromStack::new(x.offset, reg.shrink_to32()), pc, buf)?;
+                encode_push(&PushOperation::new(reg.shrink_to32()), pc, buf)?;
+                remaining_bytes -= 4;
+            }
+        }
     } else {
         return Err(JitError::ThirdPartyAssemblerError(
             "No scratch register available".to_string(),
         ));
     }
 
-    while remaining_bytes > 0 {
-        if remaining_bytes >= 16 {
-            // Push Multiple Register
-            remaining_bytes -= 16;
-        } else if remaining_bytes >= 8 {
-            // Push Single Register
-            remaining_bytes -= 8;
-        } else {
-            // Push Remaining Multiple of 4
-            remaining_bytes -= 4;
-        }
-    }
-    */
-
     Ok(())
 }
-fn get_two_64_bit_registers(vec: Vec<AllRegisters>) -> Option<(AllRegisters, AllRegisters)> {
+
+fn get_two_64_bit_registers(vec: &[AllRegisters]) -> Option<(AllRegisters, AllRegisters)> {
     let mut iter = vec.iter().filter(|reg| reg.is_64());
     let reg1 = iter.next()?;
     let reg2 = iter.next()?;
     Some((*reg1, *reg2))
 }
 
+fn get_two_vector_one_scalar_register(
+    vec: &[AllRegisters],
+) -> Option<(AllRegisters, AllRegisters, AllRegisters)> {
+    let mut vec_iter = vec.iter().filter(|reg| reg.is_128());
+    let mut scalar_iter = vec.iter().filter(|reg| reg.is_64());
+
+    let reg1 = vec_iter.next()?;
+    let reg2 = vec_iter.next()?;
+    let reg3 = scalar_iter.next()?;
+
+    Some((*reg1, *reg2, *reg3))
+}
+
 #[cfg(test)]
 mod tests {
+
+    extern crate alloc;
+    use alloc::rc::Rc;
+    use alloc::vec::Vec;
 
     use crate::all_registers::AllRegisters;
     use crate::all_registers::AllRegisters::*;
@@ -67,20 +136,38 @@ mod tests {
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
-    /*
     #[rstest]
-    #[case(4, 4, Some(x10), Some(x11), "ff1300d1", false)]
+    // Half register
+    #[case(4, 4, 8, vec![x0], "e00740b9e0cf1fb8", false)] // Single register.
+    #[case(4, 4, 8, vec![x0, x1], "e00740b9e0cf1fb8", false)] // Two registers
+    #[case(4, 4, 8, vec![x0, v0, v1], "e00740b9e0cf1fb8", false)] // Two vectors + reg
+
+    // Full register
+    #[case(8, 8, 8, vec![x0], "e00740f9e08f1ff8", false)] // Single register.
+    #[case(8, 8, 8, vec![x0, x1], "e00740f9e08f1ff8", false)] // Two registers
+    #[case(8, 8, 8, vec![x0, v0, v1], "e00740f9e08f1ff8", false)] // Two vectors + reg
+
+    // Two full registers
+    #[case(16, 16, 16, vec![x0], "e00b40f9e08f1ff8e00b40f9e08f1ff8", false)] // Single register.
+    #[case(16, 16, 8, vec![x0, x1], "e00741a9e007bfa9", false)] // Two registers
+    #[case(16, 16, 8, vec![x0, v0, v1], "e007c03de00f9f3c", false)] // Two vectors + reg
+
+    // Two vectors
+    #[case(32, 32, 32, vec![x0], "e01340f9e08f1ff8e01340f9e08f1ff8e01340f9e08f1ff8e01340f9e08f1ff8", false)] // Single register.
+    #[case(32, 32, 16, vec![x0, x1], "e00742a9e007bfa9e00742a9e007bfa9", false)] // Two registers
+    #[case(32, 32, 8, vec![x0, v0, v1], "e00741ade007bfad", false)] // Two vectors + reg
     fn test_encode_pushstack(
         #[case] offset: i32,
         #[case] item_size: u32,
-        #[case] scratch_1: Option<AllRegisters>,
-        #[case] scratch_2: Option<AllRegisters>,
+        #[case] pc_increase: usize,
+        #[case] scratch: Vec<AllRegisters>,
         #[case] expected_hex: &str,
         #[case] is_err: bool,
     ) {
         let mut pc = 0;
         let mut buf = Vec::new();
-        let operation = PushStack::new(offset, item_size, scratch_1, scratch_2);
+        let rc_vec = Rc::new(scratch);
+        let operation = PushStack::new(offset, item_size, rc_vec);
 
         // Check for errors if applicable
         if is_err {
@@ -93,7 +180,6 @@ mod tests {
         assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
 
         // Assert that the program counter has been incremented by 4
-        assert_eq!(4, pc);
+        assert_eq!(pc_increase, pc);
     }
-    */
 }

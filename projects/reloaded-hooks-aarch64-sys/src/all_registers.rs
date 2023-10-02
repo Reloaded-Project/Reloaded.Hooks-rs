@@ -43,7 +43,7 @@ pub enum AllRegisters {
     w30,
     w31, // 0b11111
 
-    // Range 0b00000 - 0b11111 (0-31)
+    // Range 0b100000 - 0b111111 (0-31)
     // XOR bit 0b100000 to toggle between w and x registers.
     // 64 bit general purpose registers
     x0, // 0b100000
@@ -143,6 +143,17 @@ impl AllRegisters {
 
     pub fn is_128(&self) -> bool {
         *self as u32 & 0b1000000 != 0
+    }
+
+    /// Shrinks a 64-bit general purpose register to a 32-bit general purpose register.
+    /// Note: This will shrink to 32-bit GPR with matching number even if the register is not a 64-bit GPR.
+    pub fn shrink_to32(&self) -> Self {
+        let value = *self as u32;
+        if self.is_64() {
+            return unsafe { transmute((value as u8) & 0b11111) };
+        }
+
+        *self
     }
 }
 

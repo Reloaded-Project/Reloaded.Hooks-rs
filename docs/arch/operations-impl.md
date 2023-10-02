@@ -57,7 +57,7 @@
 | ------------ | --------- | ------------------------------------------ |
 | x64          | ✅         |                                            |
 | x86          | ✅         |                                            |
-| ARM64        | ❌         | Uses 1/2 scratch registers (if available). |
+| ARM64        | ✅         | Will use vector registers when available. |
 
 ### [PushConstant](./operations.md#pushconstant)
 
