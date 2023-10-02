@@ -1,4 +1,3 @@
-use alloc::format;
 use bitfield::bitfield;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
 

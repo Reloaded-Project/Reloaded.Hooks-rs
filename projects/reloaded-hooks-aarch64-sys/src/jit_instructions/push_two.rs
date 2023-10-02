@@ -1,9 +1,6 @@
 use reloaded_hooks_portable::api::jit::compiler::JitError;
 extern crate alloc;
-use crate::{
-    all_registers::AllRegisters,
-    instructions::{ldp_immediate::LdpImmediate, stp_immediate::StpImmediate},
-};
+use crate::{all_registers::AllRegisters, instructions::stp_immediate::StpImmediate};
 use alloc::vec::Vec;
 
 /// Encoded as STP

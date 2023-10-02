@@ -8,7 +8,7 @@ use crate::all_registers::AllRegisters;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
-use super::mov_from_stack::{self, encode_mov_from_stack};
+use super::mov_from_stack::encode_mov_from_stack;
 use super::mov_two_from_stack::encode_mov_two_from_stack;
 use super::push::encode_push;
 use super::push_two::encode_push_two;
