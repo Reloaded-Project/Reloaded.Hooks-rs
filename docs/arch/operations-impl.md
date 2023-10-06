@@ -10,12 +10,12 @@
 
 ### [JumpRelative](./operations.md#jumprelative)
 
-| Architecture     | Supported | Notes                                                        |
-| ---------------- | --------- | ------------------------------------------------------------ |
-| x64              | ✅         | +-2GB                                                        |
-| x86              | ✅         | +-2GB                                                        |
-| ARM64            | ✅         | +-128MB                                                      |
-| ARM64 (relative) | ❌         | Relative +-4GB jump w/ 3 instructions. Used if within range. |
+| Architecture        | Supported | Notes                                                        |
+| ------------------- | --------- | ------------------------------------------------------------ |
+| x64                 | ✅         | +-2GB                                                        |
+| x86                 | ✅         | +-2GB                                                        |
+| ARM64               | ✅         | +-128MB                                                      |
+| ARM64 (alternative) | ❌         | Relative +-4GB jump w/ 3 instructions. Used if within range. |
 
 ### [JumpAbsolute](./operations.md#jumpabsolute)
 
@@ -53,18 +53,18 @@
 
 ### [PushStack](./operations.md#pushstack)
 
-| Architecture | Supported | Notes                                      |
-| ------------ | --------- | ------------------------------------------ |
-| x64          | ✅         |                                            |
-| x86          | ✅         |                                            |
+| Architecture | Supported | Notes                                     |
+| ------------ | --------- | ----------------------------------------- |
+| x64          | ✅         |                                           |
+| x86          | ✅         |                                           |
 | ARM64        | ✅         | Will use vector registers when available. |
 
 ### [PushConstant](./operations.md#pushconstant)
 
-| Architecture | Supported | Notes |
-| ------------ | --------- | ----- |
-| x64          | ✅         |       |
-| x86          | ✅         |       |
+| Architecture | Supported | Notes                                           |
+| ------------ | --------- | ----------------------------------------------- |
+| x64          | ✅         |                                                 |
+| x86          | ✅         |                                                 |
 | ARM64        | ✅         | 2-5 instructions, depending on constant length. |
 
 ### [StackAlloc](./operations.md#stackalloc)
@@ -101,12 +101,12 @@
 
 ### [CallRelative](./operations.md#callrelative)
 
-| Architecture     | Supported | Notes                                                        |
-| ---------------- | --------- | ------------------------------------------------------------ |
-| x64              | ✅         | +-2GB                                                        |
-| x86              | ✅         | +-2GB                                                        |
-| ARM64            | ✅         | +-128MB                                                      |
-| ARM64 (relative) | ❌         | Relative +-4GB jump w/ 3 instructions. Used if within range. |
+| Architecture        | Supported | Notes                                                        |
+| ------------------- | --------- | ------------------------------------------------------------ |
+| x64                 | ✅         | +-2GB                                                        |
+| x86                 | ✅         | +-2GB                                                        |
+| ARM64               | ✅         | +-128MB                                                      |
+| ARM64 (alternative) | ❌         | Relative +-4GB jump w/ 3 instructions. Used if within range. |
 
 ### [Return](./operations.md#return)
 
