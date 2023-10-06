@@ -12,6 +12,7 @@ use core::{mem::size_of, slice};
 use crate::{
     all_registers::AllRegisters,
     jit_instructions::{
+        branch_absolute::{encode_call_absolute, encode_jump_absolute},
         branch_relative::{encode_call_relative, encode_jump_relative},
         mov::encode_mov,
         mov_from_stack::encode_mov_from_stack,
@@ -20,6 +21,7 @@ use crate::{
         push_constant::encode_push_constant,
         push_stack::encode_push_stack,
         stackalloc::encode_stackalloc,
+        xchg::encode_xchg,
     },
 };
 
@@ -83,11 +85,11 @@ fn encode_instruction_aarch64(
         Operation::PushConst(x) => encode_push_constant(x, pc, buf),
         Operation::StackAlloc(x) => encode_stackalloc(x, pc, buf),
         Operation::Pop(x) => encode_pop(x, pc, buf),
-        Operation::Xchg(_) => todo!(),
-        Operation::CallAbsolute(_) => todo!(),
+        Operation::Xchg(x) => encode_xchg(x, pc, buf),
+        Operation::CallAbsolute(x) => encode_call_absolute(x, pc, buf),
         Operation::CallRelative(x) => encode_call_relative(x, pc, buf),
         Operation::JumpRelative(x) => encode_jump_relative(x, pc, buf),
-        Operation::JumpAbsolute(_) => todo!(),
+        Operation::JumpAbsolute(x) => encode_jump_absolute(x, pc, buf),
         Operation::Return(_) => todo!(),
         Operation::CallIpRelative(_) => todo!(), // Not implementable
         Operation::JumpIpRelative(_) => todo!(), // Not implementable

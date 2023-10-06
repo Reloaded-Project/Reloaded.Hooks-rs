@@ -1,3 +1,4 @@
+use reloaded_hooks_portable::api::jit::call_absolute_operation::CallAbsoluteOperation;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
 use reloaded_hooks_portable::api::jit::jump_absolute_operation::JumpAbsoluteOperation;
 extern crate alloc;
@@ -25,7 +26,7 @@ pub fn encode_jump_absolute(
 
 /// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/BLR--Branch-with-Link-to-Register-?lang=en
 pub fn encode_call_absolute(
-    x: &JumpAbsoluteOperation<AllRegisters>,
+    x: &CallAbsoluteOperation<AllRegisters>,
     pc: &mut usize,
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
@@ -62,7 +63,7 @@ mod tests {
     ) {
         let mut pc = 0;
         let mut buf = Vec::new();
-        let operation = JumpAbs {
+        let operation = CallAbs {
             target_address,
             scratch_register,
         };
