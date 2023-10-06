@@ -38,7 +38,7 @@ bitfield! {
 impl LdrImmediatePostIndexed {
     pub fn new_pop_register(
         is_64bit: bool,
-        source: u8,
+        target: u8,
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
         if !(-256..=255).contains(&stack_offset) {
@@ -58,7 +58,29 @@ impl LdrImmediatePostIndexed {
         // Set parameters
         value.set_size(if is_64bit { 11 } else { 10 });
         value.set_rn_offset(stack_offset as i16);
-        value.set_rt(source);
+        value.set_rt(target);
+        Ok(value)
+    }
+
+    pub fn new_pop_vector(target: u8, stack_offset: i32) -> Result<Self, JitError<AllRegisters>> {
+        if !(-256..=255).contains(&stack_offset) {
+            return Err(return_stack_out_of_range(stack_offset));
+        }
+
+        // Note: Compiler is smart enough to optimize this away as a constant
+        // Which is why we moved the non-constant stuff to the bottom.
+        let mut value = LdrImmediatePostIndexed(0);
+        value.set_opcode(0b111100); // post-index variant
+        value.set_opc(0b110);
+        value.set_unk(0b01);
+
+        // Set Stack Pointer as Source Register
+        value.set_rn(31);
+
+        // Set parameters
+        value.set_size(00);
+        value.set_rn_offset(stack_offset as i16);
+        value.set_rt(target);
         Ok(value)
     }
 }

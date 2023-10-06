@@ -12,29 +12,19 @@ pub fn encode_pop(
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
     let size = x.register.size();
-    if size == 8 {
-        let ldr = LdrImmediatePostIndexed::new_pop_register(true, x.register as u8, 8)?;
-        buf.push(ldr.0.to_le() as i32);
-        *pc += 4;
-        Ok(())
+    let op = if size == 8 {
+        LdrImmediatePostIndexed::new_pop_register(true, x.register as u8, 8)?.0
     } else if size == 4 {
-        let ldr = LdrImmediatePostIndexed::new_pop_register(false, x.register as u8, 4)?;
-        buf.push(ldr.0.to_le() as i32);
-        *pc += 4;
-        Ok(())
+        LdrImmediatePostIndexed::new_pop_register(false, x.register as u8, 4)?.0
     } else if size == 16 {
-        return encode_pop_vector(x, pc, buf);
+        LdrImmediatePostIndexed::new_pop_vector(x.register as u8, 16)?.0
     } else {
         return Err(JitError::InvalidRegister(x.register));
-    }
-}
+    };
 
-fn encode_pop_vector(
-    _x: &PopOperation<AllRegisters>,
-    _pc: &mut usize,
-    _buf: &mut Vec<i32>,
-) -> Result<(), JitError<AllRegisters>> {
-    todo!()
+    buf.push(op.to_le() as i32);
+    *pc += 4;
+    Ok(())
 }
 
 #[cfg(test)]
@@ -47,6 +37,7 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
+    #[case(v0, 4, "e007c13c", false)]
     #[case(x0, 4, "e08740f8", false)]
     #[case(w0, 4, "e04740b8", false)]
     // #[case(v0, 16, "expected_hex_value_for_vector", false)] // if you implement this
