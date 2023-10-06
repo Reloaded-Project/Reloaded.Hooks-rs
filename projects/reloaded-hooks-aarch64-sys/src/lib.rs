@@ -7,6 +7,7 @@ pub mod all_registers;
 pub mod jit;
 pub mod instructions {
     pub mod add_immediate;
+    pub mod branch_register;
     pub mod errors;
     pub mod ldp_immediate;
     pub mod ldr_immediate_post_indexed;
@@ -20,6 +21,7 @@ pub mod instructions {
 }
 
 pub(crate) mod jit_instructions {
+    pub mod branch_absolute;
     pub mod branch_relative;
     pub mod mov;
     pub mod mov_from_stack;

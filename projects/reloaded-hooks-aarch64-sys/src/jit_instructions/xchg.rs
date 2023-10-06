@@ -1,6 +1,4 @@
-use reloaded_hooks_portable::api::jit::{
-    compiler::JitError, mov_operation::MovOperation, xchg_operation::XChgOperation,
-};
+use reloaded_hooks_portable::api::jit::{compiler::JitError, xchg_operation::XChgOperation};
 extern crate alloc;
 use crate::{
     all_registers::AllRegisters,

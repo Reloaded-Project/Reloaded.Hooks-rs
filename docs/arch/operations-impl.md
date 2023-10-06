@@ -23,7 +23,7 @@
 | ------------ | --------- | ------------------------------------- |
 | x64          | ✅         | Uses scratch register for efficiency. |
 | x86          | ✅         | Uses scratch register for efficiency. |
-| ARM64        | ❌         |                                       |
+| ARM64        | ✅         | Uses scratch register (required)      |
 
 ## Needed for Wrapper Generation
 
@@ -97,7 +97,7 @@
 | ------------ | --------- | ------------------------------------- |
 | x64          | ✅         | Uses scratch register for efficiency. |
 | x86          | ✅         | Uses scratch register for efficiency. |
-| ARM64        | ❌         |                                       |
+| ARM64        | ✅         | Uses scratch register (required)      |
 
 ### [CallRelative](./operations.md#callrelative)
 

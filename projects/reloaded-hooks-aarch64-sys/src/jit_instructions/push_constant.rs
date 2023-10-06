@@ -1,5 +1,3 @@
-use core::mem::size_of;
-
 use reloaded_hooks_portable::api::jit::{
     compiler::JitError, operation_aliases::PushConst, push_operation::PushOperation,
 };
@@ -22,38 +20,52 @@ pub fn encode_push_constant(
         ));
     }
 
+    unsafe {
+        let scratch = x.scratch.unwrap_unchecked();
+        encode_mov_constant_to_reg(x.value, scratch.register_number() as u8, pc, buf)?;
+        encode_push(&PushOperation::new(scratch), pc, buf)?;
+    }
+    Ok(())
+}
+
+/// Encoded as MOVK/MOVZ + STR
+pub fn encode_mov_constant_to_reg(
+    value: usize,
+    destination: u8,
+    pc: &mut usize,
+    buf: &mut Vec<i32>,
+) -> Result<(), JitError<AllRegisters>> {
     // Determine leading zeroes using native lzcnt instruction
-    let leading_zeros = x.value.leading_zeros();
+    let leading_zeros = value.leading_zeros();
     let used_bits = usize::BITS - leading_zeros;
-    let scratch = x.scratch.unwrap().register_number() as u8;
 
     match used_bits {
         0..=16 => {
-            let op = MovImmediate::new_movz(true, scratch, x.value as u16, 0)?;
+            let op = MovImmediate::new_movz(true, destination, value as u16, 0)?;
             buf.push(op.0.to_le() as i32);
             *pc += 4;
         }
         17..=32 => {
-            let op = MovImmediate::new_movz(true, scratch, x.value as u16, 0)?;
-            let op2 = MovImmediate::new_movk(true, scratch, (x.value >> 16) as u16, 16)?;
+            let op = MovImmediate::new_movz(true, destination, value as u16, 0)?;
+            let op2 = MovImmediate::new_movk(true, destination, (value >> 16) as u16, 16)?;
             buf.push(op.0.to_le() as i32);
             buf.push(op2.0.to_le() as i32);
             *pc += 8;
         }
         33..=48 => {
-            let op = MovImmediate::new_movz(true, scratch, x.value as u16, 0)?;
-            let op2 = MovImmediate::new_movk(true, scratch, (x.value >> 16) as u16, 16)?;
-            let op3 = MovImmediate::new_movk(true, scratch, (x.value >> 32) as u16, 32)?;
+            let op = MovImmediate::new_movz(true, destination, value as u16, 0)?;
+            let op2 = MovImmediate::new_movk(true, destination, (value >> 16) as u16, 16)?;
+            let op3 = MovImmediate::new_movk(true, destination, (value >> 32) as u16, 32)?;
             buf.push(op.0.to_le() as i32);
             buf.push(op2.0.to_le() as i32);
             buf.push(op3.0.to_le() as i32);
             *pc += 12;
         }
         49..=64 => {
-            let op = MovImmediate::new_movz(true, scratch, x.value as u16, 0)?;
-            let op2 = MovImmediate::new_movk(true, scratch, (x.value >> 16) as u16, 16)?;
-            let op3 = MovImmediate::new_movk(true, scratch, (x.value >> 32) as u16, 32)?;
-            let op4 = MovImmediate::new_movk(true, scratch, (x.value >> 48) as u16, 48)?;
+            let op = MovImmediate::new_movz(true, destination, value as u16, 0)?;
+            let op2 = MovImmediate::new_movk(true, destination, (value >> 16) as u16, 16)?;
+            let op3 = MovImmediate::new_movk(true, destination, (value >> 32) as u16, 32)?;
+            let op4 = MovImmediate::new_movk(true, destination, (value >> 48) as u16, 48)?;
             buf.push(op.0.to_le() as i32);
             buf.push(op2.0.to_le() as i32);
             buf.push(op3.0.to_le() as i32);
@@ -63,9 +75,6 @@ pub fn encode_push_constant(
         _ => unreachable!(), // This case should never be reached unless platform is >64 bits
     }
 
-    unsafe {
-        encode_push(&PushOperation::new(x.scratch.unwrap_unchecked()), pc, buf)?;
-    }
     Ok(())
 }
 
