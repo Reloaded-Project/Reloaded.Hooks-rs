@@ -470,7 +470,7 @@ fn encode_call_ip_relative(
 
 fn encode_push_constant(
     a: &mut CodeAssembler,
-    x: &PushConstantOperation,
+    x: &PushConstantOperation<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 32 {
         a.push(x.value as i32).map_err(convert_error)

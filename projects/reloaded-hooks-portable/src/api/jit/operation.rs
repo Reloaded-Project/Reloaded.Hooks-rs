@@ -26,7 +26,7 @@ pub enum Operation<T> {
     MovFromStack(MovFromStackOperation<T>),
     Push(PushOperation<T>),
     PushStack(PushStackOperation<T>),
-    PushConst(PushConstantOperation), // Required for parameter injection
+    PushConst(PushConstantOperation<T>), // Required for parameter injection
     StackAlloc(StackAllocOperation),
     Pop(PopOperation<T>),
     Xchg(XChgOperation<T>),
@@ -113,7 +113,10 @@ where
                 })
                 .collect(),
         ),
-        Operation::PushConst(x) => Operation::PushConst(x),
+        Operation::PushConst(x) => Operation::PushConst(PushConstantOperation {
+            value: x.value,
+            scratch: x.scratch.map(f),
+        }),
         Operation::Return(x) => Operation::Return(x),
         Operation::None => Operation::None,
     }

@@ -53,7 +53,7 @@ impl MovImmediate {
         result.set_sf(is_64bit);
         result.set_opcode(0b11100101);
         result.set_imm16(value);
-        result.set_left_shift(shift);
+        result.set_left_shift(shift / 16);
         result.set_rd(destination);
         Ok(result)
     }
@@ -75,7 +75,7 @@ impl MovImmediate {
         result.set_sf(is_64bit);
         result.set_opcode(0b10100101);
         result.set_imm16(value);
-        result.set_left_shift(shift);
+        result.set_left_shift(shift / 16);
         result.set_rd(destination);
         Ok(result)
     }

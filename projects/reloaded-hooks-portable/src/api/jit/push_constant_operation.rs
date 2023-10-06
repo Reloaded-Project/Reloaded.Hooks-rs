@@ -15,13 +15,16 @@ use derive_new::new;
 ///
 /// ```
 /// use reloaded_hooks_portable::api::jit::push_constant_operation::PushConstantOperation;
-/// let push_10 = PushConstantOperation { value: 10 };
+/// let push_10 = PushConstantOperation::<i32> { value: 10, scratch: None };
 /// ```
 ///
 /// Similarly, in architectures without an explicit `push` instruction for constants, this operation
 /// can be modeled using other appropriate instructions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
-pub struct PushConstantOperation {
+pub struct PushConstantOperation<T> {
     /// The constant value to push onto the stack.
     pub value: usize,
+
+    /// Scratch register to use for the push operation. (Needed for some architectures)
+    pub scratch: Option<T>,
 }

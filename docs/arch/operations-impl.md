@@ -65,7 +65,7 @@
 | ------------ | --------- | ----- |
 | x64          | ✅         |       |
 | x86          | ✅         |       |
-| ARM64        | ❌         |       |
+| ARM64        | ✅         | 2-5 instructions, depending on constant length. |
 
 ### [StackAlloc](./operations.md#stackalloc)
 

@@ -118,7 +118,7 @@ mod tests {
     fn test_compile_push_constant() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::PushConst(PushConst::new(0x87654321))];
+        let operations = vec![Op::PushConst(PushConst::new(0x87654321, None))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("6821436587", hex::encode(result.unwrap()));

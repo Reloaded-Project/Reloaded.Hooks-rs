@@ -259,7 +259,16 @@ pub fn generate_wrapper_instructions<
 
     // Inject parameter (if applicable)
     if let Some(injected_value) = options.injected_parameter {
-        setup_params_ops.push(PushConst::new(injected_value).into());
+        let reg = find_register_with_category(RegisterCategory::GeneralPurpose, &scratch_registers);
+        #[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+        if reg.is_none() {
+            return Err(WrapperGenerationError::NoScratchRegister(
+                "No General Purpose Scratch Register Found. Needed for Parameter Injection."
+                    .to_string(),
+            ));
+        }
+
+        setup_params_ops.push(PushConst::new(injected_value, reg).into());
         stack_pointer += size_of::<usize>();
     }
 
