@@ -89,7 +89,7 @@
 | ------------ | --------- | ------- | -------------------------- |
 | x64          | ✅         | ❌       |                            |
 | x86          | ✅         | ❌       |                            |
-| ARM64        | ❌ *       | ❌       | *Requires scratch register |
+| ARM64        | ✅ *       | ✅ *     | *Requires scratch register |
 
 ### [CallAbsolute](./operations.md#callabsolute)
 

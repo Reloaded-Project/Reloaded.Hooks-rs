@@ -54,6 +54,10 @@ pub enum JitError<TRegister> {
     #[error("Cannot initialize Assembler: {0:?}")]
     CannotInitializeAssembler(String),
 
+    /// No scratch register found.
+    #[error("No Scratch Register Found: {0:?}")]
+    NoScratchRegister(String),
+
     /// Error related to 3rd party assembler.
     #[error("3rd Party Assembler Error: {0:?}")]
     ThirdPartyAssemblerError(String),
@@ -65,6 +69,12 @@ pub enum JitError<TRegister> {
     /// Invalid register pair
     #[error("The two given registers cannot be used together for this opcode: {0:?} {1:?}")]
     InvalidRegisterCombination(TRegister, TRegister),
+
+    /// Invalid register triplet
+    #[error(
+        "The three given registers cannot be used together for this opcode: {0:?} {1:?} {2:?}"
+    )]
+    InvalidRegisterCombination3(TRegister, TRegister, TRegister),
 
     /// JIT of an unrecognised instruction was requested.
     #[error("Invalid instruction provided: {0:?}")]
@@ -96,5 +106,9 @@ where
         }
         JitError::OperandOutOfRange(a) => JitError::OperandOutOfRange(a),
         JitError::InvalidOffset(x) => JitError::InvalidOffset(x),
+        JitError::NoScratchRegister(x) => JitError::NoScratchRegister(x),
+        JitError::InvalidRegisterCombination3(a, b, c) => {
+            JitError::InvalidRegisterCombination3(f(a), f(b), f(c))
+        }
     }
 }

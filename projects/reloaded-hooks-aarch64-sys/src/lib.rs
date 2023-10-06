@@ -31,6 +31,7 @@ pub(crate) mod jit_instructions {
     pub mod push_stack;
     pub mod push_two;
     pub mod stackalloc;
+    pub mod xchg;
 }
 
 #[cfg(test)]

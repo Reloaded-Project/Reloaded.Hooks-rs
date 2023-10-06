@@ -5,6 +5,7 @@ use reloaded_hooks_portable::api::jit::{
 };
 extern crate alloc;
 use crate::{all_registers::AllRegisters, instructions::mov_immediate::MovImmediate};
+use alloc::string::ToString;
 use alloc::vec::Vec;
 
 use super::push::encode_push;
@@ -15,6 +16,12 @@ pub fn encode_push_constant(
     pc: &mut usize,
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
+    if x.scratch.is_none() {
+        return Err(JitError::NoScratchRegister(
+            "Needed for PushConstantOperation.".to_string(),
+        ));
+    }
+
     // Determine leading zeroes using native lzcnt instruction
     let leading_zeros = x.value.leading_zeros();
     let used_bits = usize::BITS - leading_zeros;
