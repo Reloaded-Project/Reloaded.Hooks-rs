@@ -16,6 +16,8 @@ use crate::{
         branch_relative::{encode_call_relative, encode_jump_relative},
         mov::encode_mov,
         mov_from_stack::encode_mov_from_stack,
+        multi_pop::encode_multi_pop,
+        multi_push::encode_multi_push,
         pop::encode_pop,
         push::encode_push,
         push_constant::encode_push_constant,
@@ -94,7 +96,7 @@ fn encode_instruction_aarch64(
         Operation::Return(x) => encode_return(x, pc, buf),
         Operation::CallIpRelative(_) => todo!(), // Not implementable
         Operation::JumpIpRelative(_) => todo!(), // Not implementable
-        Operation::MultiPush(_) => todo!(),
-        Operation::MultiPop(_) => todo!(),
+        Operation::MultiPush(x) => encode_multi_push(x, pc, buf),
+        Operation::MultiPop(x) => encode_multi_pop(x, pc, buf),
     }
 }

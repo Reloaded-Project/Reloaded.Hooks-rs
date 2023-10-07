@@ -138,16 +138,16 @@
 
 ### [MultiPush](./operations.md#multipush)
 
-| Architecture | Supported | Notes |
-| ------------ | --------- | ----- |
-| x64          | ✅         |       |
-| x86          | ✅         |       |
-| ARM64        | ❌         |       |
+| Architecture | Supported | Notes                                                        |
+| ------------ | --------- | ------------------------------------------------------------ |
+| x64          | ✅         |                                                              |
+| x86          | ✅         |                                                              |
+| ARM64        | ✅         | Might fall back to single pop/push if mixing register sizes. |
 
 ### [MultiPop](./operations.md#multipop)
 
-| Architecture | Supported | Notes |
-| ------------ | --------- | ----- |
-| x64          | ✅         |       |
-| x86          | ✅         |       |
-| ARM64        | ❌         |       |
+| Architecture | Supported | Notes                                                        |
+| ------------ | --------- | ------------------------------------------------------------ |
+| x64          | ✅         |                                                              |
+| x86          | ✅         |                                                              |
+| ARM64        | ✅         | Might fall back to single pop/push if mixing register sizes. |

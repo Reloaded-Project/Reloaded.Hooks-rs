@@ -1,14 +1,9 @@
 use reloaded_hooks_portable::api::jit::{
-    compiler::JitError, push_operation::PushOperation, return_operation::ReturnOperation,
+    compiler::JitError, return_operation::ReturnOperation,
     stack_alloc_operation::StackAllocOperation,
 };
 extern crate alloc;
-use crate::{
-    all_registers::AllRegisters,
-    instructions::{
-        branch_register::BranchRegister, str_immediate_pre_indexed::StrImmediatePreIndexed,
-    },
-};
+use crate::{all_registers::AllRegisters, instructions::branch_register::BranchRegister};
 use alloc::vec::Vec;
 
 use super::stackalloc::encode_stackalloc;
