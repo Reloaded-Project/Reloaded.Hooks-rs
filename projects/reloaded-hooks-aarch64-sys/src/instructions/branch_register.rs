@@ -50,4 +50,9 @@ impl BranchRegister {
     pub fn new_br(register: u8) -> Self {
         Self::initialize(register, 0b00111110000)
     }
+
+    /// Create a new ret instruction
+    pub fn new_ret() -> Self {
+        Self::initialize(30, 0b10111110000)
+    }
 }

@@ -110,11 +110,11 @@
 
 ### [Return](./operations.md#return)
 
-| Architecture | Supported | Notes |
-| ------------ | --------- | ----- |
-| x64          | ✅         |       |
-| x86          | ✅         |       |
-| ARM64        | ❌         |       |
+| Architecture | Supported | Notes                         |
+| ------------ | --------- | ----------------------------- |
+| x64          | ✅         |                               |
+| x86          | ✅         |                               |
+| ARM64        | ✅         | 2 instructions if offset > 0. |
 
 ## Architecture Specific Operations
 

@@ -20,6 +20,7 @@ use crate::{
         push::encode_push,
         push_constant::encode_push_constant,
         push_stack::encode_push_stack,
+        ret::encode_return,
         stackalloc::encode_stackalloc,
         xchg::encode_xchg,
     },
@@ -90,7 +91,7 @@ fn encode_instruction_aarch64(
         Operation::CallRelative(x) => encode_call_relative(x, pc, buf),
         Operation::JumpRelative(x) => encode_jump_relative(x, pc, buf),
         Operation::JumpAbsolute(x) => encode_jump_absolute(x, pc, buf),
-        Operation::Return(_) => todo!(),
+        Operation::Return(x) => encode_return(x, pc, buf),
         Operation::CallIpRelative(_) => todo!(), // Not implementable
         Operation::JumpIpRelative(_) => todo!(), // Not implementable
         Operation::MultiPush(_) => todo!(),
