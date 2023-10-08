@@ -2,10 +2,16 @@
 //! Here's the crate documentation.
 #![cfg_attr(not(test), no_std)]
 
+/// Contains all of the functional registers for the AArch64 architecture.
 #[cfg(not(tarpaulin_include))]
 pub mod all_registers;
+
+/// Contains the Just in Time Assembler that integrates with reloaded-hooks-rs.
 pub mod jit;
-pub mod instructions {
+
+/// This namespace contains the raw instruction encodings for various
+/// AArch64 instructions.
+pub(crate) mod instructions {
     pub mod add_immediate;
     pub mod branch_register;
     pub mod errors;
@@ -20,6 +26,8 @@ pub mod instructions {
     pub mod sub_immediate;
 }
 
+/// This namespace contains the code for encoding the JIT instructions
+/// using the raw instructions in the [`crate::instructions`] namespace.
 pub(crate) mod jit_instructions {
     pub mod branch_absolute;
     pub mod branch_relative;

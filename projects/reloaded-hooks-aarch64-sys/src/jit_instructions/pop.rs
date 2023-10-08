@@ -32,34 +32,21 @@ mod tests {
     use crate::all_registers::AllRegisters;
     use crate::all_registers::AllRegisters::*;
     use crate::jit_instructions::pop::encode_pop;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
-    #[case(v0, 4, "e007c13c", false)]
-    #[case(x0, 4, "e08740f8", false)]
-    #[case(w0, 4, "e04740b8", false)]
-    // #[case(v0, 16, "expected_hex_value_for_vector", false)] // if you implement this
-    fn test_encode_pop(
-        #[case] register: AllRegisters,
-        #[case] expected_size: usize,
-        #[case] expected_hex: &str,
-        #[case] is_err: bool,
-    ) {
+    #[case(v0, "e007c13c")]
+    #[case(x0, "e08740f8")]
+    #[case(w0, "e04740b8")]
+    fn standard_cases(#[case] register: AllRegisters, #[case] expected_hex: &str) {
         let mut pc = 0;
         let mut buf = Vec::new();
         let operation = Pop { register };
 
-        // Expect an error for invalid register sizes
-        if is_err {
-            assert!(encode_pop(&operation, &mut pc, &mut buf).is_err());
-            return;
-        }
-
         // If the encoding is successful, compare with the expected hex value
         assert!(encode_pop(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(expected_size, pc);
+        assert_encode(expected_hex, &buf, pc);
     }
 }

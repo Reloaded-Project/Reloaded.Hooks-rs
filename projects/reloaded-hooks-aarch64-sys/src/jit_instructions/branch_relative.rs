@@ -52,73 +52,68 @@ pub fn encode_jump_relative(
 
 #[cfg(test)]
 mod tests {
+    use crate::assert_error;
     use crate::jit_instructions::branch_relative::encode_call_relative;
     use crate::jit_instructions::branch_relative::encode_jump_relative;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode_with_initial_pc;
+    use reloaded_hooks_portable::api::jit::compiler::JitError;
+
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
-    #[case(0, 4, "01000014", 4)] // jump forward
-    #[case(4, 0, "ffffff17", 8)] // jump backward
-    #[case(4, 4, "00000014", 8)] // no jump
-    fn test_encode_jump_relative(
+    #[case(0, 4, "01000014")] // jump forward
+    #[case(4, 0, "ffffff17")] // jump backward
+    #[case(4, 4, "00000014")] // no jump
+    fn can_encode_jump_relative(
         #[case] initial_pc: usize,
         #[case] target_address: usize,
         #[case] expected_hex: &str,
-        #[case] expected_pc: usize,
     ) {
         let mut pc = initial_pc;
         let mut buf = Vec::new();
         let operation = JumpRel { target_address };
 
         assert!(encode_jump_relative(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(expected_pc, pc);
-    }
-
-    #[test]
-    fn test_encode_jump_relative_invalid_forward() {
-        let mut pc = 0;
-        let mut buf = Vec::new();
-        let operation = JumpRel {
-            target_address: 1024 * 1024 * 128,
-        }; // some invalid value
-
-        assert!(encode_jump_relative(&operation, &mut pc, &mut buf).is_err());
-        // Add additional checks for the state of `buf` and `pc` here.
+        assert_encode_with_initial_pc(expected_hex, &buf, initial_pc, pc);
     }
 
     #[rstest]
     #[case(0, 1024 * 1024 * 128)] // Invalid forward jump
     #[case(1024 * 1024 * 128 + 1, 0)] // Invalid backward jump
-    fn test_encode_jump_relative_invalid(#[case] initial_pc: usize, #[case] target_address: usize) {
+    fn can_encode_jump_relative_out_of_range(
+        #[case] initial_pc: usize,
+        #[case] target_address: usize,
+    ) {
         let mut pc = initial_pc;
         let mut buf = Vec::new();
         let operation = JumpRel { target_address };
 
-        assert!(encode_jump_relative(&operation, &mut pc, &mut buf).is_err());
-        // Add additional checks for the state of `buf` and `pc` here.
+        let result = encode_jump_relative(&operation, &mut pc, &mut buf);
+        assert_error!(
+            result,
+            JitError::OperandOutOfRange(_),
+            initial_pc,
+            0,
+            pc,
+            &buf
+        );
     }
 
     #[rstest]
-    #[case(0, 4, "01000094", 4)] // jump forward
-    #[case(4, 0, "ffffff97", 8)] // jump backward
-    #[case(4, 4, "00000094", 8)] // no jump
-    fn test_encode_call_relative(
+    #[case(0, 4, "01000094")] // jump forward
+    #[case(4, 0, "ffffff97")] // jump backward
+    #[case(4, 4, "00000094")] // no jump (endless loop)
+    fn can_encode_call_relative(
         #[case] initial_pc: usize,
         #[case] target_address: usize,
         #[case] expected_hex: &str,
-        #[case] expected_pc: usize,
     ) {
         let mut pc = initial_pc;
         let mut buf = Vec::new();
         let operation = CallRel { target_address };
 
         assert!(encode_call_relative(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(expected_pc, pc);
-
-        // Because this is implemented via macro, skipped other tests for encode_call_relative
+        assert_encode_with_initial_pc(expected_hex, &buf, initial_pc, pc);
     }
 }

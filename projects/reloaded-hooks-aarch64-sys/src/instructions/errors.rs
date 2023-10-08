@@ -5,6 +5,14 @@ extern crate alloc;
 use crate::all_registers::AllRegisters;
 
 #[inline(never)]
+pub fn invalid_register_combination(
+    reg1: AllRegisters,
+    reg2: AllRegisters,
+) -> JitError<AllRegisters> {
+    JitError::InvalidRegisterCombination(reg1, reg2)
+}
+
+#[inline(never)]
 pub fn return_stack_out_of_range(stack_offset: i32) -> JitError<AllRegisters> {
     JitError::OperandOutOfRange(format!(
         "Stack Offset Exceeds Maximum Range. Offset {}",

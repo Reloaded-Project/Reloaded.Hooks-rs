@@ -33,37 +33,40 @@ pub fn encode_stackalloc(
 #[cfg(test)]
 mod tests {
 
+    use crate::assert_error;
     use crate::jit_instructions::stackalloc::encode_stackalloc;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode;
+    use reloaded_hooks_portable::api::jit::compiler::JitError;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
-    #[case(4, "ff1300d1", false)]
-    #[case(-4, "ff130091", false)]
-    #[case(0, "ff0300d1", false)]
-    #[case(2048, "ff0320d1", false)]
-    #[case(-2048, "ff032091", false)]
-    fn test_encode_stackalloc(
-        #[case] operand: i32,
-        #[case] expected_hex: &str,
-        #[case] is_err: bool,
-    ) {
+    #[case(-4096)] // Below Min Range
+    #[case(4096)] // Above Max Range
+    fn error_on_out_of_range(#[case] stack_size: i32) {
         let mut pc = 0;
         let mut buf = Vec::new();
-        let operation = StackAlloc { operand };
+        let operation = StackAlloc::new(stack_size);
 
-        // Check for errors if applicable
-        if is_err {
-            assert!(encode_stackalloc(&operation, &mut pc, &mut buf).is_err());
-            return;
-        }
+        let result = encode_stackalloc(&operation, &mut pc, &mut buf);
+        assert_error!(result, JitError::OperandOutOfRange(_), pc, buf);
+    }
 
-        // If the encoding is successful, compare with the expected hex value
+    #[rstest]
+    #[case(4, "ff1300d1")]
+    #[case(-4, "ff130091")]
+    #[case(0, "ff0300d1")]
+    #[case(2048, "ff0320d1")]
+    #[case(-2048, "ff032091")]
+    // On edge of range
+    #[case(4095, "ffff3fd1")]
+    #[case(-4095, "ffff3f91")]
+    fn standard_cases(#[case] stack_size: i32, #[case] expected_hex: &str) {
+        let mut pc = 0;
+        let mut buf = Vec::new();
+        let operation = StackAlloc::new(stack_size);
+
         assert!(encode_stackalloc(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-
-        // Assert that the program counter has been incremented by 4
-        assert_eq!(4, pc);
+        assert_encode(expected_hex, &buf, pc);
     }
 }

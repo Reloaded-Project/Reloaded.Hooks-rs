@@ -46,18 +46,21 @@ mod tests {
     use crate::all_registers::AllRegisters::*;
     use crate::jit_instructions::branch_absolute::encode_call_absolute;
     use crate::jit_instructions::branch_absolute::encode_jump_absolute;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
-    #[case(x0, 8, 0x1234, "804682d200003fd6")] // 16-bit address
-    #[case(x0, 12, 0x12345678, "00cf8ad28046a2f200003fd6")] // 32-bit address
-    #[case(x0, 16, 0x123456789ABC, "805793d200cfaaf28046c2f200003fd6")] // 48-bit address
-    #[case(x0, 20, 0x123456789ABCDEF0, "00de9bd28057b3f200cfcaf28046e2f200003fd6")] // 64-bit address
-    fn test_encode_call_absolute(
+    #[case(x0, 0x1234, "804682d200003fd6")] // 16-bit address
+    #[case(x0, 0x12345678, "00cf8ad28046a2f200003fd6")] // 32-bit address
+    #[case(x0, 0x123456789ABC, "805793d200cfaaf28046c2f200003fd6")] // 48-bit address
+    #[case(x0, 0x123456789ABCDEF0, "00de9bd28057b3f200cfcaf28046e2f200003fd6")] // 64-bit address
+    #[case(x29, 0x1234, "9d4682d2a0033fd6")] // 16-bit address
+    #[case(x29, 0x12345678, "1dcf8ad29d46a2f2a0033fd6")] // 32-bit address
+    #[case(x29, 0x123456789ABC, "9d5793d21dcfaaf29d46c2f2a0033fd6")] // 48-bit address
+    #[case(x29, 0x123456789ABCDEF0, "1dde9bd29d57b3f21dcfcaf29d46e2f2a0033fd6")] // 64-bit address
+    fn can_encode_call_absolute(
         #[case] scratch_register: AllRegisters,
-        #[case] expected_pc: usize,
         #[case] target_address: usize,
         #[case] expected_hex: &str,
     ) {
@@ -69,18 +72,20 @@ mod tests {
         };
 
         assert!(encode_call_absolute(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(expected_pc, pc);
+        assert_encode(expected_hex, &buf, pc);
     }
 
     #[rstest]
-    #[case(x0, 8, 0x1234, "804682d200001fd6")] // 16-bit address
-    #[case(x0, 12, 0x12345678, "00cf8ad28046a2f200001fd6")] // 32-bit address
-    #[case(x0, 16, 0x123456789ABC, "805793d200cfaaf28046c2f200001fd6")] // 48-bit address
-    #[case(x0, 20, 0x123456789ABCDEF0, "00de9bd28057b3f200cfcaf28046e2f200001fd6")] // 64-bit address
-    fn test_encode_jump_absolute(
+    #[case(x0, 0x1234, "804682d200001fd6")] // 16-bit address
+    #[case(x0, 0x12345678, "00cf8ad28046a2f200001fd6")] // 32-bit address
+    #[case(x0, 0x123456789ABC, "805793d200cfaaf28046c2f200001fd6")] // 48-bit address
+    #[case(x0, 0x123456789ABCDEF0, "00de9bd28057b3f200cfcaf28046e2f200001fd6")] // 64-bit address
+    #[case(x29, 0x1234, "9d4682d2a0031fd6")] // 16-bit address
+    #[case(x29, 0x12345678, "1dcf8ad29d46a2f2a0031fd6")] // 32-bit address
+    #[case(x29, 0x123456789ABC, "9d5793d21dcfaaf29d46c2f2a0031fd6")] // 48-bit address
+    #[case(x29, 0x123456789ABCDEF0, "1dde9bd29d57b3f21dcfcaf29d46e2f2a0031fd6")] // 64-bit address
+    fn can_encode_jump_absolute(
         #[case] scratch_register: AllRegisters,
-        #[case] expected_pc: usize,
         #[case] target_address: usize,
         #[case] expected_hex: &str,
     ) {
@@ -92,7 +97,6 @@ mod tests {
         };
 
         assert!(encode_jump_absolute(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(expected_pc, pc);
+        assert_encode(expected_hex, &buf, pc);
     }
 }

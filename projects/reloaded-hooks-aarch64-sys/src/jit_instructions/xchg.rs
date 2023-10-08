@@ -12,6 +12,7 @@ pub fn encode_xchg(
     pc: &mut usize,
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
+    // Try get scratch register.
     let scratch = match x.scratch {
         Some(s) => s,
         None => {
@@ -20,6 +21,15 @@ pub fn encode_xchg(
             ));
         }
     };
+
+    // Check if any two registers are the same.
+    if x.register1 == x.register2 || x.register1 == scratch || x.register2 == scratch {
+        return Err(JitError::InvalidRegisterCombination3(
+            x.register1,
+            x.register2,
+            scratch,
+        ));
+    }
 
     let source_size = x.register1.size();
     let target_size = x.register2.size();
@@ -68,35 +78,41 @@ pub fn encode_xchg(
 mod tests {
     use crate::all_registers::AllRegisters;
     use crate::all_registers::AllRegisters::*;
+    use crate::assert_error;
     use crate::jit_instructions::xchg::encode_xchg;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode;
+    use reloaded_hooks_portable::api::jit::compiler::JitError;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
-    #[case(w0, w1, w2, "e203012ae103002ae003022a", false)]
-    #[case(x0, x1, x2, "e20301aae10300aae00302aa", false)]
-    #[case(v0, v1, v2, "221ca14e011ca04e401ca24e", false)]
-    // Some fail cases
-    fn test_encode_xchg(
+    #[case(w0, w1, w2, "e203012ae103002ae003022a")]
+    #[case(x0, x1, x2, "e20301aae10300aae00302aa")]
+    #[case(v0, v1, v2, "221ca14e011ca04e401ca24e")]
+    fn standard_cases_xchg(
         #[case] reg_1: AllRegisters,
         #[case] reg_2: AllRegisters,
         #[case] scratch: AllRegisters,
         #[case] expected_hex: &str,
-        #[case] is_err: bool,
     ) {
         let mut pc = 0;
         let mut buf = Vec::new();
         let operation = XChg::new(reg_2, reg_1, Some(scratch));
 
-        // If source and target size don't match, expect an error
-        if is_err {
-            assert!(encode_xchg(&operation, &mut pc, &mut buf).is_err());
-            return;
-        }
-
         assert!(encode_xchg(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(12, pc);
+        assert_encode(expected_hex, &buf, pc);
+    }
+
+    #[rstest]
+    #[case(w0, w1)]
+    #[case(x0, x1)]
+    #[case(v0, v1)]
+    fn error_on_missing_scratch_register(#[case] reg_1: AllRegisters, #[case] reg_2: AllRegisters) {
+        let mut pc = 0;
+        let mut buf = Vec::new();
+        let operation = XChg::new(reg_2, reg_1, None);
+
+        let result = encode_xchg(&operation, &mut pc, &mut buf);
+        assert_error!(result, JitError::NoScratchRegister(_), pc, buf);
     }
 }

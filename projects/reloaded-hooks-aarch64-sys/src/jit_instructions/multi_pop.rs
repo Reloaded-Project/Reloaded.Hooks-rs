@@ -16,8 +16,17 @@ pub fn encode_multi_pop(
     while index + 1 < x.len() {
         let reg1 = &x[index].register;
         let reg2 = &x[index + 1].register;
-        encode_pop_two(reg1, reg2, pc, buf)?;
-        index += 2;
+
+        // Can fail if both registers are a different size.
+        match encode_pop_two(reg1, reg2, pc, buf) {
+            Ok(_) => {
+                index += 2;
+            }
+            Err(_) => {
+                encode_pop(&x[index], pc, buf)?;
+                index += 1;
+            }
+        };
     }
 
     if index < x.len() {
@@ -33,30 +42,47 @@ mod tests {
     use crate::all_registers::AllRegisters;
     use crate::all_registers::AllRegisters::*;
     use crate::jit_instructions::multi_pop::encode_multi_pop;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
     use smallvec::smallvec;
 
     #[rstest]
-    // Single Push
-    #[case(&[x0], "e08740f8", false)]
-    #[case(&[w0], "e04740b8", false)]
-    #[case(&[v0], "e007c13c", false)]
-    // Multi Push
-    #[case(&[x0, x1], "e007c1a8", false)]
-    #[case(&[w0, w1], "e007c128", false)]
-    #[case(&[v0, v1], "e007c1ac", false)]
-    // Multi Push with Leftover
-    #[case(&[x0, x1, x2], "e007c1a8e28740f8", false)]
-    #[case(&[w0, w1, w2], "e007c128e24740b8", false)]
-    #[case(&[v0, v1, v2], "e007c1ace207c13c", false)]
-    // TODO: Mixed Size Registers
-    fn test_encode_multi_pop(
+    // Single Pop
+    #[case(&[x0], "e08740f8")]
+    #[case(&[w0], "e04740b8")]
+    #[case(&[v0], "e007c13c")]
+    // Multi Pop
+    #[case(&[x0, x1], "e007c1a8")]
+    #[case(&[w0, w1], "e007c128")]
+    #[case(&[v0, v1], "e007c1ac")]
+    // Multi Pop on High Reg
+    #[case(&[x28, x29], "fc77c1a8")]
+    #[case(&[w28, w29], "fc77c128")]
+    #[case(&[v28, v29], "fc77c1ac")]
+    // Multi Pop with Leftover
+    #[case(&[x0, x1, x2], "e007c1a8e28740f8")]
+    #[case(&[w0, w1, w2], "e007c128e24740b8")]
+    #[case(&[v0, v1, v2], "e007c1ace207c13c")]
+    fn standard_cases(#[case] registers: &[AllRegisters], #[case] expected_hex: &str) {
+        test_encode_success_common(registers, expected_hex);
+    }
+
+    #[rstest]
+    // Upcast
+    #[case(&[w0, x1], "e04740b8e18740f8")]
+    #[case(&[x0, v1], "e08740f8e107c13c")]
+    // Downcast
+    #[case(&[x1, w0], "e18740f8e04740b8")]
+    #[case(&[v0, x1], "e007c13ce18740f8")]
+    fn fallback_to_single_pop_with_different_sized_registers(
         #[case] registers: &[AllRegisters],
         #[case] expected_hex: &str,
-        #[case] is_err: bool,
     ) {
+        test_encode_success_common(registers, expected_hex);
+    }
+
+    fn test_encode_success_common(registers: &[AllRegisters], expected_hex: &str) {
         let mut pc = 0;
         let mut buf = Vec::new();
         let mut vectors = smallvec![];
@@ -64,14 +90,7 @@ mod tests {
             vectors.push(Pop::new(*reg));
         }
 
-        // Expect an error for invalid register sizes
-        if is_err {
-            assert!(encode_multi_pop(&vectors, &mut pc, &mut buf).is_err());
-            return;
-        }
-
-        // If the encoding is successful, compare with the expected hex value
         assert!(encode_multi_pop(&vectors, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
+        assert_encode(expected_hex, &buf, pc);
     }
 }

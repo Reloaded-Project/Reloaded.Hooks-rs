@@ -83,18 +83,17 @@ mod tests {
     use crate::all_registers::AllRegisters;
     use crate::all_registers::AllRegisters::*;
     use crate::jit_instructions::push_constant::encode_push_constant;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
-    #[case(x0, 8, 0x1234, "804682d2e08f1ff8")]
-    #[case(x0, 12, 0x12345678, "00cf8ad28046a2f2e08f1ff8")]
-    #[case(x0, 16, 0x1234567890AB, "601592d200cfaaf28046c2f2e08f1ff8")]
-    #[case(x0, 20, 0x1234567890ABCDEF, "e0bd99d26015b2f200cfcaf28046e2f2e08f1ff8")]
-    fn test_encode_push(
+    #[case(x0, 0x1234, "804682d2e08f1ff8")]
+    #[case(x0, 0x12345678, "00cf8ad28046a2f2e08f1ff8")]
+    #[case(x0, 0x1234567890AB, "601592d200cfaaf28046c2f2e08f1ff8")]
+    #[case(x0, 0x1234567890ABCDEF, "e0bd99d26015b2f200cfcaf28046e2f2e08f1ff8")]
+    fn standard_cases(
         #[case] register: AllRegisters,
-        #[case] expected_pc: usize,
         #[case] constant_to_push: usize,
         #[case] expected_hex: &str,
     ) {
@@ -104,7 +103,6 @@ mod tests {
 
         // If the encoding is successful, compare with the expected hex value
         assert!(encode_push_constant(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(expected_pc, pc);
+        assert_encode(expected_hex, &buf, pc);
     }
 }

@@ -32,34 +32,23 @@ mod tests {
     use crate::all_registers::AllRegisters;
     use crate::all_registers::AllRegisters::*;
     use crate::jit_instructions::push::encode_push;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
-    #[case(x0, 4, "e08f1ff8", false)]
-    #[case(w0, 4, "e0cf1fb8", false)]
-    // Vector cases
-    #[case(v0, 4, "e00f9f3c", false)]
-    fn test_encode_push(
-        #[case] register: AllRegisters,
-        #[case] expected_pc: usize,
-        #[case] expected_hex: &str,
-        #[case] is_err: bool,
-    ) {
+    #[case(x0, "e08f1ff8")]
+    #[case(w0, "e0cf1fb8")]
+    #[case(v0, "e00f9f3c")]
+    #[case(x29, "fd8f1ff8")]
+    #[case(w29, "fdcf1fb8")]
+    #[case(v29, "fd0f9f3c")]
+    fn test_encode_push(#[case] register: AllRegisters, #[case] expected_hex: &str) {
         let mut pc = 0;
         let mut buf = Vec::new();
         let operation = Push { register };
 
-        // Expect an error for invalid register sizes
-        if is_err {
-            assert!(encode_push(&operation, &mut pc, &mut buf).is_err());
-            return;
-        }
-
-        // If the encoding is successful, compare with the expected hex value
         assert!(encode_push(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(expected_pc, pc);
+        assert_encode(expected_hex, &buf, pc);
     }
 }

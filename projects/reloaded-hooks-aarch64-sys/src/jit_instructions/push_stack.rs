@@ -132,54 +132,47 @@ mod tests {
     use crate::all_registers::AllRegisters;
     use crate::all_registers::AllRegisters::*;
     use crate::jit_instructions::push_stack::encode_push_stack;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
     // Half register
-    #[case(4, 4, 8, vec![x0], "e00740b9e0cf1fb8", false)] // Single register.
-    #[case(4, 4, 8, vec![x0, x1], "e00740b9e0cf1fb8", false)] // Two registers
-    #[case(4, 4, 8, vec![x0, v0, v1], "e00740b9e0cf1fb8", false)] // Two vectors + reg
+    #[case(4, 4, vec![x0], "e00740b9e0cf1fb8")] // Single register.
+    #[case(4, 4, vec![x0, x1], "e00740b9e0cf1fb8")] // Two registers
+    #[case(4, 4, vec![x0, v0, v1], "e00740b9e0cf1fb8")] // Two vectors + reg
 
     // Full register
-    #[case(8, 8, 8, vec![x0], "e00740f9e08f1ff8", false)] // Single register.
-    #[case(8, 8, 8, vec![x0, x1], "e00740f9e08f1ff8", false)] // Two registers
-    #[case(8, 8, 8, vec![x0, v0, v1], "e00740f9e08f1ff8", false)] // Two vectors + reg
+    #[case(8, 8, vec![x0], "e00740f9e08f1ff8")] // Single register.
+    #[case(8, 8, vec![x0, x1], "e00740f9e08f1ff8")] // Two registers
+    #[case(8, 8, vec![x0, v0, v1], "e00740f9e08f1ff8")] // Two vectors + reg
 
     // Two full registers
-    #[case(16, 16, 16, vec![x0], "e00b40f9e08f1ff8e00b40f9e08f1ff8", false)] // Single register.
-    #[case(16, 16, 8, vec![x0, x1], "e00741a9e007bfa9", false)] // Two registers
-    #[case(16, 16, 8, vec![x0, v0, v1], "e007c03de00f9f3c", false)] // Two vectors + reg
+    #[case(16, 16, vec![x0], "e00b40f9e08f1ff8e00b40f9e08f1ff8")] // Single register.
+    #[case(16, 16, vec![x0, x1], "e00741a9e007bfa9")] // Two registers
+    #[case(16, 16, vec![x0, v0, v1], "e007c03de00f9f3c")] // Two vectors + reg
 
     // Two vectors
-    #[case(32, 32, 32, vec![x0], "e01340f9e08f1ff8e01340f9e08f1ff8e01340f9e08f1ff8e01340f9e08f1ff8", false)] // Single register.
-    #[case(32, 32, 16, vec![x0, x1], "e00742a9e007bfa9e00742a9e007bfa9", false)] // Two registers
-    #[case(32, 32, 8, vec![x0, v0, v1], "e00741ade007bfad", false)] // Two vectors + reg
-    fn test_encode_pushstack(
+    #[case(32, 32, vec![x0], "e01340f9e08f1ff8e01340f9e08f1ff8e01340f9e08f1ff8e01340f9e08f1ff8")] // Single register.
+    #[case(32, 32, vec![x0, x1], "e00742a9e007bfa9e00742a9e007bfa9")] // Two registers
+    #[case(32, 32, vec![x0, v0, v1], "e00741ade007bfad")] // Two vectors + reg
+
+    // High Reg Test
+    #[case(32, 32, vec![x28], "fc1340f9fc8f1ff8fc1340f9fc8f1ff8fc1340f9fc8f1ff8fc1340f9fc8f1ff8")] // Single register.
+    #[case(32, 32, vec![x28, x29], "fc7742a9fc77bfa9fc7742a9fc77bfa9")] // Two registers
+    #[case(32, 32, vec![x28, v28, v29], "fc7741adfc77bfad")] // Two vectors + reg
+    fn standard_cases(
         #[case] offset: i32,
         #[case] item_size: u32,
-        #[case] pc_increase: usize,
         #[case] scratch: Vec<AllRegisters>,
         #[case] expected_hex: &str,
-        #[case] is_err: bool,
     ) {
         let mut pc = 0;
         let mut buf = Vec::new();
         let rc_vec = Rc::new(scratch);
         let operation = PushStack::new(offset, item_size, rc_vec);
 
-        // Check for errors if applicable
-        if is_err {
-            assert!(encode_push_stack(&operation, &mut pc, &mut buf).is_err());
-            return;
-        }
-
-        // If the encoding is successful, compare with the expected hex value
         assert!(encode_push_stack(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-
-        // Assert that the program counter has been incremented by 4
-        assert_eq!(pc_increase, pc);
+        assert_encode(expected_hex, &buf, pc);
     }
 }

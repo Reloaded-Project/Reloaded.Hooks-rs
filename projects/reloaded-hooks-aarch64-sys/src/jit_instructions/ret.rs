@@ -28,33 +28,20 @@ pub fn encode_return(
 mod tests {
 
     use crate::jit_instructions::ret::encode_return;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
-    #[case(0, 4, "c0035fd6", false)]
-    #[case(4, 8, "ff130091c0035fd6", false)]
-    #[case(8, 8, "ff230091c0035fd6", false)]
-    fn test_encode_ret(
-        #[case] amount: usize,
-        #[case] expected_pc: usize,
-        #[case] expected_hex: &str,
-        #[case] is_err: bool,
-    ) {
+    #[case(0, "c0035fd6")] // without offset
+    #[case(4, "ff130091c0035fd6")] // with offset
+    #[case(8, "ff230091c0035fd6")]
+    fn can_encode_ret(#[case] amount: usize, #[case] expected_hex: &str) {
         let mut pc = 0;
         let mut buf = Vec::new();
         let operation = Return { offset: amount };
 
-        // Expect an error for invalid register sizes
-        if is_err {
-            assert!(encode_return(&operation, &mut pc, &mut buf).is_err());
-            return;
-        }
-
-        // If the encoding is successful, compare with the expected hex value
         assert!(encode_return(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(expected_pc, pc);
+        assert_encode(expected_hex, &buf, pc);
     }
 }

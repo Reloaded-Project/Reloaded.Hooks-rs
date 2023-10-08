@@ -38,37 +38,47 @@ pub fn encode_mov(
 mod tests {
     use crate::all_registers::AllRegisters;
     use crate::all_registers::AllRegisters::*;
+    use crate::assert_error;
     use crate::jit_instructions::mov::encode_mov;
-    use crate::test_helpers::instruction_buffer_as_hex;
+    use crate::test_helpers::assert_encode;
+    use reloaded_hooks_portable::api::jit::compiler::JitError;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
-    #[case(w0, w1, 4, 4, "e003012a")]
-    #[case(x0, x1, 8, 8, "e00301aa")]
-    #[case(w0, x1, 4, 8, "fail")] // should fail
-
-    // Vector operations
-    #[case(v0, v1, 16, 16, "201ca14e")]
-    fn test_encode_mov(
+    #[case(w0, w1, "e003012a")]
+    #[case(x0, x1, "e00301aa")]
+    #[case(v0, v1, "201ca14e")]
+    // High Reg Number
+    #[case(w28, w29, "fc031d2a")]
+    #[case(x28, x29, "fc031daa")]
+    #[case(v28, v29, "bc1fbd4e")]
+    fn standard_cases(
         #[case] target: AllRegisters,
         #[case] source: AllRegisters,
-        #[case] source_size: usize,
-        #[case] target_size: usize,
         #[case] expected_hex: &str,
     ) {
         let mut pc = 0;
         let mut buf = Vec::new();
         let operation = Mov { source, target };
 
-        // If source and target size don't match, expect an error
-        if source_size != target_size {
-            assert!(encode_mov(&operation, &mut pc, &mut buf).is_err());
-            return;
-        }
-
         assert!(encode_mov(&operation, &mut pc, &mut buf).is_ok());
-        assert_eq!(expected_hex, instruction_buffer_as_hex(&buf));
-        assert_eq!(4, pc);
+        assert_encode(expected_hex, &buf, pc);
+    }
+
+    #[rstest]
+    #[case(w0, x1)]
+    #[case(w0, v1)]
+    fn error_on_different_register_sizes(
+        #[case] target: AllRegisters,
+        #[case] source: AllRegisters,
+    ) {
+        let mut pc = 0;
+        let mut buf = Vec::new();
+        let operation = Mov { source, target };
+
+        // If source and target size don't match, expect an error
+        let result = encode_mov(&operation, &mut pc, &mut buf);
+        assert_error!(result, JitError::InvalidRegisterCombination(_, _), pc, buf);
     }
 }
