@@ -1,12 +1,8 @@
-use reloaded_hooks_portable::api::jit::{
-    call_relative_operation::CallRelativeOperation, compiler::JitError,
-    jump_relative_operation::JumpRelativeOperation,
-};
+use reloaded_hooks_portable::api::jit::compiler::JitError;
 extern crate alloc;
 use crate::all_registers::AllRegisters;
 use crate::instructions::add_immediate::AddImmediate;
 use crate::instructions::adr::Adr;
-use alloc::string::ToString;
 use alloc::vec::Vec;
 
 /// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/B--Branch-
@@ -49,12 +45,9 @@ pub fn load_pc_rel_address(
 mod tests {
     use crate::all_registers::AllRegisters::*;
     use crate::assert_error;
-    use crate::jit_instructions::branch_relative::encode_call_relative;
-    use crate::jit_instructions::branch_relative::encode_jump_relative;
     use crate::jit_instructions::load_pc_relative_address::load_pc_rel_address;
     use crate::test_helpers::assert_encode_with_initial_pc;
     use reloaded_hooks_portable::api::jit::compiler::JitError;
-    use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
     #[rstest]
