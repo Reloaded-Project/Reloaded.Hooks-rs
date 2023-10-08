@@ -2,12 +2,15 @@
 
 !!! note "This page just contains some small notes and tidbits regarding interoperability."
 
+
+## Absolute Jump Encoding
+
 On ARM64 there is no 'standard' way to hook functions. However, we will take inspiration from
-[detours][detours] and use the following sequence when possible (12 bytes):  
+[detours][detours] and use the following sequence for absolute jumps when available (12 bytes):  
 
 ```asm
 adrp x17, [jmpval]      # Load 4K page, relative to PC.
-ldr x17, [x17, jmpval]  # Offset 4K page
+ldr x17, [x17, jmpval]  # Read value at offset of 4K page
 br x17                  # Branch to location
 ```
 

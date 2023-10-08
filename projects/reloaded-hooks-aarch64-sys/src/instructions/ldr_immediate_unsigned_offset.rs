@@ -6,7 +6,7 @@ extern crate alloc;
 
 use crate::all_registers::AllRegisters;
 
-use super::errors::return_divisible_by_value;
+use super::errors::return_divisible_by_register;
 
 // https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/LDR--immediate---Load-Register--immediate--?lang=en
 bitfield! {
@@ -44,7 +44,7 @@ impl LdrImmediateUnsignedOffset {
         // Check if divisible by 8 or 4.
         let encoded_offset = if is_64bit {
             if (stack_offset & 0b111) != 0 {
-                return Err(return_divisible_by_value(stack_offset));
+                return Err(return_divisible_by_register(stack_offset));
             }
 
             if !(0..=32760).contains(&stack_offset) {
@@ -54,7 +54,7 @@ impl LdrImmediateUnsignedOffset {
             stack_offset >> 3
         } else {
             if (stack_offset & 0b11) != 0 {
-                return Err(return_divisible_by_value(stack_offset));
+                return Err(return_divisible_by_register(stack_offset));
             }
 
             if !(0..=16380).contains(&stack_offset) {
@@ -86,7 +86,7 @@ impl LdrImmediateUnsignedOffset {
     ) -> Result<Self, JitError<AllRegisters>> {
         // Check if divisible by 16.
         if (stack_offset & 0b1111) != 0 {
-            return Err(return_divisible_by_value(stack_offset));
+            return Err(return_divisible_by_register(stack_offset));
         }
 
         // Verify it's in range

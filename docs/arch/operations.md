@@ -33,9 +33,9 @@
 === "ARM64 (+- 4GB)"
 
     ```asm
-    adrp x9, [0]        ; Load 4K page, relative to PC. (round address down to 4096)
-    ldr x9, [x9, 0x200] ; Offset in 4K page (add remainder)
-    br x9               ; Branch to location
+    adrp x9, [0]    ; Load 4K page, relative to PC. (round address down to 4096)
+    add x9, 0x200   ; Offset in 4K page (add remainder)
+    br x9           ; Branch to location
     ```
 
 === "x86"
@@ -70,7 +70,7 @@
 
     ```asm
     adrp x9, [291]       ; Load 4K page, relative to PC. (round address down to 4096)
-    ldr x9, [x9, 1110]   ; Offset in 4K page (add remainder)
+    ldr x9, [x9, 1110]   ; Read address from offset in 4K page.
     br x9                ; Branch to location
     ```
 

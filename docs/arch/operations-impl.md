@@ -19,11 +19,14 @@
 
 ### [JumpAbsolute](./operations.md#jumpabsolute)
 
-| Architecture | Supported | Notes                                 |
-| ------------ | --------- | ------------------------------------- |
-| x64          | ✅         | Uses scratch register for efficiency. |
-| x86          | ✅         | Uses scratch register for efficiency. |
-| ARM64        | ✅         | Uses scratch register (required)      |
+| Architecture     | Supported                                                      | Notes                                 |
+| ---------------- | -------------------------------------------------------------- | ------------------------------------- |
+| x64 (register)   | ✅                                                              | Uses scratch register for efficiency. |
+| x86 (indirect)   | ❌                                                              | Not yet implemented                   |
+| x86 (register)   | ✅                                                              | Uses scratch register for efficiency. |
+| x86 (indirect)   | ❌                                                              | Not yet implemented                   |
+| ARM64 (register) | ✅                                                              | Uses scratch register (required)      |
+| ARM64 (indirect) | ❌ Relative +-4GB jump w/ 3 instructions. Used if within range. | Not yet implemented                   |
 
 ## Needed for Wrapper Generation
 
@@ -93,11 +96,14 @@
 
 ### [CallAbsolute](./operations.md#callabsolute)
 
-| Architecture | Supported | Notes                                 |
-| ------------ | --------- | ------------------------------------- |
-| x64          | ✅         | Uses scratch register for efficiency. |
-| x86          | ✅         | Uses scratch register for efficiency. |
-| ARM64        | ✅         | Uses scratch register (required)      |
+| Architecture     | Supported                                                      | Notes                                 |
+| ---------------- | -------------------------------------------------------------- | ------------------------------------- |
+| x64 (register)   | ✅                                                              | Uses scratch register for efficiency. |
+| x86 (indirect)   | ❌                                                              | Not yet implemented                   |
+| x86 (register)   | ✅                                                              | Uses scratch register for efficiency. |
+| x86 (indirect)   | ❌                                                              | Not yet implemented                   |
+| ARM64 (register) | ✅                                                              | Uses scratch register (required)      |
+| ARM64 (indirect) | ❌ Relative +-4GB jump w/ 3 instructions. Used if within range. | Not yet implemented                   |
 
 ### [CallRelative](./operations.md#callrelative)
 

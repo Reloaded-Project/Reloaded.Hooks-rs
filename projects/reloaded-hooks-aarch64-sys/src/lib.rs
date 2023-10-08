@@ -13,6 +13,7 @@ pub mod jit;
 /// AArch64 instructions.
 pub(crate) mod instructions {
     pub mod add_immediate;
+    pub mod adr;
     pub mod branch_register;
     pub mod errors;
     pub mod ldp_immediate;
@@ -31,6 +32,7 @@ pub(crate) mod instructions {
 pub(crate) mod jit_instructions {
     pub mod branch_absolute;
     pub mod branch_relative;
+    pub mod load_pc_relative_address;
     pub mod mov;
     pub mod mov_from_stack;
     pub mod mov_two_from_stack;

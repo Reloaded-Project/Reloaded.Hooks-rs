@@ -21,7 +21,15 @@ pub fn return_stack_out_of_range(stack_offset: i32) -> JitError<AllRegisters> {
 }
 
 #[inline(never)]
-pub fn return_divisible_by_value(stack_offset: i32) -> JitError<AllRegisters> {
+pub fn return_divisible_by_page(stack_offset: i64) -> JitError<AllRegisters> {
+    JitError::InvalidOffset(format!(
+        "Offset must be divisible by page size (4K). {}",
+        stack_offset
+    ))
+}
+
+#[inline(never)]
+pub fn return_divisible_by_register(stack_offset: i32) -> JitError<AllRegisters> {
     JitError::InvalidOffset(format!(
         "Offset must be divisible by the register size (4/8). {}",
         stack_offset
