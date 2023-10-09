@@ -6,7 +6,7 @@
 - `Recommended` means library may not work on some edge cases.  
 - `Optional` means library can function without it.  
 
-!!! tip "To add support for new platforms, supply the necessary function pointers to the `PlatformFunctions` struct in `platform_functions_rs`."
+!!! tip "To add support for new platforms, supply the necessary function pointers in `platform_functions.rs`."
 
 | Feature                                                               | Windows | Linux | macOS |
 | --------------------------------------------------------------------- | ------- | ----- | ----- |
@@ -24,7 +24,7 @@
 Notably for the use cases of this library, the `.text` section is usually non-writeable, which 
 prevents hooking app functions out of the box.  
 
-To work around this, the library will call the `unprotect` function in `PlatformFunctions` before applying
+To work around this, the library will call the `unprotect` function in `platform_functions.rs` before applying
 a function and `protect` function to restore protection.  
 
 For the common operating systems; the `protect`/`unprotect` functions map to the following API calls:  

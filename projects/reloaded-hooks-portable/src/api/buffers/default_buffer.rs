@@ -1,7 +1,6 @@
 extern crate alloc;
 use alloc::alloc::{dealloc, Layout};
 use alloc::rc::Rc;
-use core::any::Any;
 use core::cell::RefCell;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicBool, Ordering};
@@ -23,6 +22,18 @@ impl AllocatedBuffer {
     }
 }
 
+impl Clone for AllocatedBuffer {
+    fn clone(&self) -> Self {
+        Self {
+            ptr: self.ptr,
+            write_offset: self.write_offset.clone(),
+            size: self.size,
+            layout: self.layout,
+            locked: AtomicBool::new(self.locked.load(Ordering::Relaxed)),
+        }
+    }
+}
+
 pub struct LockedBuffer {
     pub(crate) buffer: Rc<AllocatedBuffer>,
 }
@@ -37,25 +48,22 @@ impl Buffer for LockedBuffer {
         }
     }
 
-    fn write(&mut self, data: &[u8]) {
+    fn write(&mut self, data: &[u8]) -> *const u8 {
         let current_offset = *self.buffer.write_offset.borrow();
         let end = data.len() as u32 + current_offset;
         debug_assert!(end <= self.buffer.size, "Buffer overflow");
 
+        let buffer_ptr = self.buffer.ptr.as_ptr();
         unsafe {
             core::ptr::copy_nonoverlapping(
                 data.as_ptr(),
-                self.buffer.ptr.as_ptr().add(current_offset as usize),
+                buffer_ptr.add(current_offset as usize),
                 data.len(),
             );
         }
 
         *self.buffer.write_offset.borrow_mut() = end; // Mutable borrow to update
-    }
-
-    // This is to enable downcasting from dyn Buffer to LockedBuffer
-    fn as_any(&self) -> &dyn Any {
-        self
+        unsafe { buffer_ptr.add(end as usize) }
     }
 }
 

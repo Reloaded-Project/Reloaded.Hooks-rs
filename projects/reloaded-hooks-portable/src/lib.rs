@@ -23,8 +23,14 @@ pub mod api {
     }
 
     /// Platform and architecture specific integrations
-    pub mod integration {
+    /// Note: Depends on STD crate, but implementation in crate is no-std.
+    pub mod platforms {
+
+        #[allow(warnings)]
         pub mod platform_functions;
+
+        #[allow(warnings)]
+        mod platform_functions_mmap_rs;
     }
 
     /// Public API related to Just In Time Compilation
@@ -54,7 +60,7 @@ pub mod api {
         pub mod register_info;
     }
 
-    pub mod function_attribute;
+    pub mod calling_convention_info;
     pub mod function_info;
     pub mod wrapper_generator;
     pub mod wrapper_instruction_generator;

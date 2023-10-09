@@ -5,14 +5,12 @@ use core::marker::PhantomData;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
+use crate::api::jit::operation::Operation;
+
 use super::{
-    buffers::buffer_abstractions::Buffer,
-    function_attribute::FunctionAttribute,
-    function_info::FunctionInfo,
-    integration::platform_functions::PlatformFunctions,
-    jit::{compiler::Jit, operation::Operation},
-    settings::proximity_target::ProximityTarget,
-    traits::register_info::RegisterInfo,
+    buffers::buffer_abstractions::Buffer, calling_convention_info::CallingConventionInfo,
+    function_info::FunctionInfo, jit::compiler::Jit, platforms::platform_functions::BUFFER_FACTORY,
+    settings::proximity_target::ProximityTarget, traits::register_info::RegisterInfo,
 };
 
 /// Options and additional context necessary for the wrapper generator.
@@ -35,9 +33,6 @@ where
     /// Dynamically compiles the specified sequence of instructions
     pub jit: TJit,
 
-    /// The platform_functions.
-    pub platform_functions: &'a PlatformFunctions,
-
     /// Marker to assure Rust that TRegister is logically part of the struct.
     _marker: PhantomData<TRegister>,
 }
@@ -50,21 +45,19 @@ where
     TJit: Jit<TRegister>,
 {
     fn get_buffer_from_factory(&self) -> (bool, Box<dyn Buffer>) {
-        let platform_functions = self.platform_functions;
-        let mut platform_lock = platform_functions.buffer_factory.write();
+        let mut buffer_factory_lock = BUFFER_FACTORY.lock();
 
-        let buffer_factory = platform_lock.as_mut();
-        let buf_opt = buffer_factory.get_buffer(
+        let buf_opt = buffer_factory_lock.get_buffer(
             self.proximity_target.item_size,
             self.proximity_target.target_address,
             self.proximity_target.requested_proximity,
             <TJit as Jit<TRegister>>::code_alignment(),
         );
 
-        let has_buf_in_range = buf_opt.is_some();
+        let has_buf_in_range = buf_opt.is_ok();
         let buf_boxed: Box<dyn Buffer> = match buf_opt {
-            Some(buffer) => buffer,
-            None => buffer_factory
+            Ok(buffer) => buffer,
+            Err(_) => buffer_factory_lock
                 .get_any_buffer(
                     self.proximity_target.item_size,
                     <TJit as Jit<TRegister>>::code_alignment(),
@@ -86,13 +79,13 @@ where
 /// - `options` - The parameters for this wrapper generation task.
 #[allow(warnings)]
 pub fn generate_wrapper<
-    TRegister: RegisterInfo + Copy,
-    TFunctionAttribute: FunctionAttribute<TRegister>,
+    TRegister: RegisterInfo + Copy + PartialEq + 'static,
+    TConventionInfo: CallingConventionInfo<TRegister>,
     TJit: Jit<TRegister>,
     TFunctionInfo: FunctionInfo,
 >(
-    from_convention: TFunctionAttribute,
-    to_convention: TFunctionAttribute,
+    from_convention: TConventionInfo,
+    to_convention: TConventionInfo,
     options: WrapperGenerationOptions<TFunctionInfo, TRegister, TJit>,
 ) -> *const u8 {
     let (has_buf_in_range, buf_boxed) = options.get_buffer_from_factory();

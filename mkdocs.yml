@@ -51,11 +51,13 @@ nav:
   - Design Docs: 
     - Overview: design/overview.md
     - Wrapper Generation: design/wrappers.md
+    - Interop (General): design/interop-general.md
     - Interop (x86): design/interop-x86.md
     - Interop (ARM64): design/interop-arm64.md
   - Architectures:
     - Overview: arch/overview.md
     - Operations: arch/operations.md
+    - Operations (Implemented): arch/operations-impl.md
     - x86_64: arch/x86_64.md
     - x86: arch/x86.md
     - arm64: arch/arm64.md

@@ -1,12 +1,16 @@
 extern crate alloc;
 
 use alloc::boxed::Box;
-use core::any::Any;
+use alloc::string::String;
 
 /// This trait defines a factory for retrieving buffers which satisfy given constraints.
 /// This factory is used by the Wrapper and Hook generator to insert new code
 /// within a given proximity of a target address.
-pub trait BufferFactory {
+///
+/// # Remarks
+///
+/// The factory should be thread safe.
+pub trait BufferFactory: Sync + Send {
     /// Returns a buffer which satisfies the given constraints.
     /// If no such buffer exists, returns None.
     ///
@@ -30,7 +34,7 @@ pub trait BufferFactory {
         target: usize,
         proximity: usize,
         alignment: u32,
-    ) -> Option<Box<dyn Buffer>>;
+    ) -> Result<Box<dyn Buffer>, String>;
 
     /// Returns any available buffer.
     ///
@@ -46,7 +50,7 @@ pub trait BufferFactory {
     /// # Thread Safety
     ///
     /// Returned buffers must be locked and not returned to the pool until they are dropped.
-    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Option<Box<dyn Buffer>>;
+    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Result<Box<dyn Buffer>, String>;
 }
 
 pub trait Buffer {
@@ -55,8 +59,8 @@ pub trait Buffer {
     fn get_address(&self) -> *const u8;
 
     /// Writes the specified data to the buffer; advancing the buffer pointer.
-    fn write(&mut self, buffer: &[u8]);
-
-    // This is to enable downcasting from dyn Buffer to LockedBuffer
-    fn as_any(&self) -> &dyn Any;
+    /// # Returns.
+    ///
+    /// The new write address. Same as you would get calling [`self::get_address`].
+    fn write(&mut self, buffer: &[u8]) -> *const u8;
 }

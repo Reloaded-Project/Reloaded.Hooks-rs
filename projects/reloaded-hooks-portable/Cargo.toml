@@ -2,18 +2,20 @@
 name = "reloaded-hooks-portable"
 version = "0.1.0"
 edition = "2021"
-description = "Architecture agnostic components of reloaded-hooks that can be used to implement hooking in more than just x86."
+description = "Core engine of `reloaded-hooks`, architecture agnostic, with support for additional platforms."
 repository = "https://github.com/Reloaded-Project/reloaded-hooks"
 license-file = "LICENSE"
 include = ["src/**/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
+mmap-rs = "0.6.0" # STD!! | Only used for platforms that build with STD (Win/Linux/macOS etc.)
 hashbrown = "0.14.0"
 nohash = "0.2.0"
 spin = "0.9.8"
 thiserror-no-std = "2.0.2"
 alloca = "0.4.0"
+derive-enum-all-values = "0.1.0"
 smallvec = { version = "1.11.0", features = ["const_new"] }
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 derive_more = { version = "0.99.17", default-features = false, features = ["from", "add", "iterator"] }

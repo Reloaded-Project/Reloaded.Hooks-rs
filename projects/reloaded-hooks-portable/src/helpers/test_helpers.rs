@@ -1,26 +1,30 @@
 extern crate alloc;
 use alloc::vec;
 use alloc::vec::Vec;
+use derive_enum_all_values::AllValues;
 
 use crate::api::{
-    function_attribute::{FunctionAttribute, StackCleanup, StackParameterOrder},
+    calling_convention_info::*,
     function_info::{FunctionInfo, ParameterType},
-    traits::register_info::RegisterInfo,
+    traits::register_info::{KnownRegisterType, KnownRegisterType::*, RegisterInfo},
 };
 use lazy_static;
 
 #[allow(dead_code)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default, AllValues, Ord, PartialOrd)]
 pub enum MockRegister {
     #[default]
+    R0,
     R1,
     R2,
     R3,
     R4,
+    F0,
     F1,
     F2,
     F3,
     F4,
+    V0,
     V1,
     V2,
     V3,
@@ -34,14 +38,17 @@ pub enum MockRegister {
 impl RegisterInfo for MockRegister {
     fn size_in_bytes(&self) -> usize {
         match self {
+            MockRegister::R0 => 4,
             MockRegister::R1 => 4,
             MockRegister::R2 => 4,
             MockRegister::R3 => 4,
             MockRegister::R4 => 4,
+            MockRegister::F0 => 4,
             MockRegister::F1 => 4,
             MockRegister::F2 => 4,
             MockRegister::F3 => 4,
             MockRegister::F4 => 4,
+            MockRegister::V0 => 4,
             MockRegister::V1 => 4,
             MockRegister::V2 => 4,
             MockRegister::V3 => 4,
@@ -55,26 +62,39 @@ impl RegisterInfo for MockRegister {
         self == &MockRegister::SP
     }
 
-    fn register_type(&self) -> usize {
+    fn register_type(&self) -> KnownRegisterType {
         match self {
-            MockRegister::R1 => 0,
-            MockRegister::R2 => 0,
-            MockRegister::R3 => 0,
-            MockRegister::R4 => 0,
-            MockRegister::SP => 0,
+            MockRegister::R0 => GeneralPurpose64,
+            MockRegister::R1 => GeneralPurpose64,
+            MockRegister::R2 => GeneralPurpose64,
+            MockRegister::R3 => GeneralPurpose64,
+            MockRegister::R4 => GeneralPurpose64,
+            MockRegister::SP => GeneralPurpose64,
+            MockRegister::LR => GeneralPurpose64,
 
-            MockRegister::F1 => 1,
-            MockRegister::F2 => 1,
-            MockRegister::F3 => 1,
-            MockRegister::F4 => 1,
+            MockRegister::F0 => FloatingPoint,
+            MockRegister::F1 => FloatingPoint,
+            MockRegister::F2 => FloatingPoint,
+            MockRegister::F3 => FloatingPoint,
+            MockRegister::F4 => FloatingPoint,
 
-            MockRegister::LR => 2,
-
-            MockRegister::V1 => 3,
-            MockRegister::V2 => 3,
-            MockRegister::V3 => 3,
-            MockRegister::V4 => 3,
+            MockRegister::V0 => Vector128,
+            MockRegister::V1 => Vector128,
+            MockRegister::V2 => Vector128,
+            MockRegister::V3 => Vector128,
+            MockRegister::V4 => Vector128,
         }
+    }
+
+    fn extend(&self) -> Self {
+        *self
+    }
+
+    fn all_registers() -> &'static [Self]
+    where
+        Self: Sized,
+    {
+        MockRegister::all_values()
     }
 }
 
@@ -109,7 +129,7 @@ impl Default for MockFunctionAttribute {
     }
 }
 
-impl FunctionAttribute<MockRegister> for MockFunctionAttribute {
+impl CallingConventionInfo<MockRegister> for MockFunctionAttribute {
     fn register_int_parameters(&self) -> &[MockRegister] {
         &self.int_params
     }
@@ -171,7 +191,7 @@ lazy_static::lazy_static! {
         vector_params: vec![],
         return_reg: MockRegister::R1,
         reserved_stack: 0,
-        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        callee_saved: vec![MockRegister::R3, MockRegister::R4, MockRegister::F3, MockRegister::F4, MockRegister::V3, MockRegister::V4],
         always_saved: vec![],
         stack_cleanup: StackCleanup::Caller,
         stack_param_order: StackParameterOrder::RightToLeft,
@@ -185,7 +205,7 @@ lazy_static::lazy_static! {
         vector_params: vec![],
         return_reg: MockRegister::R1,
         reserved_stack: 0,
-        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        callee_saved: vec![MockRegister::R3, MockRegister::R4, MockRegister::F3, MockRegister::F4, MockRegister::V3, MockRegister::V4],
         always_saved: vec![],
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,
@@ -199,7 +219,7 @@ lazy_static::lazy_static! {
         vector_params: vec![],
         return_reg: MockRegister::R1,
         reserved_stack: 0,
-        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        callee_saved: vec![MockRegister::R3, MockRegister::R4, MockRegister::F3, MockRegister::F4, MockRegister::V3, MockRegister::V4],
         always_saved: vec![],
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,
@@ -213,7 +233,7 @@ lazy_static::lazy_static! {
         vector_params: vec![],
         return_reg: MockRegister::R1,
         reserved_stack: 0,
-        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        callee_saved: vec![MockRegister::R3, MockRegister::R4, MockRegister::F3, MockRegister::F4, MockRegister::V3, MockRegister::V4],
         always_saved: vec![],
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,
@@ -227,7 +247,7 @@ lazy_static::lazy_static! {
         vector_params: vec![],
         return_reg: MockRegister::R1,
         reserved_stack: 32,
-        callee_saved: vec![MockRegister::R3, MockRegister::R4],
+        callee_saved: vec![MockRegister::R3, MockRegister::R4, MockRegister::F3, MockRegister::F4, MockRegister::V3, MockRegister::V4],
         always_saved: vec![],
         stack_cleanup: StackCleanup::Callee,  // callee cleanup
         stack_param_order: StackParameterOrder::RightToLeft,

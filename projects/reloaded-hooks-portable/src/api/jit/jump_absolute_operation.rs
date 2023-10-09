@@ -22,6 +22,11 @@
 ///
 /// In a real-world scenario, you'd likely use enums instead of strings for the scratch register,
 /// the code above uses a string for demonstration purposes.
+///
+/// # Remarks
+///
+/// JITs are free to encode this as a relative jump if it's possible.
+/// This is for cases when architectures have multiple different series of jump instructions they can use.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct JumpAbsoluteOperation<T> {
     /// The scratch register to use for the jump operation.

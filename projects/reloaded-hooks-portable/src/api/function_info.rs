@@ -2,7 +2,7 @@ extern crate alloc;
 
 use core::mem::size_of;
 
-use super::function_attribute::FunctionAttribute;
+use super::{calling_convention_info::CallingConventionInfo, traits::register_info::RegisterInfo};
 use alloc::vec::Vec;
 
 /// This trait defines the information about the function for which a wrapper is being generated.
@@ -64,7 +64,11 @@ pub trait FunctionInfo {
     ///
     /// Tuple of (stack parameters, register parameters)
     /// These are the original passed in slices, sliced to contain just the filled in elements.
-    fn get_parameters_as_slice<'a, TRegister: Clone + Copy, T: FunctionAttribute<TRegister>>(
+    fn get_parameters_as_slice<
+        'a,
+        TRegister: Clone + Copy + RegisterInfo + PartialEq + 'static,
+        T: CallingConventionInfo<TRegister>,
+    >(
         &self,
         convention: &T,
         stack_params: &'a mut [ParameterType], // Mutable slice for stack parameters
@@ -127,7 +131,10 @@ pub trait FunctionInfo {
     ///
     /// Tuple of (stack parameters, register parameters) as vectors
     /// These are the original passed in slices, sliced to contain just the filled in elements.
-    fn get_parameters_as_vec<TRegister: Clone + Copy, T: FunctionAttribute<TRegister>>(
+    fn get_parameters_as_vec<
+        TRegister: Clone + Copy + RegisterInfo + PartialEq + 'static,
+        T: CallingConventionInfo<TRegister>,
+    >(
         &self,
         convention: &T,
     ) -> (Vec<ParameterType>, Vec<(ParameterType, TRegister)>) {

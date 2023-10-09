@@ -95,7 +95,7 @@ mod tests {
     fn test_compile_push_from_stack() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::PushStack(PushStack::new(4, 4))];
+        let operations = vec![Op::PushStack(PushStack::with_offset_and_size(4, 4))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("ff742404", hex::encode(result.unwrap()));
@@ -105,7 +105,7 @@ mod tests {
     fn test_compile_push_from_stack_float_reg() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::PushStack(PushStack::new(32, 16))];
+        let operations = vec![Op::PushStack(PushStack::with_offset_and_size(32, 16))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(
@@ -118,7 +118,7 @@ mod tests {
     fn test_compile_push_constant() {
         let mut jit = JitX86 {};
 
-        let operations = vec![Op::PushConst(PushConst::new(0x87654321))];
+        let operations = vec![Op::PushConst(PushConst::new(0x87654321, None))];
         let result = jit.compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("6821436587", hex::encode(result.unwrap()));

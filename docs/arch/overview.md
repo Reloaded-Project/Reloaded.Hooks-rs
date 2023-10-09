@@ -8,11 +8,11 @@ Lists currently supported architectures.
 
 | Feature                                                                         | x86 & x64 | ARM64 |
 | ------------------------------------------------------------------------------- | --------- | ----- |
-| [Basic Function Hooking](#basic-function-hooking)                               | ✅         | ❌     |
-| [Code Relocation](#code-relocation)                                             | ✅ ^1      | ❌     |
-| [Hook Stacking](#hook-stacking)                                                 | ✅         | ❌     |
-| [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ❌     |
-| [Optimal Wrapper Generation](#optimal-wrapper-generation)                       | ✅         | ❌     |
+| [Basic Function Hooking](#basic-function-hooking)                               | ✅         | ✅     |
+| [Code Relocation](#code-relocation)                                             | ✅ ^1      | ✅ ^1  |
+| [Hook Stacking](#hook-stacking)                                                 | ✅         | ✅     |
+| [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ✅     |
+| [Optimal Wrapper Generation](#optimal-wrapper-generation)                       | ✅         | ✅     |
 
 ^1 Only guaranteed for platforms supporting [Targeted Memory Allocation](../platform/overview.md).
 
@@ -33,7 +33,7 @@ applicable to your platform.
 
 ## Code Relocation
 
-!!! info "Code relocation is the ability to rewrite existing code such that "
+!!! info "Code relocation is the ability to rewrite existing code such that existing instructions using PC/IP relative operands still have valid operands post patching."
 
 Suppose the following x86 code, which was optimised away to accept first parameter in `ecx` register:  
 

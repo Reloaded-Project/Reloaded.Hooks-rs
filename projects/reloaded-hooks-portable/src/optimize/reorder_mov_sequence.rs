@@ -37,7 +37,7 @@ use core::hash::Hash;
 ///
 /// - `operations`: All operations emitted during wrapper generation up to method call. i.e. Starting with
 ///                 push and ending on pop.
-/// - `scratch_register`: Scratch register to use for reordering, used in case of cycles.
+/// - `scratch_registers`: Available scratch registers for reordering, used in case of cycles.
 ///
 /// # Returns
 ///
@@ -49,7 +49,7 @@ use core::hash::Hash;
 /// section `Reordering Operations`.
 pub fn reorder_mov_sequence<TRegister>(
     operations: &mut [Operation<TRegister>],
-    scratch_register: &Option<TRegister>,
+    scratch_registers: &[TRegister],
 ) -> Option<Vec<Operation<TRegister>>>
 where
     TRegister: RegisterInfo + Eq + PartialEq + Hash + Copy,
@@ -96,7 +96,7 @@ where
 
         // Alter our MOV operations and return
         start_idx += as_mov.len();
-        let new_mov = optimize_moves(&as_mov, scratch_register);
+        let new_mov = optimize_moves(&as_mov, scratch_registers);
         if let Some(new_moves) = new_mov {
             new_ops.extend(new_moves);
         } else {
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn reorder_mov_sequence_no_mov() {
         let mut operations: Vec<Operation<MockRegister>> = vec![];
-        let result = reorder_mov_sequence(&mut operations, &Some(R1));
+        let result = reorder_mov_sequence(&mut operations, &[R1]);
         assert!(result.is_none());
     }
 
@@ -128,7 +128,7 @@ mod tests {
         });
 
         let mut operations: Vec<Operation<MockRegister>> = vec![mock_op.clone()];
-        let result = reorder_mov_sequence(&mut operations, &Some(R1));
+        let result = reorder_mov_sequence(&mut operations, &[R1]);
         assert!(result.is_none());
     }
 
@@ -144,7 +144,7 @@ mod tests {
         });
 
         let mut operations: Vec<Operation<MockRegister>> = vec![mock_op1.clone(), mock_op2.clone()];
-        let reordered_ops = reorder_mov_sequence(&mut operations, &Some(R4)).unwrap();
+        let reordered_ops = reorder_mov_sequence(&mut operations, &[R4]).unwrap();
 
         // Expected result would depend on the optimize_moves implementation
         // Here's a dummy expected result assuming optimize_moves doesn't change the order:
@@ -170,7 +170,7 @@ mod tests {
 
         let mut operations: Vec<Operation<MockRegister>> =
             vec![mock_op1.clone(), mock_op2.clone(), mock_op3.clone()];
-        let reordered_ops = reorder_mov_sequence(&mut operations, &Some(R4)).unwrap();
+        let reordered_ops = reorder_mov_sequence(&mut operations, &[R4]).unwrap();
 
         assert_eq!(
             reordered_ops,
@@ -206,7 +206,7 @@ mod tests {
 
         let mut operations: Vec<Operation<MockRegister>> =
             vec![mock_op1.clone(), mock_op2.clone(), mock_op3.clone()];
-        let reordered_ops = reorder_mov_sequence(&mut operations, &None).unwrap();
+        let reordered_ops = reorder_mov_sequence(&mut operations, &[]).unwrap();
 
         assert_eq!(
             reordered_ops,

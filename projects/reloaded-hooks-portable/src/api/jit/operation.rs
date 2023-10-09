@@ -1,5 +1,6 @@
 extern crate alloc;
 
+use alloc::rc::Rc;
 use derive_more::From;
 use smallvec::SmallVec;
 
@@ -24,8 +25,8 @@ pub enum Operation<T> {
     Mov(MovOperation<T>),
     MovFromStack(MovFromStackOperation<T>),
     Push(PushOperation<T>),
-    PushStack(PushStackOperation),
-    PushConst(PushConstantOperation), // Required for parameter injection
+    PushStack(PushStackOperation<T>),
+    PushConst(PushConstantOperation<T>), // Required for parameter injection
     StackAlloc(StackAllocOperation),
     Pop(PopOperation<T>),
     Xchg(XChgOperation<T>),
@@ -66,6 +67,7 @@ where
         Operation::PushStack(inner_op) => Operation::PushStack(PushStackOperation {
             offset: inner_op.offset,
             item_size: inner_op.item_size,
+            scratch: Rc::new(inner_op.scratch.iter().map(|x| f(*x)).collect()),
         }),
         Operation::StackAlloc(inner_op) => Operation::StackAlloc(StackAllocOperation {
             operand: inner_op.operand,
@@ -111,7 +113,10 @@ where
                 })
                 .collect(),
         ),
-        Operation::PushConst(x) => Operation::PushConst(x),
+        Operation::PushConst(x) => Operation::PushConst(PushConstantOperation {
+            value: x.value,
+            scratch: x.scratch.map(f),
+        }),
         Operation::Return(x) => Operation::Return(x),
         Operation::None => Operation::None,
     }

@@ -6,7 +6,7 @@
 
 ## Needed for Basic Hooking Support
 
-### JumpRelativeOperation
+### JumpRelative
 
 !!! info "Represents jumping to a relative offset from current instruction pointer."
 
@@ -24,10 +24,18 @@
     jmp 0x200 ; Jump to address at current IP + 0x200
     ```
 
-=== "ARM64"
+=== "ARM64 (+- 128MB)"
 
     ```asm
     b 0x200 ; Branch to address at current IP + 0x200
+    ```
+
+=== "ARM64 (+- 4GB)"
+
+    ```asm
+    adrp x9, [0]    ; Load 4K page, relative to PC. (round address down to 4096)
+    add x9, 0x200   ; Offset in 4K page (add remainder)
+    br x9           ; Branch to location
     ```
 
 === "x86"
@@ -36,9 +44,11 @@
     jmp 0x200 ; Jump to address at current IP + 0x200
     ```
 
-### JumpAbsoluteOperation
+### JumpAbsolute
 
-!!! info "Represents jumping to an absolute address stored in a register or memory."
+!!! info "Represents jumping to an absolute address stored in a register."
+
+!!! note "JIT is free to encode this as a relative branch if it's possible."
 
 === "Rust"
 
@@ -59,8 +69,9 @@
 === "ARM64"
 
     ```asm
-    adr x9, target_loc ; Load address of target location into x9  
-    br x9 ; Branch to address in x9
+    MOVZ x9, #0x3456        ; Set lower bits.
+    MOVK x9, #0x12, LSL #16 ; Move upper bits
+    br x9                   ; Branch to location
     ```
 
 === "x86"
@@ -70,11 +81,45 @@
     jmp eax ; Jump to address in eax
     ```
 
+### JumpAbsoluteIndirect
+
+!!! info "Represents jumping to an absolute address stored in a memory address."
+
+!!! note "JIT is free to encode this as a relative branch if it's possible."
+
+=== "Rust"
+
+    ```rust
+    let jump_ind = JumpIndirectOperation {
+        target_address: 0x123456,
+    };
+    ```
+
+=== "x64"
+
+    ```asm
+    jmp qword [0x123456] ; Jump to address stored at 0x123456
+    ```
+
+=== "ARM64 (up to 256MB address)"
+
+    ```asm
+    MOVZ x9, #0x123, LSL #16 ; Move 0x123000
+    LDR  x9, [x9, #0x456]    ; Load the value from offset 0x456 into x1
+    br x9                    ; Branch to location
+    ```
+
+=== "x86"
+
+    ```asm
+    jmp dword [0x123456] ; Jump to address stored at 0x123456
+    ```
+
 ## Needed for Wrapper Generation
 
 !!! info "This includes functionality like 'parameter injection'."
 
-### MovOperation
+### Mov
 
 !!! info "Represents a move operation between two registers."
 
@@ -105,7 +150,7 @@
     mov ebx, eax ; Move eax into ebx
     ```
 
-### MovFromStackOperation
+### MovFromStack
 
 !!! info "Represents a move operation from the stack into a register."
 
@@ -136,7 +181,7 @@
     mov ebx, [esp + 8] ; Move value at esp + 8 into ebx
     ```
 
-### PushOperation
+### Push
 
 !!! info "Represents pushing a register onto the stack."
 
@@ -167,7 +212,7 @@
     push ebx ; Push ebx onto the stack
     ```
 
-### PushStackOperation
+### PushStack
 
 !!! info "Represents pushing a value from the stack to the stack."
 
@@ -200,7 +245,7 @@
     push [esp + 8] ; Push value at esp + 8 onto the stack
     ```
 
-### PushConstantOperation  
+### PushConstant
 
 !!! info "Represents pushing a constant value onto the stack."
 
@@ -232,7 +277,7 @@
     push 10 ; Push constant value 10 onto stack
     ```
 
-### StackAllocOperation
+### StackAlloc
 
 !!! info "Represents adjusting the stack pointer."
 
@@ -262,7 +307,7 @@
     sub esp, 8 ; Decrement esp by 8
     ```
 
-### PopOperation
+### Pop
 
 !!! info "Represents popping a value from the stack into a register."
 
@@ -293,7 +338,7 @@
     pop ebx ; Pop value from stack into ebx
     ```
 
-### XChgOperation
+### XChg
 
 !!! info "Represents exchanging the contents of two registers."
 
@@ -330,7 +375,7 @@
     xchg eax, ebx ; Swap eax and ebx
     ```
 
-### CallAbsoluteOperation
+### CallAbsolute
 
 !!! info "Represents calling an absolute address stored in a register or memory."
 
@@ -364,7 +409,7 @@
     call eax ; Call address in eax
     ```
 
-### CallRelativeOperation
+### CallRelative
 
 !!! info "Represents calling a relative offset from current instruction pointer."
 
@@ -394,7 +439,7 @@
     call 0x200 ; Call address at current IP + 0x200
     ```
 
-### ReturnOperation
+### Return
 
 !!! info "Represents returning from a function call."
 
@@ -436,7 +481,7 @@
 
 !!! tip "Enabled by setting `JitCapabilities::CanEncodeIPRelativeCall` and `JitCapabilities::CanEncodeIPRelativeJump` in JIT."
 
-### CallIpRelativeOperation
+### CallIpRelative
 
 !!! info "Represents calling an IP-relative offset where target address is stored."
 
@@ -454,7 +499,22 @@
     call qword [rip - 16] ; Address 0x1000 is at RIP-16 and contains raw address to call
     ```
 
-### JumpIpRelativeOperation
+=== "ARM64 (+- 1MB)"
+
+    ```asm
+    ldr x9, 4 ; Read item in a multiple of 4 bytes relative to PC
+    blr x9    ; Branch call to location
+    ```
+
+=== "ARM64 (+- 4GB)"
+
+    ```asm
+    adrp x9, [291]       ; Load 4K page, relative to PC. (round address down to 4096)
+    ldr x9, [x9, 1110]   ; Read address from offset in 4K page.
+    blr x9               ; Branch to location
+    ```
+
+### JumpIpRelative
 
 !!! info "Represents jumping to an IP-relative offset where target address is stored."
 
@@ -472,13 +532,30 @@
     jmp qword [rip - 16] ; Address 0x1000 is at RIP-16 and contains raw address to jump
     ```
 
+=== "ARM64 (+- 1MB)"
+
+    ```asm
+    ldr x9, 4 ; Read item in a multiple of 4 bytes relative to PC
+    br x9     ; Branch call to location
+    ```
+
+=== "ARM64 (+- 4GB)"
+
+    ```asm
+    adrp x9, [291]       ; Load 4K page, relative to PC. (round address down to 4096)
+    ldr x9, [x9, 1110]   ; Read address from offset in 4K page.
+    br x9                ; Branch call to location
+    ```
+
 ## Optimized Push/Pop Operations
 
 !!! tip "Enabled by setting `JitCapabilities::CanMultiPush` in JIT."
 
-### MultiPushOperation
+### MultiPush
 
 !!! info "Represents pushing multiple registers onto the stack."
+
+!!! note "Implementations must support push/pop of mixed registers (e.g. Reg+Vector)."
 
 === "Rust"
 
@@ -519,9 +596,11 @@
     push edx ; Push ebx, eax, ecx, edx onto the stack
     ```
 
-### MultiPopOperation
+### MultiPop
 
 !!! info "Represents popping multiple registers from the stack."
+
+!!! note "Implementations must support push/pop of mixed registers (e.g. Reg+Vector)."
 
 === "Rust" 
 
