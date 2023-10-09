@@ -79,8 +79,6 @@
 
 !!! info "Represents jumping to an absolute address stored in a memory address."
 
-!!! note "JIT is free to encode this as a relative branch if it's possible."
-
 === "Rust"
 
     ```rust
@@ -89,13 +87,13 @@
     };
     ```
 
-=== "x64"
+=== "x64 (< 2GiB)"
 
     ```asm
     jmp qword [0x123456] ; Jump to address stored at 0x123456
     ```
 
-=== "ARM64 (up to 256MB address)"
+=== "ARM64 (< 256MiB)"
 
     ```asm
     MOVZ x9, #0x123, LSL #16 ; Move 0x123000
@@ -103,11 +101,15 @@
     br x9                    ; Branch to location
     ```
 
-=== "x86"
+=== "x86 (< 2GiB)"
 
     ```asm
     jmp dword [0x123456] ; Jump to address stored at 0x123456
     ```
+
+* Values in brackets indicate max address usable.
+
+!!! warning "On MacOS, this is not usable, because memory < 2GiB is restricted from access."
 
 ## Needed for Wrapper Generation
 
