@@ -67,9 +67,9 @@ impl Jit<AllRegisters> for JitAarch64 {
 
     fn get_jit_capabilities() -> &'static [JitCapabilities] {
         &[
-            // JitCapabilities::CanMultiPush,            // Not currently implemented. Possible.
-            // JitCapabilities::CanEncodeIPRelativeCall, // (Possible with ADR, just not currently implemented)
-            // JitCapabilities::CanEncodeIPRelativeJump, // (Possible with ADR, just not currently implemented)
+            JitCapabilities::CanMultiPush, // Not currently implemented. Possible.
+            JitCapabilities::CanEncodeIPRelativeCall, // (Possible with ADR, just not currently implemented)
+            JitCapabilities::CanEncodeIPRelativeJump, // (Possible with ADR, just not currently implemented)
         ]
     }
 }
@@ -95,8 +95,8 @@ fn encode_instruction_aarch64(
         Operation::JumpAbsolute(x) => encode_jump_absolute(x, pc, buf),
         Operation::JumpAbsoluteIndirect(_) => todo!(),
         Operation::Return(x) => encode_return(x, pc, buf),
-        Operation::CallIpRelative(_) => unimplemented!(), // Not implementable
-        Operation::JumpIpRelative(_) => unimplemented!(), // Not implementable
+        Operation::CallIpRelative(_) => todo!(),
+        Operation::JumpIpRelative(_) => todo!(),
         Operation::MultiPush(x) => encode_multi_push(x, pc, buf),
         Operation::MultiPop(x) => encode_multi_pop(x, pc, buf),
     }
