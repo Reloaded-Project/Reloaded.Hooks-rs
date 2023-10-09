@@ -39,11 +39,11 @@ even in bare metal or embedded environments.
 
 | Feature                                                                                           | x86 & x64 | ARM64 |
 | ------------------------------------------------------------------------------------------------- | --------- | ----- |
-| [Basic Function Hooking](./arch/overview.md#basic-function-hooking)                               | ✅         | ❌     |
-| [Code Relocation](./arch/overview.md#code-relocation)                                             | ✅ ^1      | ❌     |
-| [Hook Stacking](./arch/overview.md#hook-stacking)                                                 | ✅         | ❌     |
-| [Calling Convention Wrapper Generation](./arch/overview.md#calling-convention-wrapper-generation) | ✅         | ❌     |
-| [Optimal Wrapper Generation](./arch/overview.md#optimal-wrapper-generation)                       | ✅         | ❌     |
+| [Basic Function Hooking](./arch/overview.md#basic-function-hooking)                               | ✅         | ✅     |
+| [Code Relocation](./arch/overview.md#code-relocation)                                             | ✅ ^1      | ✅ ^1  |
+| [Hook Stacking](./arch/overview.md#hook-stacking)                                                 | ✅         | ✅     |
+| [Calling Convention Wrapper Generation](./arch/overview.md#calling-convention-wrapper-generation) | ✅         | ✅     |
+| [Optimal Wrapper Generation](./arch/overview.md#optimal-wrapper-generation)                       | ✅         | ✅     |
 
 Bootstrapping a new architecture is not a difficult job!!  
 Please see [Architecture Support Overview](./arch/overview.md) for porting guidance.
