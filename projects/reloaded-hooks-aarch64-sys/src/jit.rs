@@ -93,9 +93,10 @@ fn encode_instruction_aarch64(
         Operation::CallRelative(x) => encode_call_relative(x, pc, buf),
         Operation::JumpRelative(x) => encode_jump_relative(x, pc, buf),
         Operation::JumpAbsolute(x) => encode_jump_absolute(x, pc, buf),
+        Operation::JumpAbsoluteIndirect(_) => todo!(),
         Operation::Return(x) => encode_return(x, pc, buf),
-        Operation::CallIpRelative(_) => todo!(), // Not implementable
-        Operation::JumpIpRelative(_) => todo!(), // Not implementable
+        Operation::CallIpRelative(_) => unimplemented!(), // Not implementable
+        Operation::JumpIpRelative(_) => unimplemented!(), // Not implementable
         Operation::MultiPush(x) => encode_multi_push(x, pc, buf),
         Operation::MultiPop(x) => encode_multi_pop(x, pc, buf),
     }

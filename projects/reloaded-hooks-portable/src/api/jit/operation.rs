@@ -7,6 +7,7 @@ use smallvec::SmallVec;
 use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
     call_rip_relative_operation::CallIpRelativeOperation,
+    jump_absolute_indirect_operation::JumpAbsoluteIndirectOperation,
     jump_absolute_operation::JumpAbsoluteOperation, jump_relative_operation::JumpRelativeOperation,
     jump_rip_relative_operation::JumpIpRelativeOperation,
     mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
@@ -34,6 +35,7 @@ pub enum Operation<T> {
     CallRelative(CallRelativeOperation),
     JumpRelative(JumpRelativeOperation),
     JumpAbsolute(JumpAbsoluteOperation<T>),
+    JumpAbsoluteIndirect(JumpAbsoluteIndirectOperation<T>),
     Return(ReturnOperation),
 
     // Only possible on some architectures.
@@ -119,5 +121,11 @@ where
         }),
         Operation::Return(x) => Operation::Return(x),
         Operation::None => Operation::None,
+        Operation::JumpAbsoluteIndirect(inner_op) => {
+            Operation::JumpAbsoluteIndirect(JumpAbsoluteIndirectOperation {
+                scratch_register: f(inner_op.scratch_register),
+                pointer_address: inner_op.pointer_address,
+            })
+        }
     }
 }

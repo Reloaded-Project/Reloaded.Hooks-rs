@@ -1,6 +1,5 @@
-/// Represents an absolute jump operation using a specific register and target address.
-///
-/// A `JumpAbsolute` specifies which register to use as a base and the target address to jump to.
+/// Represents an absolute jump operation using a specific register to store the address,
+/// and the address to jump to.
 ///
 /// # Example
 ///
@@ -15,9 +14,6 @@
 /// // This might represent an assembly instruction sequence like:
 /// //  MOV RAX, 0xDEADBEEF
 /// //  JMP RAX
-///
-/// // Or if scratch_register is not specified, it will represent
-/// // jmp qword [0x123456] // at address 0x123456 is 0xDEADBEEF
 /// ```
 ///
 /// In a real-world scenario, you'd likely use enums instead of strings for the scratch register,

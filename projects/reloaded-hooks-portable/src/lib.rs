@@ -39,6 +39,7 @@ pub mod api {
         pub mod call_relative_operation;
         pub mod call_rip_relative_operation;
         pub mod compiler;
+        pub mod jump_absolute_indirect_operation;
         pub mod jump_absolute_operation;
         pub mod jump_relative_operation;
         pub mod jump_rip_relative_operation;

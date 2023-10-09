@@ -41,6 +41,7 @@ pub(crate) fn encode_instruction(
         Operation::PushConst(x) => encode_push_constant(assembler, x),
         Operation::Return(x) => encode_return(assembler, x),
         Operation::None => Ok(()),
+        Operation::JumpAbsoluteIndirect(_) => todo!(),
     }
 }
 
