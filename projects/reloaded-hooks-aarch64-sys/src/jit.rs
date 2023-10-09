@@ -62,7 +62,7 @@ impl Jit<AllRegisters> for JitAarch64 {
     }
 
     fn max_relative_jump_distance() -> usize {
-        (1024 * 1024 * 128) - 1 // -+ 128 MiB (-1 for forward jump)
+        (1024 * 1024 * 128) - 4 // -+ 128 MiB (-4 for forward jump lacking 1 less multiple of 4)
     }
 
     fn get_jit_capabilities() -> &'static [JitCapabilities] {
