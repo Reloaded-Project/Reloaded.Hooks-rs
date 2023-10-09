@@ -46,7 +46,7 @@
 
 ### JumpAbsolute
 
-!!! info "Represents jumping to an absolute address stored in a register or memory."
+!!! info "Represents jumping to an absolute address stored in a register."
 
 !!! note "JIT is free to encode this as a relative branch if it's possible."
 
@@ -69,9 +69,9 @@
 === "ARM64"
 
     ```asm
-    adrp x9, [291]       ; Load 4K page, relative to PC. (round address down to 4096)
-    ldr x9, [x9, 1110]   ; Read address from offset in 4K page.
-    br x9                ; Branch to location
+    MOVZ x9, #0x3456        ; Set lower bits.
+    MOVK x9, #0x12, LSL #16 ; Move upper bits
+    br x9                   ; Branch to location
     ```
 
 === "x86"
@@ -79,6 +79,40 @@
     ```asm
     mov eax, 0x123456 ; Move target address into eax
     jmp eax ; Jump to address in eax
+    ```
+
+### JumpAbsoluteIndirect
+
+!!! info "Represents jumping to an absolute address stored in a memory address."
+
+!!! note "JIT is free to encode this as a relative branch if it's possible."
+
+=== "Rust"
+
+    ```rust
+    let jump_ind = JumpIndirectOperation {
+        target_address: 0x123456,
+    };
+    ```
+
+=== "x64"
+
+    ```asm
+    jmp qword [0x123456] ; Jump to address stored at 0x123456
+    ```
+
+=== "ARM64 (up to 256MB address)"
+
+    ```asm
+    MOVZ x9, #0x123, LSL #16 ; Move 0x123000
+    LDR  x9, [x9, #0x456]    ; Load the value from offset 0x456 into x1
+    br x9                    ; Branch to location
+    ```
+
+=== "x86"
+
+    ```asm
+    jmp dword [0x123456] ; Jump to address stored at 0x123456
     ```
 
 ## Needed for Wrapper Generation
@@ -465,6 +499,21 @@
     call qword [rip - 16] ; Address 0x1000 is at RIP-16 and contains raw address to call
     ```
 
+=== "ARM64 (+- 1MB)"
+
+    ```asm
+    ldr x9, 4 ; Read item in a multiple of 4 bytes relative to PC
+    blr x9    ; Branch call to location
+    ```
+
+=== "ARM64 (+- 4GB)"
+
+    ```asm
+    adrp x9, [291]       ; Load 4K page, relative to PC. (round address down to 4096)
+    ldr x9, [x9, 1110]   ; Read address from offset in 4K page.
+    blr x9               ; Branch to location
+    ```
+
 ### JumpIpRelative
 
 !!! info "Represents jumping to an IP-relative offset where target address is stored."
@@ -481,6 +530,21 @@
 
     ```asm
     jmp qword [rip - 16] ; Address 0x1000 is at RIP-16 and contains raw address to jump
+    ```
+
+=== "ARM64 (+- 1MB)"
+
+    ```asm
+    ldr x9, 4 ; Read item in a multiple of 4 bytes relative to PC
+    br x9     ; Branch call to location
+    ```
+
+=== "ARM64 (+- 4GB)"
+
+    ```asm
+    adrp x9, [291]       ; Load 4K page, relative to PC. (round address down to 4096)
+    ldr x9, [x9, 1110]   ; Read address from offset in 4K page.
+    br x9                ; Branch call to location
     ```
 
 ## Optimized Push/Pop Operations

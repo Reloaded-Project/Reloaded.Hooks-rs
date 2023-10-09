@@ -19,14 +19,19 @@
 
 ### [JumpAbsolute](./operations.md#jumpabsolute)
 
-| Architecture     | Supported                                                      | Notes                                 |
-| ---------------- | -------------------------------------------------------------- | ------------------------------------- |
-| x64 (register)   | ✅                                                              | Uses scratch register for efficiency. |
-| x86 (indirect)   | ❌                                                              | Not yet implemented                   |
-| x86 (register)   | ✅                                                              | Uses scratch register for efficiency. |
-| x86 (indirect)   | ❌                                                              | Not yet implemented                   |
-| ARM64 (register) | ✅                                                              | Uses scratch register (required)      |
-| ARM64 (indirect) | ❌ Relative +-4GB jump w/ 3 instructions. Used if within range. | Not yet implemented                   |
+| Architecture | Supported | Notes                                 |
+| ------------ | --------- | ------------------------------------- |
+| x64          | ✅         | Uses scratch register for efficiency. |
+| x86          | ✅         | Uses scratch register for efficiency. |
+| ARM64        | ✅         | Uses scratch register (required)      |
+
+### [JumpAbsoluteIndirect](./operations.md#jumpabsoluteindirect)
+
+| Architecture | Supported | Notes                                          |
+| ------------ | --------- | ---------------------------------------------- |
+| x86          | ❌         | Not yet implemented                            |
+| x86          | ❌         | Not yet implemented                            |
+| ARM64        | ❌         | 2-3 instructions, depending on offset from PC. |
 
 ## Needed for Wrapper Generation
 
@@ -96,23 +101,19 @@
 
 ### [CallAbsolute](./operations.md#callabsolute)
 
-| Architecture     | Supported                                                      | Notes                                 |
-| ---------------- | -------------------------------------------------------------- | ------------------------------------- |
-| x64 (register)   | ✅                                                              | Uses scratch register for efficiency. |
-| x86 (indirect)   | ❌                                                              | Not yet implemented                   |
-| x86 (register)   | ✅                                                              | Uses scratch register for efficiency. |
-| x86 (indirect)   | ❌                                                              | Not yet implemented                   |
-| ARM64 (register) | ✅                                                              | Uses scratch register (required)      |
-| ARM64 (indirect) | ❌ Relative +-4GB jump w/ 3 instructions. Used if within range. | Not yet implemented                   |
+| Architecture     | Supported | Notes                                 |
+| ---------------- | --------- | ------------------------------------- |
+| x64 (register)   | ✅         | Uses scratch register for efficiency. |
+| x86 (register)   | ✅         | Uses scratch register for efficiency. |
+| ARM64 (register) | ✅         | Uses scratch register (required)      |
 
 ### [CallRelative](./operations.md#callrelative)
 
-| Architecture        | Supported | Notes                                                        |
-| ------------------- | --------- | ------------------------------------------------------------ |
-| x64                 | ✅         | +-2GB                                                        |
-| x86                 | ✅         | +-2GB                                                        |
-| ARM64               | ✅         | +-128MB                                                      |
-| ARM64 (alternative) | ❌         | Relative +-4GB jump w/ 3 instructions. Used if within range. |
+| Architecture | Supported | Notes   |
+| ------------ | --------- | ------- |
+| x64          | ✅         | +-2GB   |
+| x86          | ✅         | +-2GB   |
+| ARM64        | ✅         | +-128MB |
 
 ### [Return](./operations.md#return)
 
@@ -130,7 +131,7 @@
 | ------------ | --------- | ------------ |
 | x64          | ✅         |              |
 | x86          | ❓         | Unsupported. |
-| ARM64        | ❓         | Unsupported. |
+| ARM64        | ❓         |              |
 
 ### [JumpIpRelative](./operations.md#jumpiprelative)
 
