@@ -73,6 +73,8 @@
     jmp eax ; Jump to address in eax
     ```
 
+!!! note "We prefer this approach to `absolute jump` because it is faster performance wise."
+
 ### JumpAbsoluteIndirect
 
 !!! info "Represents jumping to an absolute address stored in a memory address."
