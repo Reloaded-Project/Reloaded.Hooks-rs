@@ -5,7 +5,19 @@ use crate::instructions::add_immediate::AddImmediate;
 use crate::instructions::adr::Adr;
 use alloc::vec::Vec;
 
-/// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/B--Branch-
+/// Loads a PC relative address into a register.
+///
+/// # Arguments
+///
+/// * `x` - A reference to a struct containing all the CPU registers.
+/// * `pc` - A mutable reference to the program counter.
+/// * `buf` - A mutable reference to a vector of 32-bit integers that will hold the assembled instructions.
+/// * `target_address` - The address that we want to load into the register.
+///
+/// # Returns
+///
+/// Returns a `Result` with an empty `Ok` value if the assembly is successful, or a `JitError` if
+/// there is an error assembling the instructions.
 pub fn load_pc_rel_address(
     x: &AllRegisters,
     pc: &mut usize,

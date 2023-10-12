@@ -10,12 +10,12 @@
 
 ### [JumpRelative](./operations.md#jumprelative)
 
-| Architecture        | Supported | Notes                                                        |
-| ------------------- | --------- | ------------------------------------------------------------ |
-| x64                 | ✅         | +-2GB                                                        |
-| x86                 | ✅         | +-2GB                                                        |
-| ARM64               | ✅         | +-128MB                                                      |
-| ARM64 (alternative) | ❌         | Relative +-4GB jump w/ 3 instructions. Used if within range. |
+| Architecture      | Supported | Notes                                      |
+| ----------------- | --------- | ------------------------------------------ |
+| x64               | ✅         | +-2GiB                                     |
+| x86               | ✅         | +-2GiB                                     |
+| ARM64 (+- 128MiB) | ✅         | +-128MiB                                   |
+| ARM64 (+- 4GiB)   | ❌         | Uses 3 instructions. Used if within range. |
 
 ### [JumpAbsolute](./operations.md#jumpabsolute)
 
@@ -27,11 +27,12 @@
 
 ### [JumpAbsoluteIndirect](./operations.md#jumpabsoluteindirect)
 
-| Architecture | Supported | Notes                                          |
-| ------------ | --------- | ---------------------------------------------- |
-| x86          | ❌         | Not yet implemented                            |
-| x86          | ❌         | Not yet implemented                            |
-| ARM64        | ❌         | 2-3 instructions, depending on offset from PC. |
+| Architecture | Supported | Notes                                                                     |
+| ------------ | --------- | ------------------------------------------------------------------------- |
+| x86          | ❌         | Not yet implemented                                                       |
+| x86          | ❌         | Not yet implemented                                                       |
+| ARM64        | ❌         | Variant 0.                                                                |
+| ARM64        | ✅         | Variant 1. Replaced with [JumpAbsolute](#jumpabsolute), for perf reasons. |
 
 ## Needed for Wrapper Generation
 
@@ -109,11 +110,11 @@
 
 ### [CallRelative](./operations.md#callrelative)
 
-| Architecture | Supported | Notes   |
-| ------------ | --------- | ------- |
-| x64          | ✅         | +-2GB   |
-| x86          | ✅         | +-2GB   |
-| ARM64        | ✅         | +-128MB |
+| Architecture | Supported | Notes    |
+| ------------ | --------- | -------- |
+| x64          | ✅         | +-2GiB   |
+| x86          | ✅         | +-2GiB   |
+| ARM64        | ✅         | +-128MiB |
 
 ### [Return](./operations.md#return)
 
@@ -127,19 +128,21 @@
 
 ### [CallIpRelative](./operations.md#calliprelative)
 
-| Architecture | Supported | Notes        |
-| ------------ | --------- | ------------ |
-| x64          | ✅         |              |
-| x86          | ❓         | Unsupported. |
-| ARM64        | ❓         |              |
+| Architecture    | Supported | Notes           |
+| --------------- | --------- | --------------- |
+| x64             | ✅         |                 |
+| x86             | ❓         | Unsupported.    |
+| ARM64 (+- 1MiB) | ❌         | 2 instructions. |
+| ARM64 (+- 4GiB) | ❌         | 3 instructions. |
 
 ### [JumpIpRelative](./operations.md#jumpiprelative)
 
-| Architecture | Supported | Notes        |
-| ------------ | --------- | ------------ |
-| x64          | ✅         |              |
-| x86          | ❓         | Unsupported. |
-| ARM64        | ❓         | Unsupported. |
+| Architecture | Supported | Notes           |
+| ------------ | --------- | --------------- |
+| x64          | ✅         |                 |
+| x86          | ❓         | Unsupported.    |
+| ARM64        | ❌         | 2 instructions. |
+| ARM64        | ❌         | 3 instructions. |
 
 ## Optimized Push/Pop Operations
 

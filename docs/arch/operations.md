@@ -101,19 +101,33 @@
     jmp qword [0x123456] ; Jump to address stored at 0x123456
     ```
 
-=== "ARM64 (< 256MiB)"
-
-    ```asm
-    MOVZ x9, #0x123, LSL #16 ; Move 0x123000
-    LDR  x9, [x9, #0x456]    ; Load the value from offset 0x456 into x1
-    br x9                    ; Branch to location
-    ```
-
 === "x86 (< 2GiB)"
 
     ```asm
     jmp dword [0x123456] ; Jump to address stored at 0x123456
     ```
+
+
+=== "ARM64 (3 instructions) Variant 0"
+
+    ```asm
+    ; Possible on Multiple of 0x10000 with offset 0-4096
+    MOVZ x9, #0x123, LSL #16 ; Store upper 16 bits.
+    LDR  x9, [x9, #0x456]    ; Load lower 12 bit offset
+    br x9                    ; Branch to location
+    ```
+
+=== "ARM64 (4-6 instructions) Variant 1"
+
+    ```asm
+    ; On any address up to 4GiB + 4096
+    MOVZ x9, #0x3456        ; Set lower bits.
+    MOVK x9, #0x12, LSL #16 ; Move upper bits
+                            ; Continue until desired address.
+    LDR  x9, [x9, #0x0]     ; Load from address.
+    br x9
+    ```
+
 
 * Values in brackets indicate max address usable.
 

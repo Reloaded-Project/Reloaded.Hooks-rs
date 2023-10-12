@@ -32,6 +32,7 @@ pub(crate) mod instructions {
 pub(crate) mod jit_instructions {
     pub mod branch_absolute;
     pub mod branch_relative;
+    pub mod jump_absolute_indirect;
     pub mod load_pc_relative_address;
     pub mod mov;
     pub mod mov_from_stack;

@@ -14,6 +14,7 @@ use crate::{
     jit_instructions::{
         branch_absolute::{encode_call_absolute, encode_jump_absolute},
         branch_relative::{encode_call_relative, encode_jump_relative},
+        jump_absolute_indirect::encode_jump_absolute_indirect,
         mov::encode_mov,
         mov_from_stack::encode_mov_from_stack,
         multi_pop::encode_multi_pop,
@@ -93,7 +94,7 @@ fn encode_instruction_aarch64(
         Operation::CallRelative(x) => encode_call_relative(x, pc, buf),
         Operation::JumpRelative(x) => encode_jump_relative(x, pc, buf),
         Operation::JumpAbsolute(x) => encode_jump_absolute(x, pc, buf),
-        Operation::JumpAbsoluteIndirect(_) => todo!(),
+        Operation::JumpAbsoluteIndirect(x) => encode_jump_absolute_indirect(x, pc, buf),
         Operation::Return(x) => encode_return(x, pc, buf),
         Operation::CallIpRelative(_) => todo!(),
         Operation::JumpIpRelative(_) => todo!(),

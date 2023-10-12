@@ -4,6 +4,7 @@
 use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
     call_rip_relative_operation::CallIpRelativeOperation,
+    jump_absolute_indirect_operation::JumpAbsoluteIndirectOperation,
     jump_absolute_operation::JumpAbsoluteOperation, jump_relative_operation::JumpRelativeOperation,
     jump_rip_relative_operation::JumpIpRelativeOperation,
     mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
@@ -26,6 +27,7 @@ pub type CallAbs<T> = CallAbsoluteOperation<T>;
 pub type CallRel = CallRelativeOperation;
 pub type JumpRel = JumpRelativeOperation;
 pub type JumpAbs<T> = JumpAbsoluteOperation<T>;
+pub type JumpAbsInd<T> = JumpAbsoluteIndirectOperation<T>;
 pub type CallIpRel = CallIpRelativeOperation;
 pub type JumpIpRel = JumpIpRelativeOperation;
 pub type Return = ReturnOperation;
