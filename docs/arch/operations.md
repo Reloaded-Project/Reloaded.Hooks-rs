@@ -30,6 +30,14 @@
     b 0x200 ; Branch to address at current IP + 0x200
     ```
 
+=== "ARM64 (< 4GiB)"
+
+    ```asm
+    adrp x9, #0          ; Load 4K page, relative to PC. (round address down to 4096)
+    add x9, x9, #100     ; Add any missing offset.
+    blr x9               ; Branch to location
+    ```
+
 === "x86 (+- 2GiB)"
 
     ```asm
@@ -505,7 +513,7 @@
 === "ARM64 (+- 4GB)"
 
     ```asm
-    adrp x9, [291]       ; Load 4K page, relative to PC. (round address down to 4096)
+    adrp x9, #0x0        ; Load 4K page, relative to PC. (round address down to 4096)
     ldr x9, [x9, 1110]   ; Read address from offset in 4K page.
     blr x9               ; Branch to location
     ```
@@ -538,7 +546,7 @@
 === "ARM64 (+- 4GB)"
 
     ```asm
-    adrp x9, [291]       ; Load 4K page, relative to PC. (round address down to 4096)
+    adrp x9, #0x0        ; Load 4K page, relative to PC. (round address down to 4096)
     ldr x9, [x9, 1110]   ; Read address from offset in 4K page.
     br x9                ; Branch call to location
     ```
