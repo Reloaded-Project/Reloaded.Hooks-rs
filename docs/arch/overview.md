@@ -14,7 +14,7 @@ Lists currently supported architectures.
 | [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ✅     |
 | [Optimal Wrapper Generation](#optimal-wrapper-generation)                       | ✅         | ✅     |
 
-^1 Only guaranteed for platforms supporting [Targeted Memory Allocation](../platform/overview.md).
+^1 Only *guaranteed* for platforms supporting [Targeted Memory Allocation](../platform/overview.md).
 
 ## Basic Function Hooking
 
