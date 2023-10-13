@@ -15,7 +15,7 @@
 | x64               | ✅         | +-2GiB                                     |
 | x86               | ✅         | +-2GiB                                     |
 | ARM64 (+- 128MiB) | ✅         | +-128MiB                                   |
-| ARM64 (+- 4GiB)   | ❌         | Uses 3 instructions. Used if within range. |
+| ARM64 (+- 4GiB)   | ✅         | Uses 3 instructions. Used if within range. |
 
 ### [JumpAbsolute](./operations.md#jumpabsolute)
 

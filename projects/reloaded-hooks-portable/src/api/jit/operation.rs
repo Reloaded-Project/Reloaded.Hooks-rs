@@ -33,7 +33,7 @@ pub enum Operation<T> {
     Xchg(XChgOperation<T>),
     CallAbsolute(CallAbsoluteOperation<T>),
     CallRelative(CallRelativeOperation),
-    JumpRelative(JumpRelativeOperation),
+    JumpRelative(JumpRelativeOperation<T>),
     JumpAbsolute(JumpAbsoluteOperation<T>),
     JumpAbsoluteIndirect(JumpAbsoluteIndirectOperation<T>),
     Return(ReturnOperation),
@@ -88,7 +88,10 @@ where
             target_address: inner_op.target_address,
         }),
 
-        Operation::JumpRelative(inner_op) => Operation::JumpRelative(inner_op),
+        Operation::JumpRelative(inner_op) => Operation::JumpRelative(JumpRelativeOperation {
+            target_address: inner_op.target_address,
+            scratch_register: f(inner_op.scratch_register),
+        }),
         Operation::JumpAbsolute(inner_op) => Operation::JumpAbsolute(JumpAbsoluteOperation {
             scratch_register: f(inner_op.scratch_register),
             target_address: inner_op.target_address,

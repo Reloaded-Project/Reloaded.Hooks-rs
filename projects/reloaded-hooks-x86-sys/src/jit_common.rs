@@ -365,7 +365,10 @@ fn encode_mov(
     Ok(())
 }
 
-fn encode_jump_relative(a: &mut CodeAssembler, x: &JumpRel) -> Result<(), JitError<AllRegisters>> {
+fn encode_jump_relative(
+    a: &mut CodeAssembler,
+    x: &JumpRel<AllRegisters>,
+) -> Result<(), JitError<AllRegisters>> {
     a.jmp(x.target_address as u64).map_err(convert_error)?;
     Ok(())
 }
