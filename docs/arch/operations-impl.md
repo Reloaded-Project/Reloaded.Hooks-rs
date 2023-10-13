@@ -48,8 +48,8 @@
 
 | Architecture | to Register | to Vector |
 | ------------ | ----------- | --------- |
-| x64          | ✅           | ❌         |
-| x86          | ✅           | ❌         |
+| x64          | ✅           | ✅         |
+| x86          | ✅           | ✅         |
 | ARM64        | ✅           | ✅         |
 
 ### [Push](./operations.md#push)
