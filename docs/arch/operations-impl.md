@@ -137,12 +137,12 @@
 
 ### [JumpIpRelative](./operations.md#jumpiprelative)
 
-| Architecture | Supported | Notes           |
-| ------------ | --------- | --------------- |
-| x64          | ✅         |                 |
-| x86          | ❓         | Unsupported.    |
-| ARM64        | ✅         | 2 instructions. |
-| ARM64        | ✅         | 3 instructions. |
+| Architecture    | Supported | Notes           |
+| --------------- | --------- | --------------- |
+| x64             | ✅         |                 |
+| x86             | ❓         | Unsupported.    |
+| ARM64 (+- 1MiB) | ✅         | 2 instructions. |
+| ARM64 (+- 4GiB) | ✅         | 3 instructions. |
 
 ## Optimized Push/Pop Operations
 

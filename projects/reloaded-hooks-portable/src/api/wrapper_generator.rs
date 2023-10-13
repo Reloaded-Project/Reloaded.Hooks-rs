@@ -24,9 +24,6 @@ where
     /// Address of the function to be called.
     pub target_address: usize,
 
-    /// Target within which in memory the wrapper should be allocated.
-    pub proximity_target: ProximityTarget,
-
     /// Information about the function for which the wrapper needs to be generated.
     pub function_info: &'a T,
 
@@ -47,25 +44,29 @@ where
     fn get_buffer_from_factory(&self) -> (bool, Box<dyn Buffer>) {
         let mut buffer_factory_lock = BUFFER_FACTORY.lock();
 
-        let buf_opt = buffer_factory_lock.get_buffer(
-            self.proximity_target.item_size,
-            self.proximity_target.target_address,
-            self.proximity_target.requested_proximity,
-            <TJit as Jit<TRegister>>::code_alignment(),
-        );
+        // Try known relative jump ranges.
+        for &requested_proximity in TJit::max_relative_jump_distances() {
+            let proximity_target = ProximityTarget::with_address_and_requested_proximity(
+                self.target_address,
+                requested_proximity,
+            );
 
-        let has_buf_in_range = buf_opt.is_ok();
-        let buf_boxed: Box<dyn Buffer> = match buf_opt {
-            Ok(buffer) => buffer,
-            Err(_) => buffer_factory_lock
-                .get_any_buffer(
-                    self.proximity_target.item_size,
-                    <TJit as Jit<TRegister>>::code_alignment(),
-                )
-                .unwrap(),
-        };
+            let buf_opt = buffer_factory_lock.get_buffer(
+                proximity_target.item_size,
+                proximity_target.target_address,
+                proximity_target.requested_proximity,
+                <TJit as Jit<TRegister>>::code_alignment(),
+            );
 
-        (has_buf_in_range, buf_boxed)
+            if let Ok(buffer) = buf_opt {
+                return (true, buffer);
+            }
+        }
+
+        let buf_boxed = buffer_factory_lock
+            .get_any_buffer(256, <TJit as Jit<TRegister>>::code_alignment())
+            .unwrap();
+        (false, buf_boxed)
     }
 }
 

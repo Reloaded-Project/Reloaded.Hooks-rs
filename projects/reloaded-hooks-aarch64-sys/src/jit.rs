@@ -13,6 +13,7 @@ use crate::{
     all_registers::AllRegisters,
     jit_instructions::{
         branch_absolute::{encode_call_absolute, encode_jump_absolute},
+        branch_ip_relative::{encode_call_ip_relative, encode_jump_ip_relative},
         branch_relative::{encode_call_relative, encode_jump_relative},
         jump_absolute_indirect::encode_jump_absolute_indirect,
         mov::encode_mov,
@@ -62,15 +63,19 @@ impl Jit<AllRegisters> for JitAarch64 {
         4
     }
 
-    fn max_relative_jump_distance() -> usize {
-        (1024 * 1024 * 128) - 4 // -+ 128 MiB (-4 for forward jump lacking 1 less multiple of 4)
+    fn max_relative_jump_distances() -> &'static [usize] {
+        // We remove a value because forward jumps can't go as far.
+        &[
+            (1024 * 1024 * 128) - 4,  // -+ 128 MiB
+            (1024 * 1024 * 4096) - 4, // -+ 4 GiB
+        ]
     }
 
     fn get_jit_capabilities() -> &'static [JitCapabilities] {
         &[
-            JitCapabilities::CanMultiPush, // Not currently implemented. Possible.
-            JitCapabilities::CanEncodeIPRelativeCall, // (Possible with ADR, just not currently implemented)
-            JitCapabilities::CanEncodeIPRelativeJump, // (Possible with ADR, just not currently implemented)
+            JitCapabilities::CanMultiPush,
+            JitCapabilities::CanEncodeIPRelativeCall,
+            JitCapabilities::CanEncodeIPRelativeJump,
         ]
     }
 }
@@ -96,8 +101,8 @@ fn encode_instruction_aarch64(
         Operation::JumpAbsolute(x) => encode_jump_absolute(x, pc, buf),
         Operation::JumpAbsoluteIndirect(x) => encode_jump_absolute_indirect(x, pc, buf),
         Operation::Return(x) => encode_return(x, pc, buf),
-        Operation::CallIpRelative(_) => todo!(),
-        Operation::JumpIpRelative(_) => todo!(),
+        Operation::CallIpRelative(x) => encode_call_ip_relative(x, pc, buf),
+        Operation::JumpIpRelative(x) => encode_jump_ip_relative(x, pc, buf),
         Operation::MultiPush(x) => encode_multi_push(x, pc, buf),
         Operation::MultiPop(x) => encode_multi_pop(x, pc, buf),
     }

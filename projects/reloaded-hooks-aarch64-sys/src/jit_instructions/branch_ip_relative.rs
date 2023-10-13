@@ -1,12 +1,10 @@
 use reloaded_hooks_portable::api::jit::compiler::JitError;
 use reloaded_hooks_portable::api::jit::operation_aliases::{CallIpRel, JumpIpRel};
 extern crate alloc;
-use crate::instructions::add_immediate::AddImmediate;
-use crate::instructions::adr::Adr;
 use crate::{all_registers::AllRegisters, instructions::branch_register::BranchRegister};
 use alloc::vec::Vec;
 
-use super::load_pc_relative_value::{self, load_pc_rel_value};
+use super::load_pc_relative_value::load_pc_rel_value;
 
 pub fn encode_call_ip_relative(
     x: &CallIpRel<AllRegisters>,

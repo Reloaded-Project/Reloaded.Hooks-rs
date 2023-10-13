@@ -43,8 +43,8 @@ impl Jit<Register> for JitX86 {
         16
     }
 
-    fn max_relative_jump_distance() -> usize {
-        i32::MAX as usize
+    fn max_relative_jump_distances() -> &'static [usize] {
+        &[i32::MAX as usize]
     }
 
     fn get_jit_capabilities() -> &'static [JitCapabilities] {

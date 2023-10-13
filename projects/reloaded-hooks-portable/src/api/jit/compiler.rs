@@ -38,9 +38,9 @@ pub trait Jit<TRegister: RegisterInfo> {
     /// This is usually 4 bytes on most architectures, and 16 bytes on x86.
     fn code_alignment() -> u32;
 
-    /// Maximum distance of relative jump assembly instruction.
+    /// Maximum distances of supported relative jump assembly instruction sequences.
     /// This affects wrapper generation, and parameters passed into JIT.
-    fn max_relative_jump_distance() -> usize;
+    fn max_relative_jump_distances() -> &'static [usize];
 
     /// Returns the functionalities supported by this JIT.
     /// These functionalities affect code generation performed by this library.
