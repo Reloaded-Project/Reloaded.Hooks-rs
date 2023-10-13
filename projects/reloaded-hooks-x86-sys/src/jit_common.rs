@@ -1,6 +1,5 @@
 extern crate alloc;
 
-use crate::instructions::call_absolute::encode_call_absolute;
 use crate::instructions::call_ip_relative::encode_call_ip_relative;
 use crate::instructions::call_relative::encode_call_relative;
 use crate::instructions::jump_absolute::encode_jump_absolute;
@@ -17,6 +16,9 @@ use crate::instructions::push_stack::encode_push_stack;
 use crate::instructions::ret::encode_return;
 use crate::instructions::stack_alloc::encode_stack_alloc;
 use crate::instructions::xchg::encode_xchg;
+use crate::instructions::{
+    call_absolute::encode_call_absolute, jump_absolute_indirect::encode_jump_absolute_indirect,
+};
 use crate::jit_common::alloc::string::ToString;
 use iced_x86::code_asm::CodeAssembler;
 use iced_x86::IcedError;
@@ -43,6 +45,7 @@ pub(crate) fn encode_instruction(
         Operation::CallAbsolute(x) => encode_call_absolute(assembler, x),
         Operation::JumpRelative(x) => encode_jump_relative(assembler, x),
         Operation::JumpAbsolute(x) => encode_jump_absolute(assembler, x),
+        Operation::JumpAbsoluteIndirect(x) => encode_jump_absolute_indirect(assembler, x),
 
         // x64 only
         Operation::CallIpRelative(x) => encode_call_ip_relative(assembler, x, address),
@@ -54,7 +57,6 @@ pub(crate) fn encode_instruction(
         Operation::PushConst(x) => encode_push_constant(assembler, x),
         Operation::Return(x) => encode_return(assembler, x),
         Operation::None => Ok(()),
-        Operation::JumpAbsoluteIndirect(_) => todo!(),
     }
 }
 

@@ -32,6 +32,7 @@ pub(crate) mod instructions {
     pub mod call_ip_relative;
     pub mod call_relative;
     pub mod jump_absolute;
+    pub mod jump_absolute_indirect;
     pub mod jump_ip_relative;
     pub mod jump_relative;
     pub mod mov;

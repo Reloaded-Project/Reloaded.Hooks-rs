@@ -29,8 +29,8 @@
 
 | Architecture | Supported | Notes                                                                     |
 | ------------ | --------- | ------------------------------------------------------------------------- |
-| x86          | ❌         | Not yet implemented                                                       |
-| x86          | ❌         | Not yet implemented                                                       |
+| x86          | ✅         |                                                                           |
+| x86          | ✅         |                                                                           |
 | ARM64        | ❌         | Variant 0.                                                                |
 | ARM64        | ✅         | Variant 1. Replaced with [JumpAbsolute](#jumpabsolute), for perf reasons. |
 
