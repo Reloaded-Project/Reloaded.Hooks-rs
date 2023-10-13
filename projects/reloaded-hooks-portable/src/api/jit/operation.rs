@@ -40,8 +40,8 @@ pub enum Operation<T> {
 
     // Only possible on some architectures.
     // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
-    CallIpRelative(CallIpRelativeOperation),
-    JumpIpRelative(JumpIpRelativeOperation),
+    CallIpRelative(CallIpRelativeOperation<T>),
+    JumpIpRelative(JumpIpRelativeOperation<T>),
 
     // Opt-in for architectures that support it or can optimise for this use case.
     // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
@@ -93,8 +93,14 @@ where
             scratch_register: f(inner_op.scratch_register),
             target_address: inner_op.target_address,
         }),
-        Operation::CallIpRelative(inner_op) => Operation::CallIpRelative(inner_op),
-        Operation::JumpIpRelative(inner_op) => Operation::JumpIpRelative(inner_op),
+        Operation::CallIpRelative(inner_op) => Operation::CallIpRelative(CallIpRelativeOperation {
+            scratch: f(inner_op.scratch),
+            target_address: inner_op.target_address,
+        }),
+        Operation::JumpIpRelative(inner_op) => Operation::JumpIpRelative(JumpIpRelativeOperation {
+            scratch: f(inner_op.scratch),
+            target_address: inner_op.target_address,
+        }),
         Operation::MovFromStack(inner_op) => Operation::MovFromStack(MovFromStackOperation {
             stack_offset: inner_op.stack_offset,
             target: f(inner_op.target),

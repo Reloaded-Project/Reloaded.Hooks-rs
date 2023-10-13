@@ -423,7 +423,7 @@ fn encode_call_absolute(
 
 fn encode_jump_ip_relative(
     a: &mut CodeAssembler,
-    x: &JumpIpRel,
+    x: &JumpIpRel<AllRegisters>,
     address: usize,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 32 {
@@ -447,7 +447,7 @@ fn encode_jump_ip_relative(
 
 fn encode_call_ip_relative(
     a: &mut CodeAssembler,
-    x: &CallIpRel,
+    x: &CallIpRel<AllRegisters>,
     address: usize,
 ) -> Result<(), JitError<AllRegisters>> {
     if a.bitness() == 32 {

@@ -31,9 +31,11 @@ pub(crate) mod instructions {
 /// using the raw instructions in the [`crate::instructions`] namespace.
 pub(crate) mod jit_instructions {
     pub mod branch_absolute;
+    pub mod branch_ip_relative;
     pub mod branch_relative;
     pub mod jump_absolute_indirect;
     pub mod load_pc_relative_address;
+    pub mod load_pc_relative_value;
     pub mod mov;
     pub mod mov_from_stack;
     pub mod mov_two_from_stack;
