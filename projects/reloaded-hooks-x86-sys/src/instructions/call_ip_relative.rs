@@ -29,3 +29,42 @@ pub(crate) fn encode_call_ip_relative(
         .map_err(convert_error)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::x64::jit::JitX64;
+    use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};
+
+    #[test]
+    fn call_rip_relative_x64() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Op::CallIpRelative(CallIpRel::new(0x16))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("ff1510000000", hex::encode(result.unwrap()));
+    }
+
+    #[test]
+    fn call_rip_relative_backwards_x64() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Op::CallIpRelative(CallIpRel::new(16))];
+        let result = jit.compile(20, &operations);
+        assert!(result.is_ok());
+        assert_eq!("ff15e2ffffff", hex::encode(result.as_ref().unwrap()))
+    }
+
+    #[test]
+    fn call_rip_relative_two_instructions_x64() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![
+            Op::StackAlloc(StackAlloc::new(10)),
+            Op::CallIpRelative(CallIpRel::new(16)),
+        ];
+        let result = jit.compile(20, &operations);
+        assert!(result.is_ok());
+        assert_eq!("4883ec0aff15f2ffffff", hex::encode(result.unwrap()));
+    }
+}

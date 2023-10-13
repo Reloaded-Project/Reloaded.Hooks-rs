@@ -50,3 +50,37 @@ pub(crate) fn encode_pop(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        x64::{self, jit::JitX64},
+        x86::{self, jit::JitX86},
+    };
+    use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(x86::Register::xmm0, "f30f6f042483c410")]
+    #[case(x86::Register::ymm0, "c5fe6f042483c420")]
+    #[case(x86::Register::zmm0, "62f17f486f042483c440")]
+    fn pop_x86(#[case] register: x86::Register, #[case] expected_encoded: &str) {
+        let mut jit = JitX86 {};
+        let operations = vec![Op::Pop(Pop::new(register))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+
+    #[rstest]
+    #[case(x64::Register::xmm0, "f30f6f04244883c410")]
+    #[case(x64::Register::ymm0, "c5fe6f04244883c420")]
+    #[case(x64::Register::zmm0, "62f17f486f04244883c440")]
+    fn pop_x64(#[case] register: x64::Register, #[case] expected_encoded: &str) {
+        let mut jit = JitX64 {};
+        let operations = vec![Op::Pop(Pop::new(register))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+}

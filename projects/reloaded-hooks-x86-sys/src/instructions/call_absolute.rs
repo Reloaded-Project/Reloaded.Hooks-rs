@@ -30,3 +30,39 @@ pub(crate) fn encode_call_absolute(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};
+
+    use crate::{
+        x64::{self, jit::JitX64},
+        x86::{self, jit::JitX86},
+    };
+
+    #[test]
+    fn call_absolute_x86() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Op::CallAbsolute(CallAbs {
+            scratch_register: x86::Register::eax,
+            target_address: 0x12345678,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("b878563412ffd0", hex::encode(result.unwrap()));
+    }
+
+    #[test]
+    fn call_absolute_x64() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Op::CallAbsolute(CallAbs {
+            scratch_register: x64::Register::rax,
+            target_address: 0x12345678,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("48b87856341200000000ffd0", hex::encode(result.unwrap()));
+    }
+}

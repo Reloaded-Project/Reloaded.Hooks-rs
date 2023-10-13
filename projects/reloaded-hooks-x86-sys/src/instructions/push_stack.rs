@@ -55,3 +55,32 @@ pub(crate) fn encode_push_stack(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{x64::jit::JitX64, x86::jit::JitX86};
+    use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(4, 8, "ff742404")]
+    #[case(32, 16, "ff742420ff742430")]
+    fn push_from_stack_x64(#[case] offset: i32, #[case] size: u32, #[case] expected_encoded: &str) {
+        let mut jit = JitX64 {};
+        let operations = vec![Op::PushStack(PushStack::with_offset_and_size(offset, size))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+
+    #[rstest]
+    #[case(4, 4, "ff742404")]
+    #[case(32, 16, "ff742420ff742428ff742430ff742438")]
+    fn push_from_stack_x86(#[case] offset: i32, #[case] size: u32, #[case] expected_encoded: &str) {
+        let mut jit = JitX86 {};
+        let operations = vec![Op::PushStack(PushStack::with_offset_and_size(offset, size))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+}

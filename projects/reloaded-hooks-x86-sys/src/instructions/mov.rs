@@ -18,3 +18,41 @@ pub(crate) fn encode_mov(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        x64::{self, jit::JitX64},
+        x86::{self, jit::JitX86},
+    };
+    use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(x64::Register::rax, x64::Register::rbx, "4889c3")]
+    fn mov_x64(
+        #[case] source: x64::Register,
+        #[case] target: x64::Register,
+        #[case] expected_encoded: &str,
+    ) {
+        let mut jit = JitX64 {};
+        let operations = vec![Op::Mov(Mov { source, target })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+
+    #[rstest]
+    #[case(x86::Register::eax, x86::Register::ebx, "89c3")]
+    fn mov_x86(
+        #[case] source: x86::Register,
+        #[case] target: x86::Register,
+        #[case] expected_encoded: &str,
+    ) {
+        let mut jit = JitX86 {};
+        let operations = vec![Op::Mov(Mov { source, target })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+}

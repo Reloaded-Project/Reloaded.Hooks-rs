@@ -24,3 +24,30 @@ pub(crate) fn encode_stack_alloc(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{x64::jit::JitX64, x86::jit::JitX86};
+    use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};
+    use rstest::rstest;
+
+    #[rstest]
+    #[case(10, "4883ec0a")]
+    fn stackalloc_x64(#[case] size: i32, #[case] expected_encoded: &str) {
+        let mut jit = JitX64 {};
+        let operations = vec![Op::StackAlloc(StackAlloc::new(size))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+
+    #[rstest]
+    #[case(10, "83ec0a")]
+    fn stackalloc_x86(#[case] size: i32, #[case] expected_encoded: &str) {
+        let mut jit = JitX86 {};
+        let operations = vec![Op::StackAlloc(StackAlloc::new(size))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+}

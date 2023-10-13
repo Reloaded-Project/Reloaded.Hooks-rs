@@ -28,3 +28,37 @@ pub(crate) fn encode_mov_from_stack(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::{
+        x64::{self, jit::JitX64},
+        x86::{self, jit::JitX86},
+    };
+    use reloaded_hooks_portable::api::jit::{
+        compiler::Jit, mov_from_stack_operation::MovFromStackOperation, operation_aliases::*,
+    };
+
+    #[test]
+    fn mov_from_stack_x86() {
+        let mut jit = JitX86 {};
+
+        let operations = vec![Op::MovFromStack(MovFromStackOperation {
+            stack_offset: 4,
+            target: x86::Register::eax,
+        })];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("8b442404", hex::encode(result.unwrap()));
+    }
+
+    #[test]
+    fn mov_from_stack_x64() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Op::MovFromStack(MovFromStack::new(4, x64::Register::rax))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("488b442404", hex::encode(result.as_ref().unwrap()));
+    }
+}

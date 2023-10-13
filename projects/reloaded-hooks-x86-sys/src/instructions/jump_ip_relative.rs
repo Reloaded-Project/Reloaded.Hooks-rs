@@ -30,3 +30,45 @@ pub(crate) fn encode_jump_ip_relative(
         .map_err(convert_error)?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::x64::jit::JitX64;
+    use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};
+
+    #[test]
+    fn jmp_rip_relative_x64() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Op::JumpIpRelative(JumpIpRel::new(0x16))];
+        let result = jit.compile(0, &operations);
+        assert!(result.is_ok());
+        assert_eq!("ff2510000000", hex::encode(result.unwrap()));
+    }
+
+    #[test]
+    fn jmp_rip_relative_backwards_x64() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![Op::JumpIpRelative(JumpIpRel::new(16))];
+        let result = jit.compile(20, &operations);
+        assert!(result.is_ok());
+        assert_eq!("ff25e2ffffff", hex::encode(result.unwrap()));
+    }
+
+    #[test]
+    fn jmp_rip_relative_backwards_two_instructions_x64() {
+        let mut jit = JitX64 {};
+
+        let operations = vec![
+            Op::StackAlloc(StackAlloc::new(10)),
+            Op::JumpIpRelative(JumpIpRel::new(16)),
+        ];
+        let result = jit.compile(20, &operations);
+        assert!(result.is_ok());
+        assert_eq!(
+            "4883ec0aff25f2ffffff",
+            hex::encode(result.as_ref().unwrap())
+        );
+    }
+}
