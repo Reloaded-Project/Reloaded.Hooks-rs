@@ -96,8 +96,8 @@
 
 | Architecture | Registers | Vectors | Notes                      |
 | ------------ | --------- | ------- | -------------------------- |
-| x64          | ✅         | ❌       |                            |
-| x86          | ✅         | ❌       |                            |
+| x64          | ✅         | ✅ *     | *Requires scratch register |
+| x86          | ✅         | ✅ *     | *Requires scratch register |
 | ARM64        | ✅ *       | ✅ *     | *Requires scratch register |
 
 ### [CallAbsolute](./operations.md#callabsolute)
