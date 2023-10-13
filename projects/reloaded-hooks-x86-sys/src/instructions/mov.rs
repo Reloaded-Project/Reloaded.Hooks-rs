@@ -11,6 +11,12 @@ pub(crate) fn encode_mov(
         a.mov(mov.target.as_iced_32()?, mov.source.as_iced_32()?)
     } else if mov.target.is_64() && mov.source.is_64() {
         a.mov(mov.target.as_iced_64()?, mov.source.as_iced_64()?)
+    } else if mov.target.is_xmm() && mov.source.is_xmm() {
+        a.movaps(mov.target.as_iced_xmm()?, mov.source.as_iced_xmm()?)
+    } else if mov.target.is_ymm() && mov.source.is_ymm() {
+        a.vmovaps(mov.target.as_iced_ymm()?, mov.source.as_iced_ymm()?)
+    } else if mov.target.is_zmm() && mov.source.is_zmm() {
+        a.vmovaps(mov.target.as_iced_zmm()?, mov.source.as_iced_zmm()?)
     } else {
         return Err(JitError::InvalidRegisterCombination(mov.source, mov.target));
     }
@@ -30,6 +36,9 @@ mod tests {
 
     #[rstest]
     #[case(x64::Register::rax, x64::Register::rbx, "4889c3")]
+    #[case(x64::Register::xmm0, x64::Register::xmm1, "0f28c8")]
+    #[case(x64::Register::ymm0, x64::Register::ymm1, "c5fc28c8")]
+    #[case(x64::Register::zmm0, x64::Register::zmm1, "62f17c4828c8")]
     fn mov_x64(
         #[case] source: x64::Register,
         #[case] target: x64::Register,
@@ -44,6 +53,9 @@ mod tests {
 
     #[rstest]
     #[case(x86::Register::eax, x86::Register::ebx, "89c3")]
+    #[case(x86::Register::xmm0, x86::Register::xmm1, "0f28c8")]
+    #[case(x86::Register::ymm0, x86::Register::ymm1, "c5fc28c8")] // Note: Check if AVX is supported for 32-bit in your environment
+    #[case(x86::Register::zmm0, x86::Register::zmm1, "62f17c4828c8")]
     fn mov_x86(
         #[case] source: x86::Register,
         #[case] target: x86::Register,
