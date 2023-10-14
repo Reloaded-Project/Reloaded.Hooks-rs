@@ -132,7 +132,7 @@ mod tests {
     #[case(0, 0x8100000, "0008049000001fd6")] // jump forward, no extra offset
     #[case(0x8100000, 0, "00f8fb9000001fd6")] // jump backward, no extra offset
     #[case(0, 0x8100004, "000804900010009100001fd6")] // jump forward, no small extra offset
-    #[case(0x8100004, 0, "e0f7fbf000f03f9100001fd6")] // jump backward, no small extra offset
+    #[case(0x8100004, 0, "00f8fb9000001fd6")] // jump backward, no small extra offset
     fn can_encode_jump_relative_4g(
         #[case] initial_pc: usize,
         #[case] target_address: usize,
