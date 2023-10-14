@@ -7,6 +7,7 @@ use smallvec::SmallVec;
 use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
     call_rip_relative_operation::CallIpRelativeOperation,
+    jump_absolute_indirect_operation::JumpAbsoluteIndirectOperation,
     jump_absolute_operation::JumpAbsoluteOperation, jump_relative_operation::JumpRelativeOperation,
     jump_rip_relative_operation::JumpIpRelativeOperation,
     mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
@@ -32,14 +33,15 @@ pub enum Operation<T> {
     Xchg(XChgOperation<T>),
     CallAbsolute(CallAbsoluteOperation<T>),
     CallRelative(CallRelativeOperation),
-    JumpRelative(JumpRelativeOperation),
+    JumpRelative(JumpRelativeOperation<T>),
     JumpAbsolute(JumpAbsoluteOperation<T>),
+    JumpAbsoluteIndirect(JumpAbsoluteIndirectOperation<T>),
     Return(ReturnOperation),
 
     // Only possible on some architectures.
     // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
-    CallIpRelative(CallIpRelativeOperation),
-    JumpIpRelative(JumpIpRelativeOperation),
+    CallIpRelative(CallIpRelativeOperation<T>),
+    JumpIpRelative(JumpIpRelativeOperation<T>),
 
     // Opt-in for architectures that support it or can optimise for this use case.
     // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
@@ -86,13 +88,22 @@ where
             target_address: inner_op.target_address,
         }),
 
-        Operation::JumpRelative(inner_op) => Operation::JumpRelative(inner_op),
+        Operation::JumpRelative(inner_op) => Operation::JumpRelative(JumpRelativeOperation {
+            target_address: inner_op.target_address,
+            scratch_register: f(inner_op.scratch_register),
+        }),
         Operation::JumpAbsolute(inner_op) => Operation::JumpAbsolute(JumpAbsoluteOperation {
             scratch_register: f(inner_op.scratch_register),
             target_address: inner_op.target_address,
         }),
-        Operation::CallIpRelative(inner_op) => Operation::CallIpRelative(inner_op),
-        Operation::JumpIpRelative(inner_op) => Operation::JumpIpRelative(inner_op),
+        Operation::CallIpRelative(inner_op) => Operation::CallIpRelative(CallIpRelativeOperation {
+            scratch: f(inner_op.scratch),
+            target_address: inner_op.target_address,
+        }),
+        Operation::JumpIpRelative(inner_op) => Operation::JumpIpRelative(JumpIpRelativeOperation {
+            scratch: f(inner_op.scratch),
+            target_address: inner_op.target_address,
+        }),
         Operation::MovFromStack(inner_op) => Operation::MovFromStack(MovFromStackOperation {
             stack_offset: inner_op.stack_offset,
             target: f(inner_op.target),
@@ -119,5 +130,11 @@ where
         }),
         Operation::Return(x) => Operation::Return(x),
         Operation::None => Operation::None,
+        Operation::JumpAbsoluteIndirect(inner_op) => {
+            Operation::JumpAbsoluteIndirect(JumpAbsoluteIndirectOperation {
+                scratch_register: f(inner_op.scratch_register),
+                pointer_address: inner_op.pointer_address,
+            })
+        }
     }
 }

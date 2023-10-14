@@ -36,32 +36,33 @@ bitfield! {
 }
 
 impl LdrImmediateUnsignedOffset {
-    pub fn new_mov_from_stack(
+    pub fn new_mov_from_reg(
         is_64bit: bool,
         destination: u8,
-        stack_offset: i32,
+        reg_offset: i32,
+        reg: u8,
     ) -> Result<Self, JitError<AllRegisters>> {
         // Check if divisible by 8 or 4.
         let encoded_offset = if is_64bit {
-            if (stack_offset & 0b111) != 0 {
-                return Err(return_divisible_by_register(stack_offset));
+            if (reg_offset & 0b111) != 0 {
+                return Err(return_divisible_by_register(reg_offset));
             }
 
-            if !(0..=32760).contains(&stack_offset) {
-                return Err(return_stack_out_of_range(stack_offset));
+            if !(0..=32760).contains(&reg_offset) {
+                return Err(return_stack_out_of_range(reg_offset));
             }
 
-            stack_offset >> 3
+            reg_offset >> 3
         } else {
-            if (stack_offset & 0b11) != 0 {
-                return Err(return_divisible_by_register(stack_offset));
+            if (reg_offset & 0b11) != 0 {
+                return Err(return_divisible_by_register(reg_offset));
             }
 
-            if !(0..=16380).contains(&stack_offset) {
-                return Err(return_stack_out_of_range(stack_offset));
+            if !(0..=16380).contains(&reg_offset) {
+                return Err(return_stack_out_of_range(reg_offset));
             }
 
-            stack_offset >> 2
+            reg_offset >> 2
         };
 
         // Note: Compiler is smart enough to optimize this away as a constant
@@ -70,14 +71,22 @@ impl LdrImmediateUnsignedOffset {
         value.set_opcode(0b111001);
         value.set_opc(0b01);
 
-        // Set Stack Pointer as Source Register
-        value.set_rn(31);
+        // Set Known Register as Source Register
+        value.set_rn(reg);
 
         // Set parameters
         value.set_rt(destination);
         value.set_size(if is_64bit { 11 } else { 10 });
         value.set_rn_offset(encoded_offset as i16);
         Ok(value)
+    }
+
+    pub fn new_mov_from_stack(
+        is_64bit: bool,
+        destination: u8,
+        stack_offset: i32,
+    ) -> Result<Self, JitError<AllRegisters>> {
+        Self::new_mov_from_reg(is_64bit, destination, stack_offset, 31)
     }
 
     pub fn new_mov_from_stack_vector(

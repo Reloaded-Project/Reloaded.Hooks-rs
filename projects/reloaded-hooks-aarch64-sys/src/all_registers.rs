@@ -6,7 +6,7 @@ use reloaded_hooks_portable::api::traits::register_info::{
 };
 
 #[allow(non_camel_case_types)]
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, AllValues)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, AllValues, Default)]
 pub enum AllRegisters {
     // Range 0b00000 - 0b11111 (0-31)
     // 32 bit general purpose registers
@@ -46,6 +46,7 @@ pub enum AllRegisters {
     // Range 0b100000 - 0b111111 (0-31)
     // XOR bit 0b100000 to toggle between w and x registers.
     // 64 bit general purpose registers
+    #[default]
     x0, // 0b100000
     x1,
     x2,
