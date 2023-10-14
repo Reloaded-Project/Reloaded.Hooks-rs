@@ -12,6 +12,7 @@ pub mod jit;
 /// Rewriting the code from one address to another!
 pub(crate) mod code_rewriter {
     pub mod aarch64_rewriter;
+    pub mod adr;
 }
 
 /// This namespace contains the raw instruction encodings for various

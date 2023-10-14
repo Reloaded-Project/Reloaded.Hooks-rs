@@ -33,7 +33,7 @@ pub trait CodeRewriter {
     ///
     /// # Returns
     ///
-    /// Returns the number of bytes written to `new_address`. Otherwise an error.
+    /// Returns the number of bytes written to `out_address`. Otherwise an error.
     fn rewrite_code(
         old_address: *const u8,
         old_address_size: usize,
@@ -51,5 +51,10 @@ pub enum CodeRewriterError {
     #[error(
         "The instruction cannot be re-encoded. Instruction offset: {0:?}, Instruction Name: {1:?}"
     )]
-    OurOfRange(i32, String),
+    OutOfRange(isize, String),
+
+    /// Insufficient space available to re-encode instructions.
+    /// If you encounter this error, re-allocate another buffer with a larger size and try calling again.
+    #[error("Insufficient space available to re-encode instructions. Required space: {0:?}")]
+    InsufficientSpace(i32),
 }

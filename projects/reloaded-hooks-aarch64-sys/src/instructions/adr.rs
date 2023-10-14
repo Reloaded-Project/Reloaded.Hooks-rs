@@ -14,19 +14,19 @@ bitfield! {
     u8;
 
     /// If 1, this is a 4K page address, else 0.
-    is_pageaddress, set_is_pageaddress: 31;
+    pub is_pageaddress, set_is_pageaddress: 31;
 
     /// Low bit of the immediate.
-    immlo, set_immlo: 30, 29;
+    pub immlo, set_immlo: 30, 29;
 
     /// Static opcode for this instruction.
-    opcode, set_opcode: 28, 24;
+    pub opcode, set_opcode: 28, 24;
 
     /// Immediate value to add.
-    i32, immhi, set_immhi: 23, 5;
+    pub i32, immhi, set_immhi: 23, 5;
 
     /// Register number for the destination.
-    rd, set_rd: 4, 0;
+    pub rd, set_rd: 4, 0;
 }
 
 impl Adr {
@@ -65,6 +65,51 @@ impl Adr {
         value.set_immlo(final_offset as u8);
 
         Ok(value)
+    }
+
+    /// Extracts the address calculated by the ADR instruction relative to the provided base address.
+    ///
+    /// # Parameters
+    ///
+    /// * `base_address`: The address where this ADR instruction is located.
+    ///
+    /// # Returns
+    ///
+    /// The calculated absolute address which the ADR instruction will load into the register.
+    pub fn extract_address(&self, base_address: usize) -> usize {
+        let immhi = self.immhi() as i32;
+        let immlo = self.immlo() as i32;
+
+        // Combine the immhi and immlo to get the full immediate value.
+        let offset = (immhi << 2) | (immlo & 0b11);
+        if self.is_pageaddress() {
+            (base_address as i64 + (offset as i64 * 4096)) as usize
+        } else {
+            (base_address as i64 + offset as i64) as usize
+        }
+    }
+
+    /// Set the raw offset fields (`immhi` and `immlo`) of the ADR/ADRP instruction.
+    ///
+    /// This function directly sets the `immhi` and `immlo` fields based on the provided raw offset,
+    /// without performing any additional checks. Ensure to use this function with care.
+    ///
+    /// # Parameters
+    ///
+    /// * `offset`: The raw offset value to be set.
+    pub fn set_raw_offset(&mut self, offset: i32) {
+        self.set_immhi((offset >> 2) & 0x7FFFF); // Set bits [23:5].
+        self.set_immlo((offset & 0x3) as u8); // Set bits [1:0].
+    }
+
+    /// Determines if the instruction is an ADRP.
+    ///
+    /// # Returns
+    ///
+    /// * `true` if the instruction is an ADRP.
+    /// * `false` otherwise.
+    pub fn is_adrp(&self) -> bool {
+        self.is_pageaddress()
     }
 }
 

@@ -1,21 +1,16 @@
 extern crate alloc;
 
-use reloaded_hooks_portable::api::{
-    buffers::buffer_abstractions::Buffer,
-    jit::{
-        compiler::{Jit, JitCapabilities, JitError},
-        operation::Operation,
-    },
+use reloaded_hooks_portable::api::jit::{
+    compiler::{Jit, JitCapabilities, JitError},
+    operation::Operation,
 };
 
-use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::vec::Vec;
 use core::{mem::size_of, slice};
 
 use crate::{
     all_registers::AllRegisters,
-    code_rewriter::aarch64_rewriter::rewrite_code_aarch64,
     jit_instructions::{
         branch_absolute::{encode_call_absolute, encode_jump_absolute},
         branch_ip_relative::{encode_call_ip_relative, encode_jump_ip_relative},

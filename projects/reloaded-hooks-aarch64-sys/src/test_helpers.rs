@@ -1,4 +1,11 @@
+use crate::code_rewriter::aarch64_rewriter::InstructionRewriteResult;
 use core::{mem::size_of_val, slice};
+
+pub(crate) fn to_hex_string(rewrite_result: InstructionRewriteResult) -> String {
+    let mut buf = Vec::new();
+    rewrite_result.append_to_buffer(&mut buf);
+    instruction_buffer_as_hex(&buf)
+}
 
 pub fn instruction_buffer_as_hex(buf: &[i32]) -> String {
     let ptr = buf.as_ptr() as *const u8;
