@@ -61,6 +61,11 @@ pub mod api {
         pub mod register_info;
     }
 
+    /// Contains the code rewriter, which is used to rewrite code from one address to another.
+    pub mod rewriter {
+        pub mod code_rewriter;
+    }
+
     pub mod calling_convention_info;
     pub mod function_info;
     pub mod wrapper_generator;

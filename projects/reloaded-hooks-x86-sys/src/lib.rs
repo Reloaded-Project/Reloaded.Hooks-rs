@@ -14,6 +14,10 @@ pub mod preset_calling_convention;
 
 /// Contains the public namespaces for x86
 pub mod x86 {
+    pub(crate) mod code_rewriter {
+        pub mod x86_rewriter;
+    }
+
     pub mod register;
     pub use register::Register;
     pub mod jit;
@@ -21,6 +25,10 @@ pub mod x86 {
 
 /// Contains the public namespaces for x64
 pub mod x64 {
+    pub(crate) mod code_rewriter {
+        pub mod x64_rewriter;
+    }
+
     pub mod register;
     pub use register::Register;
     pub mod jit;

@@ -9,6 +9,11 @@ pub mod all_registers;
 /// Contains the Just in Time Assembler that integrates with reloaded-hooks-rs.
 pub mod jit;
 
+/// Rewriting the code from one address to another!
+pub(crate) mod code_rewriter {
+    pub mod aarch64_rewriter;
+}
+
 /// This namespace contains the raw instruction encodings for various
 /// AArch64 instructions.
 pub(crate) mod instructions {
