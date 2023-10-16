@@ -21,6 +21,7 @@ pub(crate) fn rewrite_code_aarch64(
 /// Any rewritten instruction or group of instructions may be emitted as one of these instructions.
 pub(crate) enum InstructionRewriteResult {
     Adr(u32),
+    Adrp(u32),
     AdrpAndAdd(u32, u32),
     MovImmediate1(u32), // in instruction count order
     MovImmediate2(u32, u32),
@@ -37,6 +38,9 @@ impl InstructionRewriteResult {
     pub(crate) fn append_to_buffer(&self, buf: &mut Vec<i32>) {
         match self {
             InstructionRewriteResult::Adr(inst) => {
+                buf.push(*inst as i32);
+            }
+            InstructionRewriteResult::Adrp(inst) => {
                 buf.push(*inst as i32);
             }
             InstructionRewriteResult::AdrpAndAdd(inst1, inst2) => {
@@ -127,5 +131,66 @@ pub(crate) fn emit_mov_const_to_reg(destination: u8, value: usize) -> Instructio
                 .to_le(),
         ),
         _ => unreachable!(), // This case should never be reached unless platform is >64 bits
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::test_helpers::ToHexString;
+
+    use super::*;
+
+    #[test]
+    fn test_emit_mov_16_bits_or_less() {
+        let destination = 0;
+        let value = 0x1AAA;
+        let result = emit_mov_const_to_reg(destination, value);
+        if let InstructionRewriteResult::MovImmediate1(instr1) = result {
+            assert_eq!(instr1.to_hex_string(), "405583d2");
+        } else {
+            panic!("Expected MovImmediate1 result");
+        }
+    }
+
+    #[test]
+    fn test_emit_mov_17_to_32_bits() {
+        let destination = 1;
+        let value = 0x1AAAAAAA;
+        let result = emit_mov_const_to_reg(destination, value);
+        if let InstructionRewriteResult::MovImmediate2(instr1, instr2) = result {
+            assert_eq!(instr1.to_hex_string(), "415595d2");
+            assert_eq!(instr2.to_hex_string(), "4155a3f2");
+        } else {
+            panic!("Expected MovImmediate2 result");
+        }
+    }
+
+    #[test]
+    fn test_emit_mov_33_to_48_bits() {
+        let destination = 2;
+        let value = 0x2AAA1AAAAAAA;
+        let result = emit_mov_const_to_reg(destination, value);
+        if let InstructionRewriteResult::MovImmediate3(instr1, instr2, instr3) = result {
+            assert_eq!(instr1.to_hex_string(), "425595d2");
+            assert_eq!(instr2.to_hex_string(), "4255a3f2");
+            assert_eq!(instr3.to_hex_string(), "4255c5f2");
+        } else {
+            panic!("Expected MovImmediate3 result");
+        }
+    }
+
+    #[test]
+    fn test_emit_mov_49_to_64_bits() {
+        let destination = 3;
+        let value = 0x3AAA2AAA1AAAAAAA;
+        let result = emit_mov_const_to_reg(destination, value);
+        if let InstructionRewriteResult::MovImmediate4(instr1, instr2, instr3, instr4) = result {
+            assert_eq!(instr1.to_hex_string(), "435595d2");
+            assert_eq!(instr2.to_hex_string(), "4355a3f2");
+            assert_eq!(instr3.to_hex_string(), "4355c5f2");
+            assert_eq!(instr4.to_hex_string(), "4355e7f2");
+        } else {
+            panic!("Expected MovImmediate4 result");
+        }
     }
 }
