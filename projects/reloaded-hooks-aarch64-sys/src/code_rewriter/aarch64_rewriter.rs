@@ -1,9 +1,8 @@
 extern crate alloc;
+use crate::instructions::mov_immediate::MovImmediate;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 use reloaded_hooks_portable::api::buffers::buffer_abstractions::Buffer;
-
-use crate::instructions::mov_immediate::MovImmediate;
 
 pub(crate) fn rewrite_code_aarch64(
     _old_address: *const u8,
@@ -19,14 +18,22 @@ pub(crate) fn rewrite_code_aarch64(
 /// Stores the possible rewritten instruction outcomes.
 ///
 /// Any rewritten instruction or group of instructions may be emitted as one of these instructions.
+///
+/// # Remarks
+///
+/// Entries are limited to 16 bytes per entry. Items larger than 16 bytes (3 u32s) are boxed
+/// https://nnethercote.github.io/perf-book/type-sizes.html?highlight=match#boxed-slices
 pub(crate) enum InstructionRewriteResult {
     Adr(u32),
     Adrp(u32),
     AdrpAndAdd(u32, u32),
+    Bcc(u32),
+    BccAndBranch(u32, u32),
+    BccAndBranchAbsolute(Box<[u32]>),
     MovImmediate1(u32), // in instruction count order
     MovImmediate2(u32, u32),
     MovImmediate3(u32, u32, u32),
-    MovImmediate4(u32, u32, u32, u32),
+    MovImmediate4(Box<[u32; 4]>),
 }
 
 impl InstructionRewriteResult {
@@ -35,35 +42,45 @@ impl InstructionRewriteResult {
     /// # Parameters
     ///
     /// * `buf`: The buffer to which the instruction(s) will be appended.
-    pub(crate) fn append_to_buffer(&self, buf: &mut Vec<i32>) {
+    pub(crate) fn append_to_buffer(&self, buf: &mut Vec<u32>) {
         match self {
             InstructionRewriteResult::Adr(inst) => {
-                buf.push(*inst as i32);
+                buf.push(*inst);
             }
             InstructionRewriteResult::Adrp(inst) => {
-                buf.push(*inst as i32);
+                buf.push(*inst);
             }
             InstructionRewriteResult::AdrpAndAdd(inst1, inst2) => {
-                buf.push(*inst1 as i32);
-                buf.push(*inst2 as i32);
+                buf.push(*inst1);
+                buf.push(*inst2);
+            }
+            InstructionRewriteResult::Bcc(inst) => {
+                buf.push(*inst);
+            }
+            InstructionRewriteResult::BccAndBranch(inst1, inst2) => {
+                buf.push(*inst1);
+                buf.push(*inst2);
+            }
+            InstructionRewriteResult::BccAndBranchAbsolute(boxed) => {
+                buf.extend_from_slice(boxed.as_ref())
             }
             InstructionRewriteResult::MovImmediate1(inst) => {
-                buf.push(*inst as i32);
+                buf.push(*inst);
             }
             InstructionRewriteResult::MovImmediate2(inst1, inst2) => {
-                buf.push(*inst1 as i32);
-                buf.push(*inst2 as i32);
+                buf.push(*inst1);
+                buf.push(*inst2);
             }
             InstructionRewriteResult::MovImmediate3(inst1, inst2, inst3) => {
-                buf.push(*inst1 as i32);
-                buf.push(*inst2 as i32);
-                buf.push(*inst3 as i32);
+                buf.push(*inst1);
+                buf.push(*inst2);
+                buf.push(*inst3);
             }
-            InstructionRewriteResult::MovImmediate4(inst1, inst2, inst3, inst4) => {
-                buf.push(*inst1 as i32);
-                buf.push(*inst2 as i32);
-                buf.push(*inst3 as i32);
-                buf.push(*inst4 as i32);
+            InstructionRewriteResult::MovImmediate4(bx) => {
+                buf.push(bx[0]);
+                buf.push(bx[1]);
+                buf.push(bx[2]);
+                buf.push(bx[3]);
             }
         }
     }
@@ -112,7 +129,7 @@ pub(crate) fn emit_mov_const_to_reg(destination: u8, value: usize) -> Instructio
                 .0
                 .to_le(),
         ),
-        49..=64 => InstructionRewriteResult::MovImmediate4(
+        49..=64 => InstructionRewriteResult::MovImmediate4(Box::new([
             MovImmediate::new_movz(true, destination, value as u16, 0)
                 .unwrap()
                 .0
@@ -129,7 +146,7 @@ pub(crate) fn emit_mov_const_to_reg(destination: u8, value: usize) -> Instructio
                 .unwrap()
                 .0
                 .to_le(),
-        ),
+        ])),
         _ => unreachable!(), // This case should never be reached unless platform is >64 bits
     }
 }
@@ -184,11 +201,11 @@ mod tests {
         let destination = 3;
         let value = 0x3AAA2AAA1AAAAAAA;
         let result = emit_mov_const_to_reg(destination, value);
-        if let InstructionRewriteResult::MovImmediate4(instr1, instr2, instr3, instr4) = result {
-            assert_eq!(instr1.to_hex_string(), "435595d2");
-            assert_eq!(instr2.to_hex_string(), "4355a3f2");
-            assert_eq!(instr3.to_hex_string(), "4355c5f2");
-            assert_eq!(instr4.to_hex_string(), "4355e7f2");
+        if let InstructionRewriteResult::MovImmediate4(bx) = result {
+            assert_eq!(bx[0].to_hex_string(), "435595d2");
+            assert_eq!(bx[1].to_hex_string(), "4355a3f2");
+            assert_eq!(bx[2].to_hex_string(), "4355c5f2");
+            assert_eq!(bx[3].to_hex_string(), "4355e7f2");
         } else {
             panic!("Expected MovImmediate4 result");
         }

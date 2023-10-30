@@ -1,12 +1,7 @@
 extern crate alloc;
-use alloc::string::ToString;
-use core::ops::RangeInclusive;
-
-use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
-
-use crate::instructions::{add_immediate::AddImmediate, adr::Adr};
-
 use super::aarch64_rewriter::{emit_mov_const_to_reg, InstructionRewriteResult};
+use crate::instructions::{add_immediate::AddImmediate, adr::Adr};
+use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 
 /// Rewrites the `ADR` instruction for a new address.
 ///
@@ -22,8 +17,10 @@ use super::aarch64_rewriter::{emit_mov_const_to_reg, InstructionRewriteResult};
 ///
 /// # Behavior
 ///
-/// The function modifies the provided `ADR` instruction encoding, recalculating any relative
-/// offsets so that when executed from the new location, the instruction computes the correct address.
+/// The ADR(P) instruction is rewritten as one of the following:
+/// - ADRP
+/// - ADRP + ADD
+/// - MOV (1-4 instructions)
 ///
 /// # Safety
 ///

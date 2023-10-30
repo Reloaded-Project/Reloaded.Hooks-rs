@@ -3,10 +3,8 @@ use bitfield::bitfield;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 extern crate alloc;
-
-use crate::all_registers::AllRegisters;
-
 use super::errors::return_divisible_by_page;
+use crate::all_registers::AllRegisters;
 
 bitfield! {
     pub struct Adr(u32);

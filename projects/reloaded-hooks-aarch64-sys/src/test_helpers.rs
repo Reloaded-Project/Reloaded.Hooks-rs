@@ -9,7 +9,8 @@ impl ToHexString for InstructionRewriteResult {
     fn to_hex_string(&self) -> String {
         let mut buf = Vec::new();
         self.append_to_buffer(&mut buf);
-        instruction_buffer_as_hex(&buf)
+        let i32 = unsafe { core::mem::transmute::<Vec<u32>, Vec<i32>>(buf) };
+        instruction_buffer_as_hex(&i32)
     }
 }
 

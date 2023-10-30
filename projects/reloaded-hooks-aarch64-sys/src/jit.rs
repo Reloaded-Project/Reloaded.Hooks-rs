@@ -66,7 +66,8 @@ impl Jit<AllRegisters> for JitAarch64 {
     fn max_relative_jump_distances() -> &'static [usize] {
         // We remove a -4 value because forward jumps can't go as far.
         &[
-            (1024 * 1024 * 128) - 4,  // -+ 128 MiB
+            (1024 * 1024) - 4,        // -+ 1 MiB (Branch Conditional)
+            (1024 * 1024 * 128) - 4,  // -+ 128 MiB (Branch)
             (1024 * 1024 * 4096) - 4, // -+ 4 GiB
         ]
     }

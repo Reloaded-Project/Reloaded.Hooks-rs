@@ -37,6 +37,14 @@ pub fn return_divisible_by_register(stack_offset: i32) -> JitError<AllRegisters>
 }
 
 #[inline(never)]
+pub fn return_divisible_by_instruction(stack_offset: i32) -> JitError<AllRegisters> {
+    JitError::InvalidOffset(format!(
+        "Offset must be divisible by the instruction size (4). {}",
+        stack_offset
+    ))
+}
+
+#[inline(never)]
 pub fn invalid_shift_amount(shift: u8) -> JitError<AllRegisters> {
     JitError::InvalidOffset(format!(
         "Invalid shift amount {}. Amount should be 0, 16, 32 or 48.",

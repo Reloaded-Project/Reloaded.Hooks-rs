@@ -45,7 +45,7 @@ pub trait CodeRewriter {
 }
 
 /// Errors that can occur during JIT compilation.
-#[derive(Debug, Error)]
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum CodeRewriterError {
     /// Instruction cannot be re-encoded at this range.
     #[error(
@@ -57,4 +57,8 @@ pub enum CodeRewriterError {
     /// If you encounter this error, re-allocate another buffer with a larger size and try calling again.
     #[error("Insufficient space available to re-encode instructions. Required space: {0:?}")]
     InsufficientSpace(i32),
+
+    /// Missing a scratch register.
+    #[error("Missing scratch register, required by function: {0:?}")]
+    NoScratchRegister(String),
 }

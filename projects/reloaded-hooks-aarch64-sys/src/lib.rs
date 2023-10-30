@@ -13,6 +13,7 @@ pub mod jit;
 pub(crate) mod code_rewriter {
     pub mod aarch64_rewriter;
     pub mod adr;
+    pub mod b_cond;
 }
 
 /// This namespace contains the raw instruction encodings for various
@@ -20,6 +21,8 @@ pub(crate) mod code_rewriter {
 pub(crate) mod instructions {
     pub mod add_immediate;
     pub mod adr;
+    pub mod b;
+    pub mod bcc;
     pub mod branch_register;
     pub mod errors;
     pub mod ldp_immediate;
