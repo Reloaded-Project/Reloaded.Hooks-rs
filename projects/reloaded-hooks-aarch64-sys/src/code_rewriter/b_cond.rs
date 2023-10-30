@@ -24,9 +24,9 @@ use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 /// # Behavior
 ///
 /// The Branch Conditional instruction is rewritten as one of the following:
-/// - ADRP
-/// - ADRP + ADD
-/// - MOV (1-4 instructions)
+/// - BCC
+/// - BCC <skip> + B
+/// - BCC <skip> + MOV to Register + Branch Register
 ///
 /// # Safety
 ///
@@ -108,7 +108,7 @@ mod tests {
     #[case::simple_bcc(0x20000054_u32.to_be(), 0, 4096, "2080ff54")]
     // [Within 128MiB] || b.eq #0 -> b.ne #8 + b #-0x80000000
     #[case::bcc_and_branch(0x00000054_u32.to_be(), 0, 0x8000000 - 4, "4100005400000016")]
-    // Move Bcc condition x, 0x101000 to use scratch register x17
+    // [Last Resort] || b.eq #0 -> movz x17, #0 + b.ne #0xc + br x17
     #[case::bcc_out_of_range(0x00000054_u32.to_be(), 0, 0x8000000, "110080d24100005420021fd6")]
     fn test_rewrite_bcc(
         #[case] old_instruction: u32,

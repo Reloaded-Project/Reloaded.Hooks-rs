@@ -1,5 +1,7 @@
 # Contribution Guidelines
 
+!! tip "The wiki provides details on internals of the library. They may help you when contributing 😉."
+
 First off, thank you for considering contributing to reloaded-hooks.
 
 If your contribution is not straightforward, please first discuss the change you
