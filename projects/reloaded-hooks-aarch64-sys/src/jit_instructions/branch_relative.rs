@@ -1,14 +1,15 @@
+extern crate alloc;
+
+use super::load_pc_relative_address::load_pc_rel_address;
+use crate::{
+    all_registers::AllRegisters,
+    instructions::{branch_register::BranchRegister, errors::exceeds_maximum_range},
+};
+use alloc::vec::Vec;
 use reloaded_hooks_portable::api::jit::{
     call_relative_operation::CallRelativeOperation, compiler::JitError,
     jump_relative_operation::JumpRelativeOperation,
 };
-extern crate alloc;
-use crate::all_registers::AllRegisters;
-use crate::instructions::branch_register::BranchRegister;
-use alloc::string::ToString;
-use alloc::vec::Vec;
-
-use super::load_pc_relative_address::load_pc_rel_address;
 
 /// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/BL--Branch-with-Link-
 pub fn encode_call_relative(
@@ -20,9 +21,7 @@ pub fn encode_call_relative(
         let offset = (x.target_address as i32 - *pc as i32) >> 2;
 
         if !(-0x02000000..=0x01FFFFFF).contains(&offset) {
-            return Err(JitError::OperandOutOfRange(
-                "Jump distance for Branch Instruction specified too great".to_string(),
-            ));
+            return Err(exceeds_maximum_range("[BL]", "-+128MiB", offset as isize));
         }
 
         let imm26 = offset & 0x03FFFFFF;
@@ -43,9 +42,7 @@ pub fn encode_jump_relative(
 
     if !(-0x02000000..=0x01FFFFFF).contains(&offset) {
         if !(-0x40000000..=0x3FFFFFFF).contains(&offset) {
-            return Err(JitError::OperandOutOfRange(
-                "Jump distance for Branch Instruction specified too great".to_string(),
-            ));
+            return Err(exceeds_maximum_range("[B]", "-+4GiB", offset as isize));
         }
 
         return encode_jump_relative_4g(x, pc, buf);

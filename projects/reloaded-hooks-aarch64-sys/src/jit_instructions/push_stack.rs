@@ -1,17 +1,15 @@
-use reloaded_hooks_portable::api::jit::operation_aliases::MovFromStack;
-use reloaded_hooks_portable::api::jit::push_operation::PushOperation;
-use reloaded_hooks_portable::api::jit::{
-    compiler::JitError, push_stack_operation::PushStackOperation,
-};
 extern crate alloc;
-use crate::all_registers::AllRegisters;
-use alloc::string::ToString;
-use alloc::vec::Vec;
 
-use super::mov_from_stack::encode_mov_from_stack;
-use super::mov_two_from_stack::encode_mov_two_from_stack;
-use super::push::encode_push;
-use super::push_two::encode_push_two;
+use super::{
+    mov_from_stack::encode_mov_from_stack, mov_two_from_stack::encode_mov_two_from_stack,
+    push::encode_push, push_two::encode_push_two,
+};
+use crate::all_registers::AllRegisters;
+use alloc::{string::ToString, vec::Vec};
+use reloaded_hooks_portable::api::jit::{
+    compiler::JitError, operation_aliases::MovFromStack, push_operation::PushOperation,
+    push_stack_operation::PushStackOperation,
+};
 
 // TODO: Disabled because optimised version relies on MultiPop / MultiPush.
 pub fn encode_push_stack(
@@ -94,9 +92,7 @@ pub fn encode_push_stack(
             }
         }
     } else {
-        return Err(JitError::ThirdPartyAssemblerError(
-            "No scratch register available".to_string(),
-        ));
+        return Err(JitError::NoScratchRegister("for PushStack".to_string()));
     }
 
     Ok(())

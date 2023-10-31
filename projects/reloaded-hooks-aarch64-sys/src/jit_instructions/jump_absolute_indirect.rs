@@ -1,10 +1,11 @@
+extern crate alloc;
+
+use crate::all_registers::AllRegisters;
+use alloc::vec::Vec;
 use reloaded_hooks_portable::api::jit::{
     compiler::JitError,
     operation_aliases::{JumpAbs, JumpAbsInd},
 };
-extern crate alloc;
-use crate::all_registers::AllRegisters;
-use alloc::vec::Vec;
 
 use super::branch_absolute::encode_jump_absolute;
 

@@ -1,9 +1,10 @@
-use reloaded_hooks_portable::api::jit::{compiler::JitError, push_operation::PushOperation};
 extern crate alloc;
+
 use crate::{
     all_registers::AllRegisters, instructions::str_immediate_pre_indexed::StrImmediatePreIndexed,
 };
 use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::{compiler::JitError, push_operation::PushOperation};
 
 /// Encoded as STR
 pub fn encode_push(

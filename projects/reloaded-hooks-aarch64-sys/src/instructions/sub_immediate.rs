@@ -1,10 +1,9 @@
-use alloc::format;
-use bitfield::bitfield;
-use reloaded_hooks_portable::api::jit::compiler::JitError;
-
 extern crate alloc;
 
+use super::errors::exceeds_maximum_range;
 use crate::all_registers::AllRegisters;
+use bitfield::bitfield;
+use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 bitfield! {
     /// `SubImmediate` represents the bitfields of the SUB (immediate) instruction
@@ -53,7 +52,11 @@ impl SubImmediate {
         value.set_rd(destination);
 
         if immediate > 4095 {
-            return Err(value_out_of_range(immediate));
+            return Err(exceeds_maximum_range(
+                "[Sub Immediate]",
+                "0..4095",
+                immediate as isize,
+            ));
         }
 
         Ok(value)
@@ -63,9 +66,4 @@ impl SubImmediate {
     pub fn new_stackalloc(is_64bit: bool, immediate: u16) -> Result<Self, JitError<AllRegisters>> {
         Self::new(is_64bit, 31, 31, immediate)
     }
-}
-
-#[inline(never)]
-fn value_out_of_range(value: u16) -> JitError<AllRegisters> {
-    JitError::OperandOutOfRange(format!("Sub Value Exceeds Maximum Range. Value {}", value))
 }

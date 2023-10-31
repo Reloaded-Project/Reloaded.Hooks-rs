@@ -1,9 +1,11 @@
-use reloaded_hooks_portable::api::jit::compiler::JitError;
 extern crate alloc;
-use crate::all_registers::AllRegisters;
-use crate::instructions::add_immediate::AddImmediate;
-use crate::instructions::adr::Adr;
+
+use crate::{
+    all_registers::AllRegisters,
+    instructions::{add_immediate::AddImmediate, adr::Adr},
+};
 use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 /// Loads a PC relative address into a register.
 ///

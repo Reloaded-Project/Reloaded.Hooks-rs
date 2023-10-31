@@ -1,13 +1,12 @@
-use reloaded_hooks_portable::api::jit::call_absolute_operation::CallAbsoluteOperation;
-use reloaded_hooks_portable::api::jit::compiler::JitError;
-use reloaded_hooks_portable::api::jit::jump_absolute_operation::JumpAbsoluteOperation;
 extern crate alloc;
-use crate::all_registers::AllRegisters;
-use crate::instructions::branch_register::BranchRegister;
-
-use alloc::vec::Vec;
 
 use super::push_constant::encode_mov_constant_to_reg;
+use crate::{all_registers::AllRegisters, instructions::branch_register::BranchRegister};
+use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::{
+    call_absolute_operation::CallAbsoluteOperation, compiler::JitError,
+    jump_absolute_operation::JumpAbsoluteOperation,
+};
 
 /// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/BR--Branch-to-Register-?lang=en
 pub fn encode_jump_absolute(

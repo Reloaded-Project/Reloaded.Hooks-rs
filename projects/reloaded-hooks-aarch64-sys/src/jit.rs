@@ -1,14 +1,5 @@
 extern crate alloc;
 
-use reloaded_hooks_portable::api::jit::{
-    compiler::{Jit, JitCapabilities, JitError},
-    operation::Operation,
-};
-
-use alloc::rc::Rc;
-use alloc::vec::Vec;
-use core::{mem::size_of, slice};
-
 use crate::{
     all_registers::AllRegisters,
     jit_instructions::{
@@ -28,6 +19,12 @@ use crate::{
         stackalloc::encode_stackalloc,
         xchg::encode_xchg,
     },
+};
+use alloc::{rc::Rc, vec::Vec};
+use core::{mem::size_of, slice};
+use reloaded_hooks_portable::api::jit::{
+    compiler::{Jit, JitCapabilities, JitError},
+    operation::Operation,
 };
 
 pub struct JitAarch64 {}

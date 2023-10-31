@@ -1,10 +1,9 @@
-use alloc::format;
+extern crate alloc;
+
+use super::errors::{exceeds_maximum_range, must_be_divisible_by};
+use crate::all_registers::AllRegisters;
 use bitfield::bitfield;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
-
-extern crate alloc;
-use super::errors::{return_divisible_by_instruction, return_divisible_by_page};
-use crate::all_registers::AllRegisters;
 
 bitfield! {
     /// `Bcc` represents the bitfields of the B.cond (conditional branch) instruction
@@ -30,11 +29,11 @@ impl Bcc {
     /// Assembles a Bcc instruction with the specified parameters.
     pub fn assemble_bcc(condition: u8, offset: i32) -> Result<Self, JitError<AllRegisters>> {
         if !(-1048576..=1048575).contains(&offset) {
-            return Err(value_out_of_range(offset));
+            return Err(exceeds_maximum_range("[B.Cond]", "-+1MiB", offset as isize));
         }
 
         if (offset & 0b11) != 0 {
-            return Err(return_divisible_by_instruction(offset));
+            return Err(must_be_divisible_by("[B.Cond]", offset as isize, 4));
         }
 
         let mut instruction = Bcc(0);
@@ -49,12 +48,4 @@ impl Bcc {
     pub fn offset(&self) -> isize {
         self.imm19() as isize * 4
     }
-}
-
-#[inline(never)]
-fn value_out_of_range(value: i32) -> JitError<AllRegisters> {
-    JitError::OperandOutOfRange(format!(
-        "Bcc Value Exceeds Maximum Range (-+ 1MB). Value {}",
-        value
-    ))
 }

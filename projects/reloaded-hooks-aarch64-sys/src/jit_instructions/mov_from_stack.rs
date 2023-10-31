@@ -1,10 +1,11 @@
-use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::MovFromStack};
 extern crate alloc;
+
 use crate::{
     all_registers::AllRegisters,
     instructions::ldr_immediate_unsigned_offset::LdrImmediateUnsignedOffset,
 };
 use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::MovFromStack};
 
 /// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/LDR--immediate---Load-Register--immediate--?lang=en#iclass_post_indexed
 pub fn encode_mov_from_stack(

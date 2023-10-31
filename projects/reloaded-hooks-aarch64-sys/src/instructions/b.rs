@@ -1,12 +1,9 @@
 extern crate alloc;
 
-use alloc::format;
+use super::errors::{exceeds_maximum_range, must_be_divisible_by};
+use crate::all_registers::AllRegisters;
 use bitfield::bitfield;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
-
-use crate::all_registers::AllRegisters;
-
-use super::errors::return_divisible_by_instruction;
 
 bitfield! {
     /// `B` represents the bitfields of the B (unconditional branch) instruction
@@ -26,11 +23,11 @@ impl B {
     /// Assembles a B instruction with the specified offset.
     pub fn assemble_b(offset: i32) -> Result<Self, JitError<AllRegisters>> {
         if !(-0x8000000..=0x7FFFFFF).contains(&offset) {
-            return Err(value_out_of_range(offset));
+            return Err(exceeds_maximum_range("[B]", "-+128MiB", offset as isize));
         }
 
         if (offset & 0b11) != 0 {
-            return Err(return_divisible_by_instruction(offset));
+            return Err(must_be_divisible_by("[B]", offset as isize, 4));
         }
 
         let mut instruction = B(0);
@@ -39,12 +36,4 @@ impl B {
 
         Ok(instruction)
     }
-}
-
-#[inline(never)]
-fn value_out_of_range(value: i32) -> JitError<AllRegisters> {
-    JitError::OperandOutOfRange(format!(
-        "B Value Exceeds Maximum Range (-+ 128MB). Value {}",
-        value
-    ))
 }

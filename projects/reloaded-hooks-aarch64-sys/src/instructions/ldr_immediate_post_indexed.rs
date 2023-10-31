@@ -1,11 +1,9 @@
-use bitfield::bitfield;
-use reloaded_hooks_portable::api::jit::compiler::JitError;
-
 extern crate alloc;
 
-use crate::all_registers::AllRegisters;
-
 use super::errors::return_stack_out_of_range;
+use crate::all_registers::AllRegisters;
+use bitfield::bitfield;
+use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 // https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/LDR--immediate---Load-Register--immediate--?lang=en#iclass_post_indexed
 bitfield! {
@@ -42,7 +40,11 @@ impl LdrImmediatePostIndexed {
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
         if !(-256..=255).contains(&stack_offset) {
-            return Err(return_stack_out_of_range(stack_offset));
+            return Err(return_stack_out_of_range(
+                "LDR Immediate Post Indexed",
+                "-256..255",
+                stack_offset as isize,
+            ));
         }
 
         // Note: Compiler is smart enough to optimize this away as a constant
@@ -64,7 +66,11 @@ impl LdrImmediatePostIndexed {
 
     pub fn new_pop_vector(target: u8, stack_offset: i32) -> Result<Self, JitError<AllRegisters>> {
         if !(-256..=255).contains(&stack_offset) {
-            return Err(return_stack_out_of_range(stack_offset));
+            return Err(return_stack_out_of_range(
+                "LDR Immediate Post Indexed",
+                "-256..255",
+                stack_offset as isize,
+            ));
         }
 
         // Note: Compiler is smart enough to optimize this away as a constant

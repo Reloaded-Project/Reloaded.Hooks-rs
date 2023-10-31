@@ -1,10 +1,11 @@
-use reloaded_hooks_portable::api::jit::{compiler::JitError, mov_operation::MovOperation};
 extern crate alloc;
+
 use crate::{
     all_registers::AllRegisters,
     instructions::{orr::Orr, orr_vector::OrrVector},
 };
 use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::{compiler::JitError, mov_operation::MovOperation};
 
 /// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/MOV--register---Move--register---an-alias-of-ORR--shifted-register--
 pub fn encode_mov(

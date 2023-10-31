@@ -1,7 +1,7 @@
 extern crate alloc;
+
 use crate::instructions::mov_immediate::MovImmediate;
-use alloc::boxed::Box;
-use alloc::vec::Vec;
+use alloc::{boxed::Box, vec::Vec};
 use reloaded_hooks_portable::api::buffers::buffer_abstractions::Buffer;
 
 pub(crate) fn rewrite_code_aarch64(

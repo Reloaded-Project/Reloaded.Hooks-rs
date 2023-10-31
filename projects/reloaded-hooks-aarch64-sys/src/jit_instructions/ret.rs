@@ -1,12 +1,12 @@
+extern crate alloc;
+
+use super::stackalloc::encode_stackalloc;
+use crate::{all_registers::AllRegisters, instructions::branch_register::BranchRegister};
+use alloc::vec::Vec;
 use reloaded_hooks_portable::api::jit::{
     compiler::JitError, return_operation::ReturnOperation,
     stack_alloc_operation::StackAllocOperation,
 };
-extern crate alloc;
-use crate::{all_registers::AllRegisters, instructions::branch_register::BranchRegister};
-use alloc::vec::Vec;
-
-use super::stackalloc::encode_stackalloc;
 
 /// Encoded as ADD (if needed) + RET
 pub fn encode_return(

@@ -1,9 +1,10 @@
-use reloaded_hooks_portable::api::jit::{compiler::JitError, pop_operation::PopOperation};
 extern crate alloc;
+
 use crate::{
     all_registers::AllRegisters, instructions::ldr_immediate_post_indexed::LdrImmediatePostIndexed,
 };
 use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::{compiler::JitError, pop_operation::PopOperation};
 
 /// Encoded as LDR
 pub fn encode_pop(

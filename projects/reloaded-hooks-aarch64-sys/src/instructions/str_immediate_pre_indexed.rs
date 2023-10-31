@@ -1,11 +1,9 @@
-use bitfield::bitfield;
-use reloaded_hooks_portable::api::jit::compiler::JitError;
-
 extern crate alloc;
 
-use crate::all_registers::AllRegisters;
-
 use super::errors::return_stack_out_of_range;
+use crate::all_registers::AllRegisters;
+use bitfield::bitfield;
+use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 // https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/STR--immediate---Store-Register--immediate--?lang=en
 bitfield! {
@@ -42,7 +40,11 @@ impl StrImmediatePreIndexed {
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
         if !(-256..=255).contains(&stack_offset) {
-            return Err(return_stack_out_of_range(stack_offset));
+            return Err(return_stack_out_of_range(
+                "STR Immediate Pre Indexed",
+                "-256..255",
+                stack_offset as isize,
+            ));
         }
 
         // Note: Compiler is smart enough to optimize this away as a constant
@@ -64,7 +66,11 @@ impl StrImmediatePreIndexed {
 
     pub fn new_push_vector(source: u8, stack_offset: i32) -> Result<Self, JitError<AllRegisters>> {
         if !(-256..=255).contains(&stack_offset) {
-            return Err(return_stack_out_of_range(stack_offset));
+            return Err(return_stack_out_of_range(
+                "STR Immediate Pre Indexed",
+                "-256..255",
+                stack_offset as isize,
+            ));
         }
 
         // Note: Compiler is smart enough to optimize this away as a constant

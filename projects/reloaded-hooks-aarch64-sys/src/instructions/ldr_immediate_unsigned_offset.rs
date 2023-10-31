@@ -1,12 +1,10 @@
+extern crate alloc;
+
+use super::errors::must_be_divisible_by;
+use crate::all_registers::AllRegisters;
 use crate::instructions::errors::return_stack_out_of_range;
 use bitfield::bitfield;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
-
-extern crate alloc;
-
-use crate::all_registers::AllRegisters;
-
-use super::errors::return_divisible_by_register;
 
 // https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/LDR--immediate---Load-Register--immediate--?lang=en
 bitfield! {
@@ -45,21 +43,37 @@ impl LdrImmediateUnsignedOffset {
         // Check if divisible by 8 or 4.
         let encoded_offset = if is_64bit {
             if (reg_offset & 0b111) != 0 {
-                return Err(return_divisible_by_register(reg_offset));
+                return Err(must_be_divisible_by(
+                    "[LDR Immediate Unsigned Offset]",
+                    reg_offset as isize,
+                    8,
+                ));
             }
 
             if !(0..=32760).contains(&reg_offset) {
-                return Err(return_stack_out_of_range(reg_offset));
+                return Err(return_stack_out_of_range(
+                    "[LDR Immediate Unsigned Offset]",
+                    "0..32760",
+                    reg_offset as isize,
+                ));
             }
 
             reg_offset >> 3
         } else {
             if (reg_offset & 0b11) != 0 {
-                return Err(return_divisible_by_register(reg_offset));
+                return Err(must_be_divisible_by(
+                    "[LDR Immediate Unsigned Offset]",
+                    reg_offset as isize,
+                    4,
+                ));
             }
 
             if !(0..=16380).contains(&reg_offset) {
-                return Err(return_stack_out_of_range(reg_offset));
+                return Err(return_stack_out_of_range(
+                    "[LDR Immediate Unsigned Offset]",
+                    "0..16380",
+                    reg_offset as isize,
+                ));
             }
 
             reg_offset >> 2
@@ -95,12 +109,20 @@ impl LdrImmediateUnsignedOffset {
     ) -> Result<Self, JitError<AllRegisters>> {
         // Check if divisible by 16.
         if (stack_offset & 0b1111) != 0 {
-            return Err(return_divisible_by_register(stack_offset));
+            return Err(must_be_divisible_by(
+                "[LDR Immediate Unsigned Offset]",
+                stack_offset as isize,
+                16,
+            ));
         }
 
         // Verify it's in range
         if !(0..=65520).contains(&stack_offset) {
-            return Err(return_stack_out_of_range(stack_offset));
+            return Err(return_stack_out_of_range(
+                "[LDR Immediate Unsigned Offset]",
+                "0..65520",
+                stack_offset as isize,
+            ));
         }
 
         let encoded_offset = stack_offset >> 4;

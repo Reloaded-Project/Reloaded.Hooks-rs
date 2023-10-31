@@ -1,10 +1,10 @@
-use alloc::format;
+extern crate alloc;
+
+use super::errors::exceeds_maximum_range;
+use crate::all_registers::AllRegisters;
+use alloc::{borrow::ToOwned, string::ToString};
 use bitfield::bitfield;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
-
-extern crate alloc;
-use super::errors::return_divisible_by_page;
-use crate::all_registers::AllRegisters;
 
 bitfield! {
     pub struct Adr(u32);
@@ -31,7 +31,7 @@ impl Adr {
     /// Create a new ADR instruction with the specified parameters.
     pub fn new_adr(destination: u8, offset: i32) -> Result<Self, JitError<AllRegisters>> {
         if !(-1048576..=1048575).contains(&offset) {
-            return Err(value_out_of_range(offset));
+            return Err(exceeds_maximum_range("[ADR]", "-+1MiB", offset as isize));
         }
 
         let mut value = Adr(0);
@@ -47,11 +47,11 @@ impl Adr {
     /// Create a new ADRP instruction with the specified parameters.
     pub fn new_adrp(destination: u8, offset: i64) -> Result<Self, JitError<AllRegisters>> {
         if !(-4294967296..=4294967295).contains(&offset) {
-            return Err(value_out_of_adrp_range(offset));
+            return Err(exceeds_maximum_range("[ADRP]", "-+4GiB", offset as isize));
         }
 
         if (offset & 0xFFF) != 0 {
-            return Err(return_divisible_by_page(offset));
+            return Err(return_divisible_by_page(offset as isize));
         }
 
         let mut value = Adr(0);
@@ -75,7 +75,7 @@ impl Adr {
     ///
     /// The calculated absolute address which the ADR instruction will load into the register.
     pub fn extract_address(&self, base_address: usize) -> usize {
-        let immhi = self.immhi() as i32;
+        let immhi = self.immhi();
         let immlo = self.immlo() as i32;
 
         // Combine the immhi and immlo to get the full immediate value.
@@ -111,18 +111,14 @@ impl Adr {
     }
 }
 
+/// Generates an error for when an offset needs to be divisible by 4096, but isn't.
+///
+/// # Parameters
+/// * `offset`: The value of the offset.
 #[inline(never)]
-fn value_out_of_range(value: i32) -> JitError<AllRegisters> {
-    JitError::OperandOutOfRange(format!(
-        "Adr Value Exceeds Maximum Range (-+ 1MB). Value {}",
-        value
-    ))
-}
-
-#[inline(never)]
-fn value_out_of_adrp_range(value: i64) -> JitError<AllRegisters> {
-    JitError::OperandOutOfRange(format!(
-        "Adrp Value Exceeds Maximum Range (-+ 4GB). Value {}",
-        value
-    ))
+pub fn return_divisible_by_page(offset: isize) -> JitError<AllRegisters> {
+    JitError::InvalidOffset(
+        "[ADRP] Offset must be divisible by page size (4096). Offset: ".to_owned()
+            + &offset.to_string(),
+    )
 }
