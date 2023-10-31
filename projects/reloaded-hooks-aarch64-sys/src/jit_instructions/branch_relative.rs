@@ -18,7 +18,7 @@ pub fn encode_call_relative(
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
     {
-        let offset = (x.target_address as i32 - *pc as i32) >> 2;
+        let offset = ((x.target_address as isize - *pc as isize) >> 2) as i32;
 
         if !(-0x02000000..=0x01FFFFFF).contains(&offset) {
             return Err(exceeds_maximum_range("[BL]", "-+128MiB", offset as isize));
