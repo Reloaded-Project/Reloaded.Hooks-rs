@@ -22,10 +22,11 @@ bitfield! {
 impl B {
     /// Assembles a B instruction with the specified offset.
     pub fn assemble_b(offset: i32) -> Result<Self, JitError<AllRegisters>> {
+        #[cfg(debug_assertions)]
         if !(-0x8000000..=0x7FFFFFF).contains(&offset) {
             return Err(exceeds_maximum_range("[B]", "-+128MiB", offset as isize));
         }
-
+        #[cfg(debug_assertions)]
         if (offset & 0b11) != 0 {
             return Err(must_be_divisible_by("[B]", offset as isize, 4));
         }

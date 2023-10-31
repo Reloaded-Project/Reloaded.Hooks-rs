@@ -39,6 +39,7 @@ impl LdrImmediatePostIndexed {
         target: u8,
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
+        #[cfg(debug_assertions)]
         if !(-256..=255).contains(&stack_offset) {
             return Err(return_stack_out_of_range(
                 "LDR Immediate Post Indexed",
@@ -65,6 +66,7 @@ impl LdrImmediatePostIndexed {
     }
 
     pub fn new_pop_vector(target: u8, stack_offset: i32) -> Result<Self, JitError<AllRegisters>> {
+        #[cfg(debug_assertions)]
         if !(-256..=255).contains(&stack_offset) {
             return Err(return_stack_out_of_range(
                 "LDR Immediate Post Indexed",

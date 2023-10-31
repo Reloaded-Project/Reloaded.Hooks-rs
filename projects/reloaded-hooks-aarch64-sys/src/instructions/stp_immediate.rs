@@ -39,6 +39,7 @@ impl StpImmediate {
     ) -> Result<Self, JitError<AllRegisters>> {
         // Check if divisible by 8 or 4, and fits in range.
         let encoded_offset = if is_64bit {
+            #[cfg(debug_assertions)]
             if (stack_offset & 0b111) != 0 {
                 return Err(must_be_divisible_by(
                     "[STP Immediate]",
@@ -47,6 +48,7 @@ impl StpImmediate {
                 ));
             }
 
+            #[cfg(debug_assertions)]
             if !(-512..=504).contains(&stack_offset) {
                 return Err(return_stack_out_of_range(
                     "[STP Immediate]",
@@ -57,6 +59,7 @@ impl StpImmediate {
 
             stack_offset >> 3
         } else {
+            #[cfg(debug_assertions)]
             if (stack_offset & 0b11) != 0 {
                 return Err(must_be_divisible_by(
                     "[STP Immediate]",
@@ -65,6 +68,7 @@ impl StpImmediate {
                 ));
             }
 
+            #[cfg(debug_assertions)]
             if !(-256..=252).contains(&stack_offset) {
                 return Err(return_stack_out_of_range(
                     "[STP Immediate]",
@@ -99,6 +103,7 @@ impl StpImmediate {
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
         // Check if divisible by 16
+        #[cfg(debug_assertions)]
         if (stack_offset & 0b1111) != 0 {
             return Err(must_be_divisible_by(
                 "[STP Immediate]",
@@ -107,6 +112,7 @@ impl StpImmediate {
             ));
         }
 
+        #[cfg(debug_assertions)]
         if !(-1024..=1008).contains(&stack_offset) {
             return Err(return_stack_out_of_range(
                 "STP Immediate",

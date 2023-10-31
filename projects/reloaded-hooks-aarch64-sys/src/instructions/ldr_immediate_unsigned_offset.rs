@@ -108,6 +108,7 @@ impl LdrImmediateUnsignedOffset {
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
         // Check if divisible by 16.
+        #[cfg(debug_assertions)]
         if (stack_offset & 0b1111) != 0 {
             return Err(must_be_divisible_by(
                 "[LDR Immediate Unsigned Offset]",
@@ -117,6 +118,7 @@ impl LdrImmediateUnsignedOffset {
         }
 
         // Verify it's in range
+        #[cfg(debug_assertions)]
         if !(0..=65520).contains(&stack_offset) {
             return Err(return_stack_out_of_range(
                 "[LDR Immediate Unsigned Offset]",

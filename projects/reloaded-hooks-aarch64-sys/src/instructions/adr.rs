@@ -30,6 +30,7 @@ bitfield! {
 impl Adr {
     /// Create a new ADR instruction with the specified parameters.
     pub fn new_adr(destination: u8, offset: i32) -> Result<Self, JitError<AllRegisters>> {
+        #[cfg(feature = "safe")]
         if !(-1048576..=1048575).contains(&offset) {
             return Err(exceeds_maximum_range("[ADR]", "-+1MiB", offset as isize));
         }
@@ -46,10 +47,12 @@ impl Adr {
 
     /// Create a new ADRP instruction with the specified parameters.
     pub fn new_adrp(destination: u8, offset: i64) -> Result<Self, JitError<AllRegisters>> {
+        #[cfg(debug_assertions)]
         if !(-4294967296..=4294967295).contains(&offset) {
             return Err(exceeds_maximum_range("[ADRP]", "-+4GiB", offset as isize));
         }
 
+        #[cfg(debug_assertions)]
         if (offset & 0xFFF) != 0 {
             return Err(return_divisible_by_page(offset as isize));
         }

@@ -28,10 +28,12 @@ bitfield! {
 impl Bcc {
     /// Assembles a Bcc instruction with the specified parameters.
     pub fn assemble_bcc(condition: u8, offset: i32) -> Result<Self, JitError<AllRegisters>> {
+        #[cfg(debug_assertions)]
         if !(-0x100000..=0xFFFFF).contains(&offset) {
             return Err(exceeds_maximum_range("[B.Cond]", "-+1MiB", offset as isize));
         }
 
+        #[cfg(debug_assertions)]
         if (offset & 0b11) != 0 {
             return Err(must_be_divisible_by("[B.Cond]", offset as isize, 4));
         }

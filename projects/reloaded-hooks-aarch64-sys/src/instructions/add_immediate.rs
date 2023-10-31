@@ -49,6 +49,7 @@ impl AddImmediate {
         value.set_rn(source);
         value.set_rd(destination);
 
+        #[cfg(debug_assertions)]
         if immediate > 4095 {
             return Err(exceeds_maximum_range(
                 "[Add Immediate]",

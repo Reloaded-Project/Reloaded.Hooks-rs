@@ -58,6 +58,7 @@ impl LdpImmediate {
     ) -> Result<LdpImmediate, JitError<AllRegisters>> {
         // Check if divisible by 8 or 4, and fits in range.
         let encoded_offset = if is_64bit {
+            #[cfg(debug_assertions)]
             if (stack_offset & 0b111) != 0 {
                 return Err(must_be_divisible_by(
                     "[LDP Immediate]",
@@ -65,7 +66,7 @@ impl LdpImmediate {
                     8,
                 ));
             }
-
+            #[cfg(debug_assertions)]
             if !(-512..=504).contains(&stack_offset) {
                 return Err(return_stack_out_of_range(
                     "[LDP Immediate]",
@@ -76,6 +77,7 @@ impl LdpImmediate {
 
             stack_offset >> 3
         } else {
+            #[cfg(debug_assertions)]
             if (stack_offset & 0b11) != 0 {
                 return Err(must_be_divisible_by(
                     "[LDP Immediate]",
@@ -84,6 +86,7 @@ impl LdpImmediate {
                 ));
             }
 
+            #[cfg(debug_assertions)]
             if !(-256..=252).contains(&stack_offset) {
                 return Err(return_stack_out_of_range(
                     "[LDP Immediate]",
@@ -135,6 +138,7 @@ impl LdpImmediate {
         opcode: u8,
     ) -> Result<LdpImmediate, JitError<AllRegisters>> {
         // Check if divisible by 16
+        #[cfg(debug_assertions)]
         if (stack_offset & 0b1111) != 0 {
             return Err(must_be_divisible_by(
                 "[LDP Immediate]",
@@ -143,6 +147,7 @@ impl LdpImmediate {
             ));
         }
 
+        #[cfg(debug_assertions)]
         if !(-1024..=1008).contains(&stack_offset) {
             return Err(return_stack_out_of_range(
                 "[LDP Immediate]",

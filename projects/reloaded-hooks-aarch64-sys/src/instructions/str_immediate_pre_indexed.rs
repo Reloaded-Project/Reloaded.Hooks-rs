@@ -39,6 +39,7 @@ impl StrImmediatePreIndexed {
         source: u8,
         stack_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
+        #[cfg(debug_assertions)]
         if !(-256..=255).contains(&stack_offset) {
             return Err(return_stack_out_of_range(
                 "STR Immediate Pre Indexed",
@@ -65,6 +66,7 @@ impl StrImmediatePreIndexed {
     }
 
     pub fn new_push_vector(source: u8, stack_offset: i32) -> Result<Self, JitError<AllRegisters>> {
+        #[cfg(debug_assertions)]
         if !(-256..=255).contains(&stack_offset) {
             return Err(return_stack_out_of_range(
                 "STR Immediate Pre Indexed",

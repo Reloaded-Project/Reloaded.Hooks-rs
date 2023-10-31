@@ -43,6 +43,7 @@ impl MovImmediate {
         value: u16,
         shift: u8,
     ) -> Result<Self, JitError<AllRegisters>> {
+        #[cfg(debug_assertions)]
         if shift % 16 != 0 {
             return Err(invalid_shift_amount("[MOVK]", shift));
         }

@@ -19,7 +19,7 @@ pub(crate) mod code_rewriter {
 
 /// This namespace contains the raw instruction encodings for various
 /// AArch64 instructions.
-pub(crate) mod instructions {
+pub mod instructions {
     pub mod add_immediate;
     pub mod adr;
     pub mod b;
