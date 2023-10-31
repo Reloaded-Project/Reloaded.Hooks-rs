@@ -8,13 +8,13 @@ use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 ///
 /// The `ADR` instruction in ARM architectures computes the address of a label and writes
 /// it to the destination register. This function is intended to modify the `ADR` instruction's
-/// encoding to adjust for a new memory location, making it compatible with relocation or code injection.
+/// encoding to adjust for a new memory location.
 ///
 /// # Parameters
 ///
 /// * `instruction`: The original `ADR` instruction encoded as a 32-bit value.
 /// * `old_address`: The original address associated with the `ADR` instruction.
-/// * `new_address`: The new target address to which the instruction needs to point.
+/// * `new_address`: The new address of the instruction.
 ///
 /// # Behavior
 ///
@@ -31,7 +31,7 @@ pub(crate) fn rewrite_adr(
     instruction: u32,
     old_address: usize,
     new_address: usize,
-) -> Result<InstructionRewriteResult, CodeRewriterError> {
+) -> InstructionRewriteResult {
     let mut adr = Adr(instruction.to_le());
     let old_target = adr.extract_address(old_address);
 
@@ -44,7 +44,7 @@ pub(crate) fn rewrite_adr(
         // Note: Item was originally ADRP, but is now in ADR range.
         adr.set_is_pageaddress(false);
         adr.set_raw_offset(delta as i32);
-        Ok(InstructionRewriteResult::Adr(adr.0.to_le()))
+        InstructionRewriteResult::Adr(adr.0.to_le())
     } else if (-0x100000..=0xFFFFF).contains(&delta_page) {
         // Otherwise if the item is within 4GiB range, assemble as ADRP + ADD.
         adr.set_is_pageaddress(true);
@@ -52,16 +52,13 @@ pub(crate) fn rewrite_adr(
         if (old_target & 0xfff) != 0 {
             let add =
                 AddImmediate::new(true, adr.rd(), adr.rd(), (old_target & 0xfff) as u16).unwrap();
-            return Ok(InstructionRewriteResult::AdrpAndAdd(
-                adr.0.to_le(),
-                add.0.to_le(),
-            ));
+            return InstructionRewriteResult::AdrpAndAdd(adr.0.to_le(), add.0.to_le());
         }
 
-        return Ok(InstructionRewriteResult::Adrp(adr.0.to_le()));
+        return InstructionRewriteResult::Adrp(adr.0.to_le());
     } else {
         // If the item is out of range, emit this as an immediate move.
-        Ok(emit_mov_const_to_reg(adr.rd(), old_target))
+        emit_mov_const_to_reg(adr.rd(), old_target)
     }
 }
 
@@ -87,7 +84,7 @@ mod tests {
         #[case] new_address: usize,
         #[case] expected_hex: &str,
     ) {
-        let result = rewrite_adr(old_instruction, old_address, new_address).unwrap();
+        let result = rewrite_adr(old_instruction, old_address, new_address);
         assert_eq!(result.to_hex_string(), expected_hex);
     }
 }

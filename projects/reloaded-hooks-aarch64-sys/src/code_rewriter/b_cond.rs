@@ -9,16 +9,14 @@ use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 ///
 /// The `Bcc` instruction in ARM architectures performs a conditional branch based on
 /// specific condition flags. This function is designed to modify the `Bcc` instruction's
-/// encoding to adjust for a new memory location, making it suitable for relocation or code injection.
+/// encoding to adjust for a new memory location.
 ///
 /// # Parameters
 ///
 /// * `instruction`: The original `Bcc` instruction encoded as a 32-bit value.
 /// * `old_address`: The original address associated with the `Bcc` instruction.
-/// * `new_address`: The new target address to which the instruction needs to point.
-/// * `scratch_register`: An optional parameter specifying the register to use as a scratch
-///   for temporary operations when the target is too far for direct branching. Defaults to x17
-///   if not provided.
+/// * `new_address`: The new address of the instruction.
+/// * `scratch_register`: Specifies the register to use as a scratch when the target is too far for direct branching.
 ///
 /// # Behavior
 ///
@@ -31,11 +29,6 @@ use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 ///
 /// Ensure that the provided `instruction` is a valid `Bcc` opcode. Supplying invalid opcodes or
 /// wrongly assuming that a different type of instruction is a `Bcc` can result in unintended behaviors.
-///
-/// # Errors
-///
-/// This function can return an error encapsulated in a `CodeRewriterError` if any problem
-/// occurs during the rewriting process, such as an unsupported scenario.
 pub(crate) fn rewrite_bcc(
     instruction: u32,
     old_address: usize,
@@ -84,7 +77,7 @@ pub(crate) fn rewrite_bcc(
     let scratch_reg = scratch_register
         .ok_or_else(|| CodeRewriterError::NoScratchRegister("rewrite_bcc".to_string()))?;
 
-    let mov_instr = emit_mov_const_to_reg(scratch_reg, orig_target as usize); // Assuming emit_mov_const_to_reg can handle this as well
+    let mov_instr = emit_mov_const_to_reg(scratch_reg, orig_target as usize);
     let instr1 = Bcc::assemble_bcc(orig_ins.condition() ^ 1, 8).unwrap();
     let instr2 = BranchRegister::new_br(scratch_reg);
     let mut result = Vec::new();
@@ -115,7 +108,7 @@ mod tests {
         #[case] new_address: usize,
         #[case] expected_hex: &str,
     ) {
-        let result = rewrite_bcc(old_instruction, old_address, new_address, Some(17)).unwrap(); // using x17 as the scratch register for this example
+        let result = rewrite_bcc(old_instruction, old_address, new_address, Some(17)).unwrap();
         assert_eq!(result.to_hex_string(), expected_hex);
     }
 }

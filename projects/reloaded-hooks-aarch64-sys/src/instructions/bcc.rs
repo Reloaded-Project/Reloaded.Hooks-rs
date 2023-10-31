@@ -28,7 +28,7 @@ bitfield! {
 impl Bcc {
     /// Assembles a Bcc instruction with the specified parameters.
     pub fn assemble_bcc(condition: u8, offset: i32) -> Result<Self, JitError<AllRegisters>> {
-        if !(-1048576..=1048575).contains(&offset) {
+        if !(-0x100000..=0xFFFFF).contains(&offset) {
             return Err(exceeds_maximum_range("[B.Cond]", "-+1MiB", offset as isize));
         }
 

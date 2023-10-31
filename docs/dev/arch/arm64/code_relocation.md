@@ -6,14 +6,14 @@
 
 **Purpose**:  
 
-The `ADR` instruction in ARM architectures computes the address of a label and writes it to the destination register. This utility modifies the `ADR` instruction's encoding to adjust for a new memory location, facilitating relocation or code injection.
+The `ADR` instruction in ARM architectures computes the address of a label and writes it to the destination register. 
 
 **Behavior**:  
 
-The ADR(P) instruction is rewritten as one of the following:
-- ADR(P)
-- ADR(P) + ADD
-- MOV (1-4 instructions)
+The ADR(P) instruction is rewritten as one of the following:  
+- ADR(P)  
+- ADR(P) + ADD  
+- MOV (1-4 instructions)  
 
 **Example**:
 
@@ -53,13 +53,13 @@ The ADR(P) instruction is rewritten as one of the following:
 ## Branch (Conditional)
 
 **Purpose**:  
-The `Bcc` instruction in ARM architectures performs a conditional branch based on specific condition flags. This function modifies the `Bcc` instruction's encoding to adjust for a new memory location, making it apt for relocation or code injection.
+The `Bcc` instruction in ARM architectures performs a conditional branch based on specific condition flags. 
 
 **Behavior**:  
-The Branch Conditional instruction is rewritten as:
-- BCC
-- BCC <skip> + [B]
-- BCC <skip> + [MOV to Register + Branch Register]
+The Branch Conditional instruction is rewritten as:  
+- BCC  
+- BCC <skip> + [B]  
+- BCC <skip> + [MOV to Register + Branch Register]  
 
 `<skip>` means, invert the condition, and jump over the code inside [] brackets.
 
@@ -82,7 +82,7 @@ The Branch Conditional instruction is rewritten as:
     rewrite_bcc(0x00000054_u32.to_be(), 0, 0x8000000 - 4, Some(17));
     ```
 
-1. **Last Resort**:
+3. **Last Resort**:
     ```rust
     // Before: b.eq #0
     // After: 
@@ -91,3 +91,7 @@ The Branch Conditional instruction is rewritten as:
     //   - br x17
     rewrite_bcc(0x00000054_u32.to_be(), 0, 0x8000000, Some(17));
     ```
+
+## Branch
+
+!!! note "Including Branch+Link (BL)."

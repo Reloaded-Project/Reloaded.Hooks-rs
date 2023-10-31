@@ -13,6 +13,7 @@ pub mod jit;
 pub(crate) mod code_rewriter {
     pub mod aarch64_rewriter;
     pub mod adr;
+    pub mod b;
     pub mod b_cond;
 }
 

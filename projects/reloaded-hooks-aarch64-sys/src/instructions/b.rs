@@ -36,4 +36,8 @@ impl B {
 
         Ok(instruction)
     }
+
+    pub fn offset(&self) -> i32 {
+        self.imm26() * 4
+    }
 }
