@@ -173,3 +173,68 @@ The Branch instruction is rewritten as one of the following:
     // After: bl #8192
     rewrite_b(0x00040094_u32.to_be(), 8192, 4096, Some(17), true);
     ```
+
+## CBZ (Compare and Branch on Zero)
+
+**Purpose**:  
+The `CBZ` instruction in ARM architectures performs a conditional branch when the specified register is zero. If the register is not zero and the condition is not met, the next sequential instruction is executed.
+
+**Behavior**:  
+The `CBZ` instruction is rewritten as one of the following:  
+- CBZ  
+- CBZ <skip> + [B]  
+- CBZ <skip> + [ADRP + BR]  
+- CBZ <skip> + [ADRP + ADD + BR]  
+- CBZ <skip> + [MOV to Register + Branch Register]  
+
+Here, `<skip>` is used to invert the condition and jump over the set of instructions inside the `[]` brackets if the condition is not met.
+
+**Example**:
+
+1. **Within 1MiB Range**:
+    ```rust
+    // Before: cbz x0, #4096
+    // After: cbz x0, #8192
+    // Parameters: (old_instruction, old_address, new_address)
+    rewrite_cbz(0x008000B4_u32.to_be(), 8192, 4096, Some(17));
+    ```
+
+1. **Within 128MiB Range**:
+    ```rust
+    // Before: cbz x0, #4096
+    // After: 
+    //   - cbnz x0, #8
+    //   - b #0x8000000
+    rewrite_cbz(0x008000B4_u32.to_be(), 0x8000000, 4096, Some(17));
+    ```
+
+2. **Within 4GiB + 4096 aligned**:
+    ```rust
+    // Before: cbz x0, #4096
+    // After: 
+    //   - cbnz x0, <skip 3 instructions> 
+    //   - adrp x17, #0x8000000
+    //   - br x17
+    rewrite_cbz(0x008000B4_u32.to_be(), 0x8000000, 0, Some(17));
+    ```
+
+3. **Within 4GiB with Offset**:
+    ```rust
+    // Before: cbz x0, #4096
+    // After: 
+    //   - cbnz x0, <skip 4 instructions>
+    //   - adrp x17, #0x8000000
+    //   - add x17, #512
+    //   - br x17
+    rewrite_cbz(0x008000B4_u32.to_be(), 0x8000512, 0, Some(17));
+    ```
+
+4. **Out of Range (Move and Branch)**:
+    ```rust
+    // Before: cbz x0, #4096
+    // After: 
+    //   - cbnz x0, <skip X instructions> 
+    //   - mov x17, <immediate address>
+    //   - br x17
+    rewrite_cbz(0x008000B4_u32.to_be(), 0x100000000, 0, Some(17));
+    ```

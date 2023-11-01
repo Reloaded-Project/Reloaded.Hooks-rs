@@ -11,8 +11,8 @@ use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 ///
 /// # Parameters
 ///
-/// * `instruction`: The original `Bcc` instruction encoded as a 32-bit value.
-/// * `old_address`: The original address associated with the `Bcc` instruction.
+/// * `instruction`: The original `B` instruction encoded as a 32-bit value.
+/// * `old_address`: The original address associated with the `B` instruction.
 /// * `new_address`: The new target address of the instruction.
 /// * `scratch_register`: Specifies the register to use as a scratch when the target is too far for direct branching.
 ///

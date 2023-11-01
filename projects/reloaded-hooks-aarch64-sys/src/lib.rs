@@ -15,6 +15,7 @@ pub(crate) mod code_rewriter {
     pub mod adr;
     pub mod b;
     pub mod b_cond;
+    pub mod cbz;
 }
 
 /// This namespace contains the raw instruction encodings for various
@@ -25,6 +26,7 @@ pub(crate) mod instructions {
     pub mod b;
     pub mod bcc;
     pub mod branch_register;
+    pub mod cbz;
     pub mod errors;
     pub mod ldp_immediate;
     pub mod ldr_immediate_post_indexed;

@@ -36,6 +36,11 @@ pub(crate) enum InstructionRewriteResult {
     BccAndAdrpAndAddAndBranch(Box<[u32; 4]>),
     BccAndBranchAbsolute(Box<[u32]>),
     BranchAbsolute(Box<[u32]>),
+    Cbz(u32),
+    CbzAndBranch(u32, u32),
+    CbzAndAdrpAndBranch(u32, u32, u32),
+    CbzAndAdrpAndAddAndBranch(Box<[u32; 4]>),
+    CbzAndBranchAbsolute(Box<[u32]>),
     MovImmediate1(u32), // in instruction count order
     MovImmediate2(u32, u32),
     MovImmediate3(u32, u32, u32),
@@ -114,6 +119,27 @@ impl InstructionRewriteResult {
                 buf.push(bx[2]);
                 buf.push(bx[3]);
             }
+            InstructionRewriteResult::Cbz(inst) => {
+                buf.push(*inst);
+            }
+            InstructionRewriteResult::CbzAndBranch(inst1, inst2) => {
+                buf.push(*inst1);
+                buf.push(*inst2);
+            }
+            InstructionRewriteResult::CbzAndAdrpAndBranch(inst1, inst2, inst3) => {
+                buf.push(*inst1);
+                buf.push(*inst2);
+                buf.push(*inst3);
+            }
+            InstructionRewriteResult::CbzAndAdrpAndAddAndBranch(bx) => {
+                buf.push(bx[0]);
+                buf.push(bx[1]);
+                buf.push(bx[2]);
+                buf.push(bx[3]);
+            }
+            InstructionRewriteResult::CbzAndBranchAbsolute(boxed) => {
+                buf.extend_from_slice(boxed.as_ref())
+            }
         }
     }
 
@@ -136,6 +162,11 @@ impl InstructionRewriteResult {
             InstructionRewriteResult::BranchAbsolute(boxed) => boxed.len() * 4,
             InstructionRewriteResult::BccAndAdrpAndBranch(_, _, _) => 12,
             InstructionRewriteResult::BccAndAdrpAndAddAndBranch(_) => 16,
+            InstructionRewriteResult::Cbz(_) => 4,
+            InstructionRewriteResult::CbzAndBranch(_, _) => 8,
+            InstructionRewriteResult::CbzAndAdrpAndBranch(_, _, _) => 12,
+            InstructionRewriteResult::CbzAndAdrpAndAddAndBranch(_) => 16,
+            InstructionRewriteResult::CbzAndBranchAbsolute(boxed) => boxed.len() * 4,
         }
     }
 }

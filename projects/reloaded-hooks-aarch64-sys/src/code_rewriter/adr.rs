@@ -2,7 +2,6 @@ extern crate alloc;
 
 use super::aarch64_rewriter::{emit_mov_const_to_reg, InstructionRewriteResult};
 use crate::instructions::{add_immediate::AddImmediate, adr::Adr};
-use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 
 /// Rewrites the `ADR` instruction for a new address.
 ///

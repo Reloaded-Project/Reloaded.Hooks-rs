@@ -54,11 +54,14 @@ Please see [Architecture Support Overview](./dev/arch/overview.md) for porting g
 
 - Supports common OSes/platforms.  
 - Easy to integrate to new operating systems.  
-- Calling Convention Translation (e.g. `__stdcall` -> `__fastcall`).   
+- Calling Convention Translation (e.g. `__stdcall` -> `__fastcall`). 
 - Strong interoperability. (incl. Hook stacking)  
 - Parameter Injection (inject a 'context' parameter to your hooks).  
 - Branch rewriting.  
 - Mid function x86/x64 hooks (Cheat Engine style).  
+- Optimal code generation.  
+    - For [Relocated Code](./dev/arch/overview.md#code-relocation) and [Wrappers](./dev/arch/overview.md#optimal-wrapper-generation).
+    - (The author is an anal optimization freak.) 
 
 ## Limitations
 
