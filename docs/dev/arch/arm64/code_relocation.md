@@ -117,3 +117,59 @@ The Branch Conditional instruction is rewritten as:
 ## Branch
 
 !!! note "Including Branch+Link (BL)."
+
+**Purpose**:  
+The `B` (or `BL` for Branch+Link) instruction in ARM architectures performs a direct branch (or branch with link) to a specified address. When using the `BL` variant, the return address (the address of the instruction following the branch) is stored in the link register `LR`.
+
+**Behavior**:  
+The Branch instruction is rewritten as one of the following:  
+- B (or BL)  
+- ADRP + BR  
+- ADRP + ADD + BR  
+- MOV <immediate> + BR  
+
+**Example**:
+
+1. **Direct Branch within Range**:
+    ```rust
+    // Before: b #4096
+    // After: b #8192
+    // Parameters: (old_instruction, old_address, new_address, scratch_register, link)
+    rewrite_b(0x00040014_u32.to_be(), 8192, 4096, Some(17), false);
+    ```
+
+2. **Within 4GiB with Address Adjustment**:
+    ```rust
+    // Before: b #4096
+    // After: 
+    //   - adrp x17, #0x8000000
+    //   - br x17
+    rewrite_b(0x00040014_u32.to_be(), 0x8000000, 0, Some(17), false);
+    ```
+
+3. **Within 4GiB Range with Offset**:
+    ```rust
+    // Before: b #4096
+    // After: 
+    //   - adrp x17, #0x8000512
+    //   - add x17, x17, #512
+    //   - br x17
+    rewrite_b(0x00040014_u32.to_be(), 0x8000512, 0, Some(17), false);
+    ```
+
+4. **Out of Range, Use MOV**:
+    ```rust
+    // Before: b #4096
+    // After: 
+    //   - movz x17, #... 
+    //   - ...
+    //   - br x17
+    rewrite_b(0x00040014_u32.to_be(), 0x100000000, 0, Some(17), false);
+    ```
+
+5. **Branch with Link within Range**:
+    ```rust
+    // Before: bl #4096
+    // After: bl #8192
+    rewrite_b(0x00040094_u32.to_be(), 8192, 4096, Some(17), true);
+    ```
