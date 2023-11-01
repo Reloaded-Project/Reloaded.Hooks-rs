@@ -119,13 +119,13 @@ pub(crate) fn rewrite_bcc(
     // - BCC <skip>
     // - MOV to Register
     // - Branch Register
-
     let mov_instr = emit_mov_const_to_reg(scratch_reg, orig_target as usize);
-    let instr1 = Bcc::assemble_bcc(orig_ins.condition() ^ 1, 8).unwrap();
+    let instr1 =
+        Bcc::assemble_bcc(orig_ins.condition() ^ 1, 8 + mov_instr.size_bytes() as i32).unwrap();
     let instr2 = BranchRegister::new_br(scratch_reg);
     let mut result = Vec::new();
-    mov_instr.append_to_buffer(&mut result);
     result.push(instr1.0.to_le());
+    mov_instr.append_to_buffer(&mut result);
     result.push(instr2.0.to_le());
     Ok(InstructionRewriteResult::BccAndBranchAbsolute(
         result.into_boxed_slice(),
@@ -147,8 +147,8 @@ mod tests {
     #[case::bcc_with_adrp(0x00000054_u32.to_be(), 0, 0x8000000, "610000541100fc9020021fd6")]
     // [Within 4GiB] || b.eq #512 -> b.ne #16 + adrp x17, #0x8000000 + add x17, #512 + br x17
     #[case::bcc_with_adrp_and_add(0x00100054_u32.to_be(), 0x8000000, 0, "81000054110004903102089120021fd6")]
-    // [Last Resort] || b.eq #0 -> movz x17, #0 + b.ne #0xc + br x17
-    #[case::bcc_out_of_range(0x00000054_u32.to_be(), 0, 0x100000000, "110080d24100005420021fd6")]
+    // [Last Resort] || b.eq #0 -> b.ne #12 + movz x17, #0 + br x17
+    #[case::bcc_out_of_range(0x00000054_u32.to_be(), 0, 0x100000000, "61000054110080d220021fd6")]
     fn test_rewrite_bcc(
         #[case] old_instruction: u32,
         #[case] old_address: usize,

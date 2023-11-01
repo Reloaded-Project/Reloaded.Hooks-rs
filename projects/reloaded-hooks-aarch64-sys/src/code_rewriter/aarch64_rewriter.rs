@@ -116,6 +116,28 @@ impl InstructionRewriteResult {
             }
         }
     }
+
+    /// Returns the size in bytes for the rewrite result.
+    pub(crate) fn size_bytes(&self) -> usize {
+        match self {
+            InstructionRewriteResult::Adr(_) => 4,
+            InstructionRewriteResult::Adrp(_) => 4,
+            InstructionRewriteResult::AdrpAndAdd(_, _) => 8,
+            InstructionRewriteResult::Bcc(_) => 4,
+            InstructionRewriteResult::BccAndBranch(_, _) => 8,
+            InstructionRewriteResult::BccAndBranchAbsolute(boxed) => boxed.len() * 4,
+            InstructionRewriteResult::MovImmediate1(_) => 4,
+            InstructionRewriteResult::MovImmediate2(_, _) => 8,
+            InstructionRewriteResult::MovImmediate3(_, _, _) => 12,
+            InstructionRewriteResult::MovImmediate4(_) => 16,
+            InstructionRewriteResult::AdrpAndBranch(_, _) => 8,
+            InstructionRewriteResult::AdrpAndAddAndBranch(_, _, _) => 12,
+            InstructionRewriteResult::B(_) => 4,
+            InstructionRewriteResult::BranchAbsolute(boxed) => boxed.len() * 4,
+            InstructionRewriteResult::BccAndAdrpAndBranch(_, _, _) => 12,
+            InstructionRewriteResult::BccAndAdrpAndAddAndBranch(_) => 16,
+        }
+    }
 }
 
 /// Produces an `InstructionRewriteResult` which represents the best possible way to

@@ -108,8 +108,8 @@ The Branch Conditional instruction is rewritten as:
     ```rust
     // Before: b.eq #0
     // After: 
+    //   - b.ne #12
     //   - movz x17, #0 
-    //   - b.ne #0xc
     //   - br x17
     rewrite_bcc(0x00000054_u32.to_be(), 0, 0x100000000, Some(17));
     ```
