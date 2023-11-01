@@ -32,6 +32,8 @@ pub(crate) enum InstructionRewriteResult {
     B(u32),
     Bcc(u32),
     BccAndBranch(u32, u32),
+    BccAndAdrpAndBranch(u32, u32, u32),
+    BccAndAdrpAndAddAndBranch(Box<[u32; 4]>),
     BccAndBranchAbsolute(Box<[u32]>),
     BranchAbsolute(Box<[u32]>),
     MovImmediate1(u32), // in instruction count order
@@ -100,6 +102,17 @@ impl InstructionRewriteResult {
             }
             InstructionRewriteResult::BranchAbsolute(boxed) => {
                 buf.extend_from_slice(boxed.as_ref())
+            }
+            InstructionRewriteResult::BccAndAdrpAndBranch(inst1, inst2, inst3) => {
+                buf.push(*inst1);
+                buf.push(*inst2);
+                buf.push(*inst3);
+            }
+            InstructionRewriteResult::BccAndAdrpAndAddAndBranch(bx) => {
+                buf.push(bx[0]);
+                buf.push(bx[1]);
+                buf.push(bx[2]);
+                buf.push(bx[3]);
             }
         }
     }

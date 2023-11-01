@@ -1,8 +1,11 @@
 extern crate alloc;
 
-use super::aarch64_rewriter::{emit_mov_const_to_reg, InstructionRewriteResult};
+use super::{
+    aarch64_rewriter::{emit_mov_const_to_reg, InstructionRewriteResult},
+    b::rewrite_b_4gib,
+};
 use crate::instructions::{b::B, bcc::Bcc, branch_register::BranchRegister};
-use alloc::{string::ToString, vec::Vec};
+use alloc::{boxed::Box, string::ToString, vec::Vec};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 
 /// Rewrites the `Bcc` (Branch Conditional) instruction for a new address.
@@ -23,6 +26,7 @@ use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 /// The Branch Conditional instruction is rewritten as one of the following:
 /// - BCC
 /// - BCC <skip> + B
+/// - BCC <skip> + ADRP + Add + Branch Register
 /// - BCC <skip> + MOV to Register + Branch Register
 ///
 /// # Safety
@@ -72,10 +76,49 @@ pub(crate) fn rewrite_bcc(
 
     // Output as:
     // - BCC <skip>
-    // - MOV to Register
+    // - ADRP
+    // - ADD (Optional)
     // - Branch Register
     let scratch_reg = scratch_register
         .ok_or_else(|| CodeRewriterError::NoScratchRegister("rewrite_bcc".to_string()))?;
+
+    // + 4 for 'next instruction', since we are placing a BCC first.
+    if (-0x100000000..=0xFFFFFFFF).contains(&delta_next_instruction) {
+        let result =
+            rewrite_b_4gib(new_address + 4, orig_target as usize, scratch_reg, false).unwrap();
+
+        match result {
+            InstructionRewriteResult::AdrpAndAddAndBranch(a, b, c) => {
+                return Ok(InstructionRewriteResult::BccAndAdrpAndAddAndBranch(
+                    Box::new([
+                        Bcc::assemble_bcc(orig_ins.condition() ^ 1, 16)
+                            .unwrap()
+                            .0
+                            .to_le(),
+                        a,
+                        b,
+                        c,
+                    ]),
+                ))
+            }
+            InstructionRewriteResult::AdrpAndBranch(a, b) => {
+                return Ok(InstructionRewriteResult::BccAndAdrpAndBranch(
+                    Bcc::assemble_bcc(orig_ins.condition() ^ 1, 12)
+                        .unwrap()
+                        .0
+                        .to_le(),
+                    a,
+                    b,
+                ))
+            }
+            _ => unreachable!(),
+        }
+    }
+
+    // Output as:
+    // - BCC <skip>
+    // - MOV to Register
+    // - Branch Register
 
     let mov_instr = emit_mov_const_to_reg(scratch_reg, orig_target as usize);
     let instr1 = Bcc::assemble_bcc(orig_ins.condition() ^ 1, 8).unwrap();
@@ -100,8 +143,12 @@ mod tests {
     #[case::simple_bcc(0x20000054_u32.to_be(), 0, 4096, "2080ff54")]
     // [Within 128MiB] || b.eq #0 -> b.ne #8 + b #-0x80000000
     #[case::bcc_and_branch(0x00000054_u32.to_be(), 0, 0x8000000 - 4, "4100005400000016")]
+    // [Within 4GiB + 4096 aligned] || b.eq #0 -> b.ne #12 + adrp x17, #-0x8000000 + br x17
+    #[case::bcc_with_adrp(0x00000054_u32.to_be(), 0, 0x8000000, "610000541100fc9020021fd6")]
+    // [Within 4GiB] || b.eq #512 -> b.ne #16 + adrp x17, #0x8000000 + add x17, #512 + br x17
+    #[case::bcc_with_adrp_and_add(0x00100054_u32.to_be(), 0x8000000, 0, "81000054110004903102089120021fd6")]
     // [Last Resort] || b.eq #0 -> movz x17, #0 + b.ne #0xc + br x17
-    #[case::bcc_out_of_range(0x00000054_u32.to_be(), 0, 0x8000000, "110080d24100005420021fd6")]
+    #[case::bcc_out_of_range(0x00000054_u32.to_be(), 0, 0x100000000, "110080d24100005420021fd6")]
     fn test_rewrite_bcc(
         #[case] old_instruction: u32,
         #[case] old_address: usize,

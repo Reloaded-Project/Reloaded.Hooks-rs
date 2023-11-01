@@ -59,6 +59,7 @@ The `Bcc` instruction in ARM architectures performs a conditional branch based o
 The Branch Conditional instruction is rewritten as:  
 - BCC  
 - BCC <skip> + [B]  
+- BCC <skip> + [ADRP + ADD + BR]  
 - BCC <skip> + [MOV to Register + Branch Register]  
 
 `<skip>` means, invert the condition, and jump over the code inside [] brackets.
@@ -82,14 +83,35 @@ The Branch Conditional instruction is rewritten as:
     rewrite_bcc(0x00000054_u32.to_be(), 0, 0x8000000 - 4, Some(17));
     ```
 
-3. **Last Resort**:
+3. **Within 4GiB Range with Address Adjustment**:
+    ```rust
+    // Before: b.eq #512
+    // After: 
+    //   - b.ne #16 
+    //   - adrp x17, #0x8000000
+    //   - add x17, #512
+    //   - br x17
+    rewrite_bcc(0x00100054_u32.to_be(), 0x8000000, 0, Some(17));
+    ```
+
+4. **Within 4GiB Range without Offset**:
+    ```rust
+    // Before: b.eq #512
+    // After: 
+    //   - b.ne #12
+    //   - adrp x17, #-0x8000000 
+    //   - br x17
+    rewrite_bcc(0x00100054_u32.to_be(), 0, 0x8000000, Some(17));
+    ```
+
+5. **Last Resort**:
     ```rust
     // Before: b.eq #0
     // After: 
     //   - movz x17, #0 
     //   - b.ne #0xc
     //   - br x17
-    rewrite_bcc(0x00000054_u32.to_be(), 0, 0x8000000, Some(17));
+    rewrite_bcc(0x00000054_u32.to_be(), 0, 0x100000000, Some(17));
     ```
 
 ## Branch
