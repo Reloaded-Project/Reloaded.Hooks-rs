@@ -16,6 +16,7 @@ pub(crate) mod code_rewriter {
     pub mod b;
     pub mod b_cond;
     pub mod cbz;
+    pub mod ldr_literal;
 }
 
 /// This namespace contains the raw instruction encodings for various
@@ -31,6 +32,7 @@ pub(crate) mod instructions {
     pub mod ldp_immediate;
     pub mod ldr_immediate_post_indexed;
     pub mod ldr_immediate_unsigned_offset;
+    pub mod ldr_literal;
     pub mod mov_immediate;
     pub mod orr;
     pub mod orr_vector;

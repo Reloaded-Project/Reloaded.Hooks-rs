@@ -34,65 +34,75 @@ bitfield! {
 }
 
 impl LdrImmediateUnsignedOffset {
-    pub fn new_mov_from_reg(
+    pub fn new_mov_from_reg_with_opc(
         is_64bit: bool,
         destination: u8,
-        reg_offset: i32,
-        reg: u8,
+        source_offset: i32,
+        source: u8,
+        opc: u8,
     ) -> Result<Self, JitError<AllRegisters>> {
         // Check if divisible by 8 or 4.
         let encoded_offset = if is_64bit {
-            if (reg_offset & 0b111) != 0 {
+            if (source_offset & 0b111) != 0 {
                 return Err(must_be_divisible_by(
                     "[LDR Immediate Unsigned Offset]",
-                    reg_offset as isize,
+                    source_offset as isize,
                     8,
                 ));
             }
 
-            if !(0..=32760).contains(&reg_offset) {
+            if !(0..=32760).contains(&source_offset) {
                 return Err(return_stack_out_of_range(
                     "[LDR Immediate Unsigned Offset]",
                     "0..32760",
-                    reg_offset as isize,
+                    source_offset as isize,
                 ));
             }
 
-            reg_offset >> 3
+            source_offset >> 3
         } else {
-            if (reg_offset & 0b11) != 0 {
+            if (source_offset & 0b11) != 0 {
                 return Err(must_be_divisible_by(
                     "[LDR Immediate Unsigned Offset]",
-                    reg_offset as isize,
+                    source_offset as isize,
                     4,
                 ));
             }
 
-            if !(0..=16380).contains(&reg_offset) {
+            if !(0..=16380).contains(&source_offset) {
                 return Err(return_stack_out_of_range(
                     "[LDR Immediate Unsigned Offset]",
                     "0..16380",
-                    reg_offset as isize,
+                    source_offset as isize,
                 ));
             }
 
-            reg_offset >> 2
+            source_offset >> 2
         };
 
         // Note: Compiler is smart enough to optimize this away as a constant
         // Which is why we moved the non-constant stuff to the bottom.
         let mut value = LdrImmediateUnsignedOffset(0);
         value.set_opcode(0b111001);
-        value.set_opc(0b01);
+        value.set_opc(opc);
 
         // Set Known Register as Source Register
-        value.set_rn(reg);
+        value.set_rn(source);
 
         // Set parameters
         value.set_rt(destination);
         value.set_size(if is_64bit { 11 } else { 10 });
         value.set_rn_offset(encoded_offset as i16);
         Ok(value)
+    }
+
+    pub fn new_mov_from_reg(
+        is_64bit: bool,
+        destination: u8,
+        source_offset: i32,
+        source: u8,
+    ) -> Result<Self, JitError<AllRegisters>> {
+        Self::new_mov_from_reg_with_opc(is_64bit, destination, source_offset, source, 0b01)
     }
 
     pub fn new_mov_from_stack(
@@ -103,31 +113,32 @@ impl LdrImmediateUnsignedOffset {
         Self::new_mov_from_reg(is_64bit, destination, stack_offset, 31)
     }
 
-    pub fn new_mov_from_stack_vector(
+    pub fn new_mov_from_reg_vector(
         destination: u8,
-        stack_offset: i32,
+        source: u8,
+        source_offset: i32,
     ) -> Result<Self, JitError<AllRegisters>> {
         // Check if divisible by 16.
         #[cfg(debug_assertions)]
-        if (stack_offset & 0b1111) != 0 {
+        if (source_offset & 0b1111) != 0 {
             return Err(must_be_divisible_by(
                 "[LDR Immediate Unsigned Offset]",
-                stack_offset as isize,
+                source_offset as isize,
                 16,
             ));
         }
 
         // Verify it's in range
         #[cfg(debug_assertions)]
-        if !(0..=65520).contains(&stack_offset) {
+        if !(0..=65520).contains(&source_offset) {
             return Err(return_stack_out_of_range(
                 "[LDR Immediate Unsigned Offset]",
                 "0..65520",
-                stack_offset as isize,
+                source_offset as isize,
             ));
         }
 
-        let encoded_offset = stack_offset >> 4;
+        let encoded_offset = source_offset >> 4;
 
         // Note: Compiler is smart enough to optimize this away as a constant
         // Which is why we moved the non-constant stuff to the bottom.
@@ -137,11 +148,18 @@ impl LdrImmediateUnsignedOffset {
         value.set_size(00); // 128-bit
 
         // Set Stack Pointer as Source Register
-        value.set_rn(31);
+        value.set_rn(source);
 
         // Set parameters
         value.set_rt(destination);
         value.set_rn_offset(encoded_offset as i16);
         Ok(value)
+    }
+
+    pub fn new_mov_from_stack_vector(
+        destination: u8,
+        stack_offset: i32,
+    ) -> Result<Self, JitError<AllRegisters>> {
+        Self::new_mov_from_reg_vector(destination, 31, stack_offset)
     }
 }

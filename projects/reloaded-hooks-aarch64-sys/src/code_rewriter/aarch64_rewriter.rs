@@ -1,6 +1,6 @@
 extern crate alloc;
 
-use crate::instructions::mov_immediate::MovImmediate;
+use crate::instructions::{add_immediate::AddImmediate, adr::Adr, mov_immediate::MovImmediate};
 use alloc::{boxed::Box, vec::Vec};
 use reloaded_hooks_portable::api::buffers::buffer_abstractions::Buffer;
 
@@ -24,6 +24,7 @@ pub(crate) fn rewrite_code_aarch64(
 /// Entries are limited to 16 bytes per entry. Items larger than 16 bytes (3 u32s) are boxed
 /// https://nnethercote.github.io/perf-book/type-sizes.html?highlight=match#boxed-slices
 pub(crate) enum InstructionRewriteResult {
+    None,
     Adr(u32),
     Adrp(u32),
     AdrpAndAdd(u32, u32),
@@ -41,6 +42,9 @@ pub(crate) enum InstructionRewriteResult {
     CbzAndAdrpAndBranch(u32, u32, u32),
     CbzAndAdrpAndAddAndBranch(Box<[u32; 4]>),
     CbzAndBranchAbsolute(Box<[u32]>),
+    LdrLiteral(u32),
+    AdrpAndLdrUnsignedOffset(u32, u32),
+    MovImmediateAndLdrLiteral(Box<[u32]>),
     MovImmediate1(u32), // in instruction count order
     MovImmediate2(u32, u32),
     MovImmediate3(u32, u32, u32),
@@ -140,6 +144,17 @@ impl InstructionRewriteResult {
             InstructionRewriteResult::CbzAndBranchAbsolute(boxed) => {
                 buf.extend_from_slice(boxed.as_ref())
             }
+            InstructionRewriteResult::LdrLiteral(inst) => {
+                buf.push(*inst);
+            }
+            InstructionRewriteResult::AdrpAndLdrUnsignedOffset(inst1, inst2) => {
+                buf.push(*inst1);
+                buf.push(*inst2);
+            }
+            InstructionRewriteResult::MovImmediateAndLdrLiteral(boxed) => {
+                buf.extend_from_slice(boxed.as_ref())
+            }
+            InstructionRewriteResult::None => {}
         }
     }
 
@@ -167,6 +182,10 @@ impl InstructionRewriteResult {
             InstructionRewriteResult::CbzAndAdrpAndBranch(_, _, _) => 12,
             InstructionRewriteResult::CbzAndAdrpAndAddAndBranch(_) => 16,
             InstructionRewriteResult::CbzAndBranchAbsolute(boxed) => boxed.len() * 4,
+            InstructionRewriteResult::LdrLiteral(_) => 4,
+            InstructionRewriteResult::AdrpAndLdrUnsignedOffset(_, _) => 8,
+            InstructionRewriteResult::MovImmediateAndLdrLiteral(boxed) => boxed.len() * 4,
+            InstructionRewriteResult::None => 0,
         }
     }
 }
@@ -234,6 +253,132 @@ pub(crate) fn emit_mov_const_to_reg(destination: u8, value: usize) -> Instructio
         ])),
         _ => unreachable!(), // This case should never be reached unless platform is >64 bits
     }
+}
+
+// TODO: Optimize this in case any of the values are 0. Those can be zero'd by initial movz.
+// This is a very rare occurrence, so not optimized for now.
+
+/// Produces an `InstructionRewriteResult` which represents the best possible way to
+/// encode the provided value as an immediate move instruction for the given destination register.
+///
+/// # Parameters
+///
+/// * `destination`: The destination register.
+/// * `value`: The immediate value to be moved to the destination.
+pub(crate) fn emit_mov_upper_48_bits_const_to_reg(
+    destination: u8,
+    value: usize,
+) -> InstructionRewriteResult {
+    // Determine leading zeroes using native lzcnt instruction
+    let leading_zeros = value.leading_zeros();
+    let used_bits = usize::BITS - leading_zeros;
+
+    match used_bits {
+        0..=16 => InstructionRewriteResult::MovImmediate1(
+            MovImmediate::new_movz(true, destination, 0, 0)
+                .unwrap()
+                .0
+                .to_le(),
+        ),
+        17..=32 => InstructionRewriteResult::MovImmediate1(
+            MovImmediate::new_movz(true, destination, (value >> 16) as u16, 16)
+                .unwrap()
+                .0
+                .to_le(),
+        ),
+        33..=48 => InstructionRewriteResult::MovImmediate2(
+            MovImmediate::new_movz(true, destination, (value >> 16) as u16, 16)
+                .unwrap()
+                .0
+                .to_le(),
+            MovImmediate::new_movk(true, destination, (value >> 32) as u16, 32)
+                .unwrap()
+                .0
+                .to_le(),
+        ),
+        49..=64 => InstructionRewriteResult::MovImmediate3(
+            MovImmediate::new_movz(true, destination, (value >> 16) as u16, 16)
+                .unwrap()
+                .0
+                .to_le(),
+            MovImmediate::new_movk(true, destination, (value >> 32) as u16, 32)
+                .unwrap()
+                .0
+                .to_le(),
+            MovImmediate::new_movk(true, destination, (value >> 48) as u16, 48)
+                .unwrap()
+                .0
+                .to_le(),
+        ),
+        _ => unreachable!(), // This case should never be reached unless platform is >64 bits
+    }
+}
+
+/// Loads an address from an offset that's within 4GiB of current PC (specified as [`instruction_address`]) into
+/// a register
+///
+/// # Parameters
+///
+/// * `instruction_address`: The address of the instruction.
+/// * `target_address`: The address to load.
+/// * `destination`: The destination register.
+///
+/// # Returns
+///
+/// A tuple where the first element is either [`InstructionRewriteResult::Adrp(u32)`] or
+/// [`InstructionRewriteResult::AdrpAndAdd(u32, u32)`].
+pub(crate) fn load_address_4g(
+    instruction_address: usize,
+    target_address: usize,
+    destination: u8,
+) -> InstructionRewriteResult {
+    // Assemble ADRP + ADD if out of range.
+    // This will error if our address is too far.
+    let adrp_pc = instruction_address & !4095; // round down to page
+    let adrp_target_address = target_address & !4095; // round down to page
+    let adrp_offset = adrp_target_address.wrapping_sub(adrp_pc) as isize;
+
+    let adrp = Adr::new_adrp(destination, adrp_offset as i64).unwrap().0;
+
+    let remainder = target_address - adrp_target_address;
+    if remainder > 0 {
+        let add = AddImmediate::new(true, destination, destination, remainder as u16)
+            .unwrap()
+            .0;
+
+        return InstructionRewriteResult::AdrpAndAdd(adrp, add);
+    }
+
+    InstructionRewriteResult::Adrp(adrp)
+}
+
+/// Loads an address from an offset that's within 4GiB of current PC (specified as [`instruction_address`]) into
+/// a register
+///
+/// # Parameters
+///
+/// * `instruction_address`: The address of the instruction.
+/// * `target_address`: The address to load.
+/// * `destination`: The destination register.
+///
+/// # Returns
+///
+/// A tuple where the first element is either [`InstructionRewriteResult::Adrp(u32)`] and the second element is the remainder after
+/// calculating the offset for the `ADRP` instruction.
+pub(crate) fn load_address_4g_with_remainder(
+    instruction_address: usize,
+    target_address: usize,
+    destination: u8,
+) -> (u32, u32) {
+    // Assemble ADRP + ADD if out of range.
+    // This will error if our address is too far.
+    let adrp_pc = instruction_address & !4095; // round down to page
+    let adrp_target_address = target_address & !4095; // round down to page
+    let adrp_offset = adrp_target_address.wrapping_sub(adrp_pc) as isize;
+
+    let adrp = Adr::new_adrp(destination, adrp_offset as i64).unwrap().0;
+    let remainder = target_address - adrp_target_address;
+    (adrp.to_le(), remainder as u32)
 }
 
 #[cfg(test)]

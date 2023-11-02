@@ -238,3 +238,62 @@ Here, `<skip>` is used to invert the condition and jump over the set of instruct
     //   - br x17
     rewrite_cbz(0x008000B4_u32.to_be(), 0x100000000, 0, Some(17));
     ```
+
+## LDR (Load Register)
+
+!!! note "This includes Prefetch `PRFM` which shares opcode with LDR."
+
+**Purpose**:  
+The `LDR` instruction in ARM architectures is used to load a value from memory into a register. It can use various addressing modes, but commonly it involves an offset from a base register or the program counter.
+
+**Behavior**:  
+The `LDR` instruction is rewritten as one of the following, depending on the relocation range:  
+
+- LDR Literal
+- ADRP + LDR (with Unsigned Offset)
+- MOV Address to Register + LDR
+
+The choice of rewriting strategy is based on the distance between the old address and the new one, with a preference for the most direct form that satisfies the required address range.
+
+If the instruction is Prefetch `PRFM`, it is discarded if it can't be re-encoded as `PRFM (literal)`, as prefetching with multiple instructions is probably less efficient than not prefetching at all.
+
+**Example**:
+
+1. **Within 1MiB Range**:
+    ```rust
+    // Before: LDR x0, #0
+    // After: LDR x0, #4096
+    // Parameters: (opcode, new_imm12, rn)
+    rewrite_ldr_literal(0x00000058_u32.to_be(), 4096, 0);
+    ```
+
+2. **Within 4GiB + 4096 aligned**:
+    ```rust
+    // Before: LDR x0, #0
+    // After: 
+    //   - adrp x0, #0x100000
+    //   - ldr x0, [x0]
+    // Parameters: (opcode, new_address, old_address)
+    rewrite_ldr_literal(0x00000058_u32.to_be(), 0x100000, 0);
+    ```
+
+3. **Within 4GiB**:
+    ```rust
+    // Before: LDR x0, #512
+    // After: 
+    //   - adrp x0, #0x100000
+    //   - ldr x0, [x0, #512]
+    // Parameters: (opcode, new_address, old_address)
+    rewrite_ldr_literal(0x00100058_u32.to_be(), 0x100000, 0);
+    ```
+
+4. **Out of Range (Last Resort)**:
+    ```rust
+    // Before: LDR x0, #512
+    // After: 
+    //   - movz x0, #0, lsl #16
+    //   - movk x0, #0x1, lsl #32
+    //   - ldr x0, [x0, #512]
+    // Parameters: (opcode, new_address, old_address)
+    rewrite_ldr_literal(0x00100058_u32.to_be(), 0x100000000, 0);
+    ```

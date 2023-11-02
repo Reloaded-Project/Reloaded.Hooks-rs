@@ -19,7 +19,7 @@ pub fn invalid_register_combination(
 /// # Parameters
 /// * `instruction`: The instruction where this error was generated.
 /// * `max_range`: The maximum allowed range for the operand of the instruction. e.g. '+-4GiB'.
-/// * `value`: The actual value of the operand.
+/// * `stack_offset`: The actual value of the operand.
 #[inline(never)]
 pub fn return_stack_out_of_range(
     instruction: &str,
@@ -32,6 +32,27 @@ pub fn return_stack_out_of_range(
             + max_range
             + " Operand: "
             + &stack_offset.to_string(),
+    )
+}
+
+/// Generates an error for when a given PC offset is out of range
+///
+/// # Parameters
+/// * `instruction`: The instruction where this error was generated.
+/// * `max_range`: The maximum allowed range for the operand of the instruction. e.g. '+-4GiB'.
+/// * `pc_offset`: The actual value of the operand.
+#[inline(never)]
+pub fn return_pc_out_of_range(
+    instruction: &str,
+    max_range: &str,
+    pc_offset: isize,
+) -> JitError<AllRegisters> {
+    JitError::OperandOutOfRange(
+        instruction.to_owned()
+            + " PC Offset Exceeds Maximum Range. Max Range: "
+            + max_range
+            + " Operand: "
+            + &pc_offset.to_string(),
     )
 }
 
