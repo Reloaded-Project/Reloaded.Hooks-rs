@@ -49,6 +49,11 @@ pub(crate) enum InstructionRewriteResult {
     MovImmediate2(u32, u32),
     MovImmediate3(u32, u32, u32),
     MovImmediate4(Box<[u32; 4]>),
+    Tbz(u32),
+    TbzAndBranch(u32, u32),
+    TbzAndAdrpAndBranch(u32, u32, u32),
+    TbzAndAdrpAndAddAndBranch(Box<[u32; 4]>),
+    TbzAndBranchAbsolute(Box<[u32]>),
 }
 
 impl InstructionRewriteResult {
@@ -155,6 +160,27 @@ impl InstructionRewriteResult {
                 buf.extend_from_slice(boxed.as_ref())
             }
             InstructionRewriteResult::None => {}
+            InstructionRewriteResult::Tbz(inst) => {
+                buf.push(*inst);
+            }
+            InstructionRewriteResult::TbzAndBranch(inst1, inst2) => {
+                buf.push(*inst1);
+                buf.push(*inst2);
+            }
+            InstructionRewriteResult::TbzAndAdrpAndBranch(inst1, inst2, inst3) => {
+                buf.push(*inst1);
+                buf.push(*inst2);
+                buf.push(*inst3);
+            }
+            InstructionRewriteResult::TbzAndAdrpAndAddAndBranch(bx) => {
+                buf.push(bx[0]);
+                buf.push(bx[1]);
+                buf.push(bx[2]);
+                buf.push(bx[3]);
+            }
+            InstructionRewriteResult::TbzAndBranchAbsolute(boxed) => {
+                buf.extend_from_slice(boxed.as_ref())
+            }
         }
     }
 
@@ -186,6 +212,11 @@ impl InstructionRewriteResult {
             InstructionRewriteResult::AdrpAndLdrUnsignedOffset(_, _) => 8,
             InstructionRewriteResult::MovImmediateAndLdrLiteral(boxed) => boxed.len() * 4,
             InstructionRewriteResult::None => 0,
+            InstructionRewriteResult::Tbz(_) => 4,
+            InstructionRewriteResult::TbzAndBranch(_, _) => 8,
+            InstructionRewriteResult::TbzAndAdrpAndBranch(_, _, _) => 12,
+            InstructionRewriteResult::TbzAndAdrpAndAddAndBranch(_) => 16,
+            InstructionRewriteResult::TbzAndBranchAbsolute(boxed) => boxed.len() * 4,
         }
     }
 }

@@ -297,3 +297,76 @@ If the instruction is Prefetch `PRFM`, it is discarded if it can't be re-encoded
     // Parameters: (opcode, new_address, old_address)
     rewrite_ldr_literal(0x00100058_u32.to_be(), 0x100000000, 0);
     ```
+
+## TBZ (Test and Branch on Zero)
+
+**Purpose**:  
+The `TBZ` instruction in ARM architectures tests a specified bit in a register and performs a conditional branch if the bit is zero. If the tested bit is not zero, the next sequential instruction is executed.
+
+**Behavior**:  
+The `TBZ` instruction is rewritten based on the distance to the new branch target. It is transformed into one of the following patterns:
+- TBZ
+- TBZ <skip> + B
+- TBZ <skip> + ADRP + BR
+- TBZ <skip> + ADRP + ADD + BR
+- TBZ <skip> + MOV to Register + Branch Register
+
+Here, `<skip>` is used to indicate a conditional skip over a set of instructions if the tested bit is not zero. The specific transformation depends on the offset between the current position and the new branch target.
+
+**Safety**:  
+It is crucial to ensure that the provided `instruction` parameter is a valid `TBZ` opcode. Incorrect opcodes or assumptions that a different type of instruction is a `TBZ` may lead to undefined behavior.
+
+**Functionality**:
+The `rewrite_tbz` function alters the `TBZ` instruction to accommodate a new target address that is outside of its original range. The target address could be within the same 32KiB range or farther, necessitating different rewriting strategies.
+
+**Example**:
+
+1. **Within 32KiB Range**:
+    ```rust
+    // Original: tbz x0, #0, #4096
+    // Rewritten: tbz x0, #0, #8192
+    // Parameters: (old_instruction, old_address, new_address, scratch_reg)
+    rewrite_tbz(0x00800036_u32.to_be(), 8192, 4096, Some(17));
+    ```
+
+2. **Within 128MiB Range**:
+    ```rust
+    // Original: tbz x0, #0, #4096
+    // Rewritten:
+    //   - tbnz x0, #0, #8
+    //   - b #0x8000000
+    rewrite_tbz(0x00800036_u32.to_be(), 0x8000000, 4096, Some(17));
+    ```
+
+3. **Within 4GiB Range Aligned to 4096**:
+    ```rust
+    // Original: tbz x0, #0, #4096
+    // Rewritten:
+    //   - tbnz w0, #0, #0xc
+    //   - adrp x17, #0x8001000
+    //   - br x17
+    rewrite_tbz(0x00800036_u32.to_be(), 0x8000000, 0, Some(17));
+    ```
+
+4. **Within 4GiB Range with Offset**:
+    ```rust
+    // Original: tbz x0, #0, #4096
+    // Rewritten:
+    //    - tbnz w0, #0, #0x10
+    //    - adrp x17, #0x8001000
+    //    - add x17, x17, #0x512
+    //    - br x17
+    rewrite_tbz(0x00800036_u32.to_be(), 0x8000512, 0, Some(17));
+    ```
+
+5. **Out of 4GiB Range (Move and Branch)**:
+    ```rust
+    // Original: tbz x0, #0, #4096
+    // Rewritten:
+    //    - tbnz w0, #0, #0x14
+    //    - movz x17, #0x1000
+    //    - movk x17, #0, lsl #16
+    //    - movk x17, #0x1, lsl #32
+    //    - br x17
+    rewrite_tbz(0x00800036_u32.to_be(), 0x100000000, 0, Some(17));
+    ```

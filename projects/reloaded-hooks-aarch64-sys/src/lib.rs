@@ -17,6 +17,7 @@ pub(crate) mod code_rewriter {
     pub mod b_cond;
     pub mod cbz;
     pub mod ldr_literal;
+    pub mod tbz;
 }
 
 /// This namespace contains the raw instruction encodings for various
@@ -39,6 +40,7 @@ pub(crate) mod instructions {
     pub mod stp_immediate;
     pub mod str_immediate_pre_indexed;
     pub mod sub_immediate;
+    pub mod tbz;
 }
 
 /// This namespace contains the code for encoding the JIT instructions

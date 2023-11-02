@@ -75,7 +75,7 @@ pub(crate) fn rewrite_cbz(
     }
 
     // Output as:
-    // - BCC <skip>
+    // - CBZ <skip>
     // - ADRP
     // - ADD (Optional)
     // - Branch Register
@@ -116,7 +116,7 @@ pub(crate) fn rewrite_cbz(
     }
 
     // Output as:
-    // - BCC <skip>
+    // - CBZ <skip>
     // - MOV to Register
     // - Branch Register
     let mov_instr = emit_mov_const_to_reg(scratch_reg, orig_target as usize);
