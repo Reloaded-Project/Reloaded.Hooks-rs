@@ -12,12 +12,17 @@ pub mod jit;
 /// Rewriting the code from one address to another!
 pub(crate) mod code_rewriter {
     pub mod aarch64_rewriter;
-    pub mod adr;
-    pub mod b;
-    pub mod b_cond;
-    pub mod cbz;
-    pub mod ldr_literal;
-    pub mod tbz;
+    pub mod helpers;
+    pub mod instruction_rewrite_result;
+
+    pub(crate) mod instructions {
+        pub mod adr;
+        pub mod b;
+        pub mod b_cond;
+        pub mod cbz;
+        pub mod ldr_literal;
+        pub mod tbz;
+    }
 }
 
 /// This namespace contains the raw instruction encodings for various

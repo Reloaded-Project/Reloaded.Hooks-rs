@@ -1,5 +1,6 @@
-use crate::code_rewriter::aarch64_rewriter::InstructionRewriteResult;
 use core::{mem::size_of_val, slice};
+
+use crate::code_rewriter::instruction_rewrite_result::InstructionRewriteResult;
 
 pub trait ToHexString {
     fn to_hex_string(&self) -> String;

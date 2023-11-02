@@ -1,12 +1,15 @@
 extern crate alloc;
 
-use super::{
-    aarch64_rewriter::{emit_mov_const_to_reg, InstructionRewriteResult},
-    b::rewrite_b_4gib,
+use crate::{
+    code_rewriter::{
+        helpers::emit_mov_const_to_reg, instruction_rewrite_result::InstructionRewriteResult,
+    },
+    instructions::{b::B, bcc::Bcc, branch_register::BranchRegister},
 };
-use crate::instructions::{b::B, bcc::Bcc, branch_register::BranchRegister};
 use alloc::{boxed::Box, string::ToString, vec::Vec};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
+
+use super::b::rewrite_b_4gib;
 
 /// Rewrites the `Bcc` (Branch Conditional) instruction for a new address.
 ///

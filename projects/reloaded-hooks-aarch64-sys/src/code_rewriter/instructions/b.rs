@@ -1,8 +1,10 @@
 extern crate alloc;
 
-use super::aarch64_rewriter::{emit_mov_const_to_reg, InstructionRewriteResult};
-use crate::instructions::{
-    add_immediate::AddImmediate, adr::Adr, b::B, branch_register::BranchRegister,
+use crate::{
+    code_rewriter::{
+        helpers::emit_mov_const_to_reg, instruction_rewrite_result::InstructionRewriteResult,
+    },
+    instructions::{add_immediate::AddImmediate, adr::Adr, b::B, branch_register::BranchRegister},
 };
 use alloc::{string::ToString, vec::Vec};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;

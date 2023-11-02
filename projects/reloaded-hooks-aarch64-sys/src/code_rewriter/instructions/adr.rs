@@ -1,7 +1,11 @@
 extern crate alloc;
 
-use super::aarch64_rewriter::{emit_mov_const_to_reg, InstructionRewriteResult};
-use crate::instructions::{add_immediate::AddImmediate, adr::Adr};
+use crate::{
+    code_rewriter::{
+        helpers::emit_mov_const_to_reg, instruction_rewrite_result::InstructionRewriteResult,
+    },
+    instructions::{add_immediate::AddImmediate, adr::Adr},
+};
 
 /// Rewrites the `ADR` instruction for a new address.
 ///

@@ -1,11 +1,11 @@
 extern crate alloc;
 
-use super::aarch64_rewriter::{
-    emit_mov_const_to_reg, emit_mov_upper_48_bits_const_to_reg, load_address_4g_with_remainder,
-    InstructionRewriteResult,
-};
 use crate::{
     all_registers::AllRegisters,
+    code_rewriter::{
+        helpers::{emit_mov_upper_48_bits_const_to_reg, load_address_4g_with_remainder},
+        instruction_rewrite_result::InstructionRewriteResult,
+    },
     instructions::{
         ldr_immediate_unsigned_offset::LdrImmediateUnsignedOffset, ldr_literal::LdrLiteral,
     },
