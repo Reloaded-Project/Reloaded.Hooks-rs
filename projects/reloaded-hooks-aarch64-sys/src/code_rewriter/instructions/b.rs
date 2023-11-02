@@ -49,7 +49,7 @@ pub(crate) fn rewrite_b(
         // Otherwise if further away from 4G, use MOVZ + MOVK + BR.
         if !(-0x40000000..=0x3FFFFFFF).contains(&new_offset) {
             // MOV <immediate> + BR
-            return rewrite_b_immediate(orig_target as usize, scratch_reg, link);
+            return rewrite_b_mov_immediate(orig_target as usize, scratch_reg, link);
         }
 
         // ADRP + (ADD) + BR
@@ -93,7 +93,7 @@ pub(crate) fn rewrite_b_4gib(
     Ok(InstructionRewriteResult::AdrpAndBranch(adrp, branch))
 }
 
-pub(crate) fn rewrite_b_immediate(
+pub(crate) fn rewrite_b_mov_immediate(
     orig_target: usize,
     scratch_register: u8,
     link: bool,
