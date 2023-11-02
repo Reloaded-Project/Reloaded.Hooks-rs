@@ -28,7 +28,7 @@ use reloaded_hooks_portable::api::{
 /// * `old_address`: The original address associated with the `LDR` instruction.
 /// * `new_address`: The new address of the instruction.
 ///
-/// # Behavior
+/// # Behaviour
 ///
 /// The Branch Conditional instruction is rewritten as one of the following:
 /// - LDR Literal

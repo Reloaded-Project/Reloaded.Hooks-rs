@@ -15,7 +15,7 @@ use crate::instructions::{add_immediate::AddImmediate, adr::Adr};
 /// * `old_address`: The original address associated with the `ADR` instruction.
 /// * `new_address`: The new address of the instruction.
 ///
-/// # Behavior
+/// # Behaviour
 ///
 /// The ADR(P) instruction is rewritten as one of the following:
 /// - ADRP

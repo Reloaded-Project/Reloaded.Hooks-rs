@@ -25,7 +25,7 @@ pub trait CodeRewriter {
     /// * `out_address_size`: Size of data at out_address.
     /// * `buf`: The buffer to use for writing the new code.
     ///
-    /// # Behavior
+    /// # Behaviour
     ///
     /// The function will iterate over the block of code byte by byte, identifying any
     /// instructions that use relative addressing. When such an instruction is identified,

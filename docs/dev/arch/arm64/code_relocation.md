@@ -8,7 +8,7 @@
 
 The `ADR` instruction in ARM architectures computes the address of a label and writes it to the destination register. 
 
-**Behavior**:  
+**Behaviour**:  
 
 The ADR(P) instruction is rewritten as one of the following:  
 - ADR(P)  
@@ -55,7 +55,7 @@ The ADR(P) instruction is rewritten as one of the following:
 **Purpose**:  
 The `Bcc` instruction in ARM architectures performs a conditional branch based on specific condition flags. 
 
-**Behavior**:  
+**Behaviour**:  
 The Branch Conditional instruction is rewritten as:  
 - BCC  
 - BCC <skip> + [B]  
@@ -121,7 +121,7 @@ The Branch Conditional instruction is rewritten as:
 **Purpose**:  
 The `B` (or `BL` for Branch+Link) instruction in ARM architectures performs a direct branch (or branch with link) to a specified address. When using the `BL` variant, the return address (the address of the instruction following the branch) is stored in the link register `LR`.
 
-**Behavior**:  
+**Behaviour**:  
 The Branch instruction is rewritten as one of the following:  
 - B (or BL)  
 - ADRP + BR  
@@ -179,7 +179,7 @@ The Branch instruction is rewritten as one of the following:
 **Purpose**:  
 The `CBZ` instruction in ARM architectures performs a conditional branch when the specified register is zero. If the register is not zero and the condition is not met, the next sequential instruction is executed.
 
-**Behavior**:  
+**Behaviour**:  
 The `CBZ` instruction is rewritten as one of the following:  
 - CBZ  
 - CBZ <skip> + [B]  
@@ -246,7 +246,7 @@ Here, `<skip>` is used to invert the condition and jump over the set of instruct
 **Purpose**:  
 The `LDR` instruction in ARM architectures is used to load a value from memory into a register. It can use various addressing modes, but commonly it involves an offset from a base register or the program counter.
 
-**Behavior**:  
+**Behaviour**:  
 The `LDR` instruction is rewritten as one of the following, depending on the relocation range:  
 
 - LDR Literal
@@ -303,7 +303,7 @@ If the instruction is Prefetch `PRFM`, it is discarded if it can't be re-encoded
 **Purpose**:  
 The `TBZ` instruction in ARM architectures tests a specified bit in a register and performs a conditional branch if the bit is zero. If the tested bit is not zero, the next sequential instruction is executed.
 
-**Behavior**:  
+**Behaviour**:  
 The `TBZ` instruction is rewritten based on the distance to the new branch target. It is transformed into one of the following patterns:
 - TBZ
 - TBZ <skip> + B
@@ -314,7 +314,7 @@ The `TBZ` instruction is rewritten based on the distance to the new branch targe
 Here, `<skip>` is used to indicate a conditional skip over a set of instructions if the tested bit is not zero. The specific transformation depends on the offset between the current position and the new branch target.
 
 **Safety**:  
-It is crucial to ensure that the provided `instruction` parameter is a valid `TBZ` opcode. Incorrect opcodes or assumptions that a different type of instruction is a `TBZ` may lead to undefined behavior.
+It is crucial to ensure that the provided `instruction` parameter is a valid `TBZ` opcode. Incorrect opcodes or assumptions that a different type of instruction is a `TBZ` may lead to undefined behaviour.
 
 **Functionality**:
 The `rewrite_tbz` function alters the `TBZ` instruction to accommodate a new target address that is outside of its original range. The target address could be within the same 32KiB range or farther, necessitating different rewriting strategies.

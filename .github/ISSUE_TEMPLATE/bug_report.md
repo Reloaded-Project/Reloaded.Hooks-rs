@@ -15,7 +15,7 @@ assignees: ''
 
 ## To Reproduce
 
-Steps to reproduce the behavior:
+Steps to reproduce the behaviour:
 
 1. ...
 2. ...
@@ -24,7 +24,7 @@ Steps to reproduce the behavior:
 
 <!-- Make sure you are able to reproduce the bug in the main branch, too. -->
 
-## Expected behavior
+## Expected behaviour
 
 <!-- A clear and concise description of what you expected to happen. -->
 

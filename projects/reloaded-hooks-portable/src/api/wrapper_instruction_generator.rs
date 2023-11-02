@@ -146,7 +146,7 @@ pub fn generate_wrapper_instructions<
 
         14. **Return Operation**
         - Generates a return operation with appropriate stack cleanup size, based on the `conv_current`
-          stack cleanup behavior.
+          stack cleanup behaviour.
 
         15. **Merge StackAlloc and Return Operations (If Optimizations Enabled)**
         - If optimizations are enabled, it merges contiguous `StackAlloc` and `ReturnOperation` to

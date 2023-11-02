@@ -17,7 +17,7 @@ use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 /// * `new_address`: The new target address of the instruction.
 /// * `scratch_register`: Specifies the register to use as a scratch when the target is too far for direct branching.
 ///
-/// # Behavior
+/// # Behaviour
 ///
 /// The Branch instruction is rewritten as one of the following:
 /// - CBZ
@@ -29,7 +29,7 @@ use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 /// # Safety
 ///
 /// Ensure that the provided `instruction` is a valid `Bcc` opcode. Supplying invalid opcodes or
-/// wrongly assuming that a different type of instruction is a `Bcc` can result in unintended behaviors.
+/// wrongly assuming that a different type of instruction is a `Bcc` can result in unintended behaviours.
 pub(crate) fn rewrite_cbz(
     instruction: u32,
     old_address: usize,
