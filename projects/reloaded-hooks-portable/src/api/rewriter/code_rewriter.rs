@@ -1,29 +1,25 @@
 extern crate alloc;
-use crate::api::buffers::buffer_abstractions::BufferFactory;
-use alloc::boxed::Box;
 use alloc::string::String;
 use thiserror_no_std::Error;
 
-/// The trait for a Just In Time Compiler used for emitting
-/// wrappers assembled for a given address.
+/// The trait for a Just In Time Compiler used for translating code
+/// from one address to another.
 pub trait CodeRewriter {
     /// Rewrites the code from one address to another.
     ///
     /// Given an original block of code starting at `old_address`, this function
     /// will modify any relative addressing instructions to make them compatible
-    /// with a new location starting at `new_address`. This is useful, for example,
-    /// when code is being moved or injected into a new location in memory and any
-    /// relative jumps or calls within the code need to be adjusted to the new location.
+    /// with a new location starting at `new_address`.
+    ///
+    /// This is useful, for example, when code is being moved or injected into a new
+    /// location in memory and any relative jumps or calls within the code need to be
+    /// adjusted to the new location.
     ///
     /// # Parameters
     ///
     /// * `old_address`: A pointer to the start of the original block of code.
-    /// * `old_address_size`: A pointer to the start of the original block of code.
-    /// * `new_address`: A pointer to the start of the location where the code will be moved.
-    ///                  New code will be written to this address.
-    /// * `out_address`: A pointer to where the new data will be written to.
-    /// * `out_address_size`: Size of data at out_address.
-    /// * `buf`: The buffer to use for writing the new code.
+    /// * `old_address_size`: Size/amount of bytes to encode for the new address.
+    /// * `new_address`: The new address for the instructions.
     ///
     /// # Behaviour
     ///
@@ -33,30 +29,25 @@ pub trait CodeRewriter {
     ///
     /// # Returns
     ///
-    /// Returns the number of bytes written to `out_address`. Otherwise an error.
-    fn rewrite_code(
+    /// Either a re-encode error, in which case the operation fails, or a slice of bytes to be written.
+    /// If there is not sufficient space for the slice of bytes, the function will be called again
+    /// (with a larger space available at [`new_address`]).
+    fn rewrite_code<'a>(
         old_address: *const u8,
         old_address_size: usize,
         new_address: *const u8,
-        out_address: *mut u8,
-        out_address_size: usize,
-        buf: Box<dyn BufferFactory>,
-    ) -> Result<i32, CodeRewriterError>;
+    ) -> Result<&'a [u8], CodeRewriterError>;
 }
 
 /// Errors that can occur during JIT compilation.
 #[derive(Debug, Error, Clone, PartialEq, Eq)]
 pub enum CodeRewriterError {
     /// Instruction cannot be re-encoded at this range.
+    /// Note: This error should be unreachable for x86 and ARM64, which can re-encode any address.
     #[error(
         "The instruction cannot be re-encoded. Instruction offset: {0:?}, Instruction Name: {1:?}"
     )]
     OutOfRange(isize, String),
-
-    /// Insufficient space available to re-encode instructions.
-    /// If you encounter this error, re-allocate another buffer with a larger size and try calling again.
-    #[error("Insufficient space available to re-encode instructions. Required space: {0:?}")]
-    InsufficientSpace(i32),
 
     /// Missing a scratch register.
     #[error("Missing scratch register, required by function: {0:?}")]

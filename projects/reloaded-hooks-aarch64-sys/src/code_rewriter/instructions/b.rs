@@ -35,9 +35,9 @@ pub(crate) fn rewrite_b(
     old_address: usize,
     new_address: usize,
     scratch_register: Option<u8>,
-    link: bool,
 ) -> Result<InstructionRewriteResult, CodeRewriterError> {
     let orig_ins = B(instruction.to_le());
+    let link = orig_ins.is_link();
     let orig_target = (old_address as isize).wrapping_add(orig_ins.offset() as isize);
     let new_offset = orig_target.wrapping_sub(new_address as isize);
 
@@ -131,7 +131,7 @@ mod tests {
         #[case] new_address: usize,
         #[case] expected_hex: &str,
     ) {
-        let result = rewrite_b(old_instruction, old_address, new_address, Some(17), false).unwrap();
+        let result = rewrite_b(old_instruction, old_address, new_address, Some(17)).unwrap();
         assert_eq!(result.to_hex_string(), expected_hex);
     }
 
@@ -150,7 +150,7 @@ mod tests {
         #[case] new_address: usize,
         #[case] expected_hex: &str,
     ) {
-        let result = rewrite_b(old_instruction, old_address, new_address, Some(17), true).unwrap();
+        let result = rewrite_b(old_instruction, old_address, new_address, Some(17)).unwrap();
         assert_eq!(result.to_hex_string(), expected_hex);
     }
 }

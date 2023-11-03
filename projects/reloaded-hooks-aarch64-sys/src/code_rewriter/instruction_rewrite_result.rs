@@ -12,6 +12,8 @@ use alloc::{boxed::Box, vec::Vec};
 /// https://nnethercote.github.io/perf-book/type-sizes.html?highlight=match#boxed-slices
 pub(crate) enum InstructionRewriteResult {
     None,
+    /// No change was made to this instruction
+    Copy(u32),
     Adr(u32),
     Adrp(u32),
     AdrpAndAdd(u32, u32),
@@ -168,12 +170,16 @@ impl InstructionRewriteResult {
             InstructionRewriteResult::TbzAndBranchAbsolute(boxed) => {
                 buf.extend_from_slice(boxed.as_ref())
             }
+            InstructionRewriteResult::Copy(inst) => {
+                buf.push(*inst);
+            }
         }
     }
 
     /// Returns the size in bytes for the rewrite result.
     pub(crate) fn size_bytes(&self) -> usize {
         match self {
+            InstructionRewriteResult::Copy(_) => 4,
             InstructionRewriteResult::Adr(_) => 4,
             InstructionRewriteResult::Adrp(_) => 4,
             InstructionRewriteResult::AdrpAndAdd(_, _) => 8,

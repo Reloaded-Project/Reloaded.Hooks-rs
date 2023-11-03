@@ -102,16 +102,6 @@ impl Adr {
         self.set_immhi((offset >> 2) & 0x7FFFF); // Set bits [23:5].
         self.set_immlo((offset & 0x3) as u8); // Set bits [1:0].
     }
-
-    /// Determines if the instruction is an ADRP.
-    ///
-    /// # Returns
-    ///
-    /// * `true` if the instruction is an ADRP.
-    /// * `false` otherwise.
-    pub fn is_adrp(&self) -> bool {
-        self.is_pageaddress()
-    }
 }
 
 /// Generates an error for when an offset needs to be divisible by 4096, but isn't.

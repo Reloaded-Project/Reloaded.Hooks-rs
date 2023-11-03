@@ -1,28 +1,36 @@
 extern crate alloc;
 
-use crate::instructions::{add_immediate::AddImmediate, adr::Adr, mov_immediate::MovImmediate};
-use alloc::{boxed::Box, vec::Vec};
-use reloaded_hooks_portable::api::buffers::buffer_abstractions::Buffer;
+use core::mem::{forget, size_of};
 
-use super::instruction_rewrite_result::InstructionRewriteResult;
+use alloc::vec::Vec;
+use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
+
+use super::{
+    instruction_rewrite_result::InstructionRewriteResult,
+    instructions::{
+        adr::rewrite_adr, b::rewrite_b, b_cond::rewrite_bcc, cbz::rewrite_cbz,
+        ldr_literal::rewrite_ldr_literal, tbz::rewrite_tbz,
+    },
+};
 
 /// Rewrites the code from one address to another.
 ///
 /// Given an original block of code starting at `old_address`, this function
 /// will modify any relative addressing instructions to make them compatible
-/// with a new location starting at `new_address`. This is useful, for example,
-/// when code is being moved or injected into a new location in memory and any
-/// relative jumps or calls within the code need to be adjusted to the new location.
+/// with a new location starting at `new_address`.
+///
+/// This is useful, for example, when code is being moved or injected into a new
+/// location in memory and any relative jumps or calls within the code need to be
+/// adjusted to the new location.
 ///
 /// # Parameters
 ///
 /// * `old_address`: A pointer to the start of the original block of code.
-/// * `old_address_size`: A pointer to the start of the original block of code.
-/// * `new_address`: A pointer to the start of the location where the code will be moved.
-///                  New code will be written to this address.
-/// * `out_address`: A pointer to where the new data will be written to.
-/// * `out_address_size`: Size of data at out_address.
-/// * `buf`: The buffer to use for writing the new code.
+/// * `old_address_size`: Size/amount of bytes to encode for the new address.
+/// * `new_address`: The new address for the instructions.
+/// * `scratch_register`
+///     - A scratch general purpose register that can be used for operations.
+///     - This scratch register may or may not be used depending on the code being rewritten.
 ///
 /// # Behaviour
 ///
@@ -32,25 +40,78 @@ use super::instruction_rewrite_result::InstructionRewriteResult;
 ///
 /// # Returns
 ///
-/// Returns the number of bytes written to `out_address`. Otherwise an error.
+/// Either a re-encode error, in which case the operation fails, or a vector to consume.
 pub(crate) fn rewrite_code_aarch64(
-    _old_address: *const u8,
-    _old_address_size: usize,
-    _new_address: *const u8,
-    _out_address: *mut u8,
-    _out_address_size: usize,
-    _buf: Box<dyn Buffer>,
-) -> i32 {
-    todo!()
+    old_address: *const u8,
+    old_address_size: usize,
+    new_address: *const u8,
+    scratch_register: Option<u8>,
+) -> Result<Vec<u8>, CodeRewriterError> {
+    // Note: Not covered by unit tests (because we read from old_address), careful when modifying.
+
+    let mut vec = Vec::<u32>::with_capacity(old_address_size * 2 / size_of::<u32>());
+    let mut old_ptr = old_address as *mut u32;
+    let old_end_ptr = (old_address.wrapping_add(old_address_size)) as *mut u32;
+    let mut current_new_address = new_address;
+
+    while old_ptr < old_end_ptr {
+        let instruction = unsafe { *old_ptr };
+
+        // Rewrite instruction.
+        let result = rewrite_instruction(
+            instruction.to_le(),
+            current_new_address as usize,
+            old_ptr as usize,
+            scratch_register,
+        );
+
+        match result {
+            Ok(x) => {
+                x.append_to_buffer(&mut vec);
+
+                // Advance pointers
+                old_ptr = old_ptr.wrapping_add(1);
+                current_new_address = current_new_address.wrapping_add(x.size_bytes());
+            }
+            Err(x) => return Err(x),
+        }
+    }
+
+    // Unsafe cast to u8 vec
+    unsafe {
+        let result = Ok(Vec::from_raw_parts(
+            vec.as_ptr() as *mut u8,
+            vec.len() * size_of::<u32>(),
+            vec.capacity() * size_of::<u32>(),
+        ));
+
+        forget(vec); // prevent drop
+        result
+    }
 }
 
 fn rewrite_instruction(
     instruction: u32,
     dest_address: usize,
-    source_address: *const u8,
+    source_address: usize,
     scratch_register: Option<u8>,
-) -> InstructionRewriteResult {
-    todo!();
+) -> Result<InstructionRewriteResult, CodeRewriterError> {
+    // Note: Converted to little endian inside each of the functions here
+    if is_adr(instruction) {
+        Ok(rewrite_adr(instruction, source_address, dest_address))
+    } else if is_bcc(instruction) {
+        rewrite_bcc(instruction, source_address, dest_address, scratch_register)
+    } else if is_b_or_bl(instruction) {
+        rewrite_b(instruction, source_address, dest_address, scratch_register)
+    } else if is_cbz(instruction) {
+        rewrite_cbz(instruction, source_address, dest_address, scratch_register)
+    } else if is_tbz(instruction) {
+        rewrite_tbz(instruction, source_address, dest_address, scratch_register)
+    } else if is_ldr_literal(instruction) {
+        rewrite_ldr_literal(instruction, source_address, dest_address)
+    } else {
+        Ok(InstructionRewriteResult::Copy(instruction))
+    }
 }
 
 fn is_adr(instruction: u32) -> bool {
@@ -79,8 +140,7 @@ fn is_ldr_literal(instruction: u32) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use crate::test_helpers::ToHexString;
+    use super::{is_adr, is_b_or_bl, is_bcc, is_cbz, is_ldr_literal, is_tbz};
     use rstest::rstest;
 
     #[allow(non_camel_case_types)]
@@ -96,17 +156,17 @@ mod tests {
     }
 
     fn get_ins_type(instruction: u32) -> InsType {
-        if (instruction & 0x1f000000) == 0x10000000 {
+        if is_adr(instruction) {
             InsType::Adr
-        } else if (instruction & 0xff000010) == 0x54000000 {
+        } else if is_bcc(instruction) {
             InsType::Bcc
-        } else if (instruction & 0x7c000000) == 0x14000000 {
+        } else if is_b_or_bl(instruction) {
             InsType::B
-        } else if (instruction & 0x7e000000) == 0x34000000 {
+        } else if is_cbz(instruction) {
             InsType::Cbz
-        } else if (instruction & 0x7e000000) == 0x36000000 {
+        } else if is_tbz(instruction) {
             InsType::Tbz
-        } else if (instruction & 0x3b000000) == 0x18000000 {
+        } else if is_ldr_literal(instruction) {
             InsType::LdrLiteral
         } else {
             InsType::Unknown
@@ -328,7 +388,7 @@ mod tests {
     #[case::wfe(0x5F2003D5_u32.to_be(), InsType::Unknown)] // wfe
     #[case::wfi(0x7F2003D5_u32.to_be(), InsType::Unknown)] // wfi
     #[case::yield_uwu(0x3F2003D5_u32.to_be(), InsType::Unknown)] // yield
-    fn ensure_valid_instructions_handled(
+    fn ensure_valid_instruction_recognized(
         #[case] instruction: u32,
         #[case] expected_instruction: InsType,
     ) {

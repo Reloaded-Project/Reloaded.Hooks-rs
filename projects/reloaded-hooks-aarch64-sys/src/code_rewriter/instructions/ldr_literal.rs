@@ -135,6 +135,7 @@ fn get_ldr_immediate_for_literal(
 }
 
 #[cfg(test)]
+#[allow(non_snake_case)]
 mod tests {
     use super::*;
     use crate::test_helpers::ToHexString;

@@ -141,6 +141,7 @@ pub(crate) fn emit_mov_upper_48_bits_const_to_reg(
 ///
 /// A tuple where the first element is either [`InstructionRewriteResult::Adrp(u32)`] or
 /// [`InstructionRewriteResult::AdrpAndAdd(u32, u32)`].
+#[allow(dead_code)]
 pub(crate) fn load_address_4g(
     instruction_address: usize,
     target_address: usize,

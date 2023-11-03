@@ -12,6 +12,9 @@ bitfield! {
     impl Debug;
     u8;
 
+    /// True if this is a 'link' branch.
+    pub is_link, set_is_loink: 31;
+
     /// Opcode
     opcode, set_opcode: 31, 26;
 
