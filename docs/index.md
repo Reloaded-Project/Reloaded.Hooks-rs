@@ -39,26 +39,30 @@ even in bare metal or embedded environments.
 
 | Feature                                                                                           | x86 & x64 | ARM64 |
 | ------------------------------------------------------------------------------------------------- | --------- | ----- |
-| [Basic Function Hooking](./arch/overview.md#basic-function-hooking)                               | ✅         | ✅     |
-| [Code Relocation](./arch/overview.md#code-relocation)                                             | ✅ ^1      | ✅ ^1  |
-| [Hook Stacking](./arch/overview.md#hook-stacking)                                                 | ✅         | ✅     |
-| [Calling Convention Wrapper Generation](./arch/overview.md#calling-convention-wrapper-generation) | ✅         | ✅     |
-| [Optimal Wrapper Generation](./arch/overview.md#optimal-wrapper-generation)                       | ✅         | ✅     |
+| [Basic Function Hooking](./dev/arch/overview.md#basic-function-hooking)                               | ✅         | ✅     |
+| [Code Relocation](./dev/arch/overview.md#code-relocation)                                             | ✅ ^1      | ✅ ^1  |
+| [Hook Stacking](./dev/arch/overview.md#hook-stacking)                                                 | ✅         | ✅     |
+| [Calling Convention Wrapper Generation](./dev/arch/overview.md#calling-convention-wrapper-generation) | ✅         | ✅     |
+| [Optimal Wrapper Generation](./dev/arch/overview.md#optimal-wrapper-generation)                       | ✅         | ✅     |
 
 Bootstrapping a new architecture is not a difficult job!!  
-Please see [Architecture Support Overview](./arch/overview.md) for porting guidance.
+Please see [Architecture Support Overview](./dev/arch/overview.md) for porting guidance.
 
-^1 Only guaranteed for platforms supporting [Targeted Memory Allocation](./platform/overview.md).
+^1 Only guaranteed for platforms supporting [Targeted Memory Allocation](./dev/platform/overview.md).
 
 ## Feature Support
 
 - Supports common OSes/platforms.  
 - Easy to integrate to new operating systems.  
-- Calling Convention Translation (e.g. `__stdcall` -> `__fastcall`).   
+- Calling Convention Translation (e.g. `__stdcall` -> `__fastcall`).  
 - Strong interoperability. (incl. Hook stacking)  
 - Parameter Injection (inject a 'context' parameter to your hooks).  
 - Branch rewriting.  
 - Mid function x86/x64 hooks (Cheat Engine style).  
+- Optimal code generation.  
+    - For [Relocated Code](./dev/arch/overview.md#code-relocation) and [Wrappers](./dev/arch/overview.md#optimal-wrapper-generation).  
+    - Improved over the common hooking libraries (Minhook, Detours), especially for ARM64.  
+    - (The author of this library is an anal optimization freak.) 
 
 ## Limitations
 

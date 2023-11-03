@@ -1,11 +1,12 @@
-use reloaded_hooks_portable::api::jit::{compiler::JitError, xchg_operation::XChgOperation};
 extern crate alloc;
+
 use crate::{
     all_registers::AllRegisters,
     instructions::{orr::Orr, orr_vector::OrrVector},
 };
 use alloc::string::ToString;
 use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::{compiler::JitError, xchg_operation::XChgOperation};
 
 pub fn encode_xchg(
     x: &XChgOperation<AllRegisters>,
@@ -16,9 +17,7 @@ pub fn encode_xchg(
     let scratch = match x.scratch {
         Some(s) => s,
         None => {
-            return Err(JitError::NoScratchRegister(
-                "Needed for XChgOperation.".to_string(),
-            ));
+            return Err(JitError::NoScratchRegister("for XChg".to_string()));
         }
     };
 

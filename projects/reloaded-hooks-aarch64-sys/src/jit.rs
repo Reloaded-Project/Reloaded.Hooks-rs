@@ -1,14 +1,5 @@
 extern crate alloc;
 
-use reloaded_hooks_portable::api::jit::{
-    compiler::{Jit, JitCapabilities, JitError},
-    operation::Operation,
-};
-
-use alloc::rc::Rc;
-use alloc::vec::Vec;
-use core::{mem::size_of, slice};
-
 use crate::{
     all_registers::AllRegisters,
     jit_instructions::{
@@ -28,6 +19,12 @@ use crate::{
         stackalloc::encode_stackalloc,
         xchg::encode_xchg,
     },
+};
+use alloc::{rc::Rc, vec::Vec};
+use core::{mem::size_of, slice};
+use reloaded_hooks_portable::api::jit::{
+    compiler::{Jit, JitCapabilities, JitError},
+    operation::Operation,
 };
 
 pub struct JitAarch64 {}
@@ -64,9 +61,10 @@ impl Jit<AllRegisters> for JitAarch64 {
     }
 
     fn max_relative_jump_distances() -> &'static [usize] {
-        // We remove a value because forward jumps can't go as far.
+        // We remove a -4 value because forward jumps can't go as far.
         &[
-            (1024 * 1024 * 128) - 4,  // -+ 128 MiB
+            (1024 * 1024) - 4,        // -+ 1 MiB (Branch Conditional)
+            (1024 * 1024 * 128) - 4,  // -+ 128 MiB (Branch)
             (1024 * 1024 * 4096) - 4, // -+ 4 GiB
         ]
     }

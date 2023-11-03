@@ -1,11 +1,9 @@
-use bitfield::bitfield;
-use reloaded_hooks_portable::api::jit::compiler::JitError;
-
 extern crate alloc;
 
-use crate::all_registers::AllRegisters;
-
 use super::errors::invalid_shift_amount;
+use crate::all_registers::AllRegisters;
+use bitfield::bitfield;
+use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 // https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/MOVZ--Move-wide-with-zero-?lang=en
 // https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/MOVK--Move-wide-with-keep-?lang=en#sa_shift
@@ -45,8 +43,9 @@ impl MovImmediate {
         value: u16,
         shift: u8,
     ) -> Result<Self, JitError<AllRegisters>> {
+        #[cfg(debug_assertions)]
         if shift % 16 != 0 {
-            return Err(invalid_shift_amount(shift));
+            return Err(invalid_shift_amount("[MOVK]", shift));
         }
 
         let mut result = MovImmediate(0);
@@ -68,7 +67,7 @@ impl MovImmediate {
         shift: u8,
     ) -> Result<Self, JitError<AllRegisters>> {
         if shift % 16 != 0 {
-            return Err(invalid_shift_amount(shift));
+            return Err(invalid_shift_amount("[MOVZ]", shift));
         }
 
         let mut result = MovImmediate(0);

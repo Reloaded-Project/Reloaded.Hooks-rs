@@ -1,11 +1,9 @@
-use bitfield::bitfield;
-use reloaded_hooks_portable::api::jit::compiler::JitError;
-
 extern crate alloc;
 
+use super::errors::{must_be_divisible_by, return_stack_out_of_range};
 use crate::all_registers::AllRegisters;
-
-use super::errors::{return_divisible_by_register, return_stack_out_of_range};
+use bitfield::bitfield;
+use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 // https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/LDP--Load-Pair-of-Registers-?lang=en
 bitfield! {
@@ -60,22 +58,41 @@ impl LdpImmediate {
     ) -> Result<LdpImmediate, JitError<AllRegisters>> {
         // Check if divisible by 8 or 4, and fits in range.
         let encoded_offset = if is_64bit {
+            #[cfg(debug_assertions)]
             if (stack_offset & 0b111) != 0 {
-                return Err(return_divisible_by_register(stack_offset));
+                return Err(must_be_divisible_by(
+                    "[LDP Immediate]",
+                    stack_offset as isize,
+                    8,
+                ));
             }
-
+            #[cfg(debug_assertions)]
             if !(-512..=504).contains(&stack_offset) {
-                return Err(return_stack_out_of_range(stack_offset));
+                return Err(return_stack_out_of_range(
+                    "[LDP Immediate]",
+                    "-512..504",
+                    stack_offset as isize,
+                ));
             }
 
             stack_offset >> 3
         } else {
+            #[cfg(debug_assertions)]
             if (stack_offset & 0b11) != 0 {
-                return Err(return_divisible_by_register(stack_offset));
+                return Err(must_be_divisible_by(
+                    "[LDP Immediate]",
+                    stack_offset as isize,
+                    4,
+                ));
             }
 
+            #[cfg(debug_assertions)]
             if !(-256..=252).contains(&stack_offset) {
-                return Err(return_stack_out_of_range(stack_offset));
+                return Err(return_stack_out_of_range(
+                    "[LDP Immediate]",
+                    "-256..252",
+                    stack_offset as isize,
+                ));
             }
 
             stack_offset >> 2
@@ -121,12 +138,22 @@ impl LdpImmediate {
         opcode: u8,
     ) -> Result<LdpImmediate, JitError<AllRegisters>> {
         // Check if divisible by 16
+        #[cfg(debug_assertions)]
         if (stack_offset & 0b1111) != 0 {
-            return Err(return_divisible_by_register(stack_offset));
+            return Err(must_be_divisible_by(
+                "[LDP Immediate]",
+                stack_offset as isize,
+                16,
+            ));
         }
 
+        #[cfg(debug_assertions)]
         if !(-1024..=1008).contains(&stack_offset) {
-            return Err(return_stack_out_of_range(stack_offset));
+            return Err(return_stack_out_of_range(
+                "[LDP Immediate]",
+                "-1024..1008",
+                stack_offset as isize,
+            ));
         }
 
         let encoded_offset = stack_offset >> 4;

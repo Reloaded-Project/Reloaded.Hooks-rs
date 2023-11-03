@@ -1,10 +1,10 @@
-use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::MultiPushVec};
-use smallvec::SmallVec;
 extern crate alloc;
-use crate::all_registers::AllRegisters;
-use alloc::vec::Vec;
 
 use super::{push::encode_push, push_two::encode_push_two};
+use crate::all_registers::AllRegisters;
+use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::MultiPushVec};
+use smallvec::SmallVec;
 
 pub fn encode_multi_push(
     x: &SmallVec<MultiPushVec<AllRegisters>>,

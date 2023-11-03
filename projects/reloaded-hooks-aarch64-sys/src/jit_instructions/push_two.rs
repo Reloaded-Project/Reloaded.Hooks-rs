@@ -1,10 +1,11 @@
-use reloaded_hooks_portable::api::jit::compiler::JitError;
 extern crate alloc;
+
 use crate::{
     all_registers::AllRegisters,
     instructions::{errors::invalid_register_combination, stp_immediate::StpImmediate},
 };
 use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 /// Encoded as STP
 /// Pops 2 registers from the stack. Registers should be of the same type (vector, or full size GPR).

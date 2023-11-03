@@ -1,14 +1,15 @@
+extern crate alloc;
+
+use super::load_pc_relative_address::load_pc_rel_address;
+use crate::{
+    all_registers::AllRegisters,
+    instructions::{branch_register::BranchRegister, errors::exceeds_maximum_range},
+};
+use alloc::vec::Vec;
 use reloaded_hooks_portable::api::jit::{
     call_relative_operation::CallRelativeOperation, compiler::JitError,
     jump_relative_operation::JumpRelativeOperation,
 };
-extern crate alloc;
-use crate::all_registers::AllRegisters;
-use crate::instructions::branch_register::BranchRegister;
-use alloc::string::ToString;
-use alloc::vec::Vec;
-
-use super::load_pc_relative_address::load_pc_rel_address;
 
 /// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/BL--Branch-with-Link-
 pub fn encode_call_relative(
@@ -17,12 +18,10 @@ pub fn encode_call_relative(
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
     {
-        let offset = (x.target_address as i32 - *pc as i32) >> 2;
+        let offset = ((x.target_address as isize - *pc as isize) >> 2) as i32;
 
         if !(-0x02000000..=0x01FFFFFF).contains(&offset) {
-            return Err(JitError::OperandOutOfRange(
-                "Jump distance for Branch Instruction specified too great".to_string(),
-            ));
+            return Err(exceeds_maximum_range("[BL]", "-+128MiB", offset as isize));
         }
 
         let imm26 = offset & 0x03FFFFFF;
@@ -43,9 +42,7 @@ pub fn encode_jump_relative(
 
     if !(-0x02000000..=0x01FFFFFF).contains(&offset) {
         if !(-0x40000000..=0x3FFFFFFF).contains(&offset) {
-            return Err(JitError::OperandOutOfRange(
-                "Jump distance for Branch Instruction specified too great".to_string(),
-            ));
+            return Err(exceeds_maximum_range("[B]", "-+4GiB", offset as isize));
         }
 
         return encode_jump_relative_4g(x, pc, buf);
@@ -132,7 +129,7 @@ mod tests {
     #[case(0, 0x8100000, "0008049000001fd6")] // jump forward, no extra offset
     #[case(0x8100000, 0, "00f8fb9000001fd6")] // jump backward, no extra offset
     #[case(0, 0x8100004, "000804900010009100001fd6")] // jump forward, no small extra offset
-    #[case(0x8100004, 0, "e0f7fbf000f03f9100001fd6")] // jump backward, no small extra offset
+    #[case(0x8100004, 0, "00f8fb9000001fd6")] // jump backward, no small extra offset
     fn can_encode_jump_relative_4g(
         #[case] initial_pc: usize,
         #[case] target_address: usize,

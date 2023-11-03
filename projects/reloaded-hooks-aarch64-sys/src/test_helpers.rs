@@ -1,5 +1,27 @@
 use core::{mem::size_of_val, slice};
 
+use crate::code_rewriter::instruction_rewrite_result::InstructionRewriteResult;
+
+pub trait ToHexString {
+    fn to_hex_string(&self) -> String;
+}
+
+impl ToHexString for InstructionRewriteResult {
+    fn to_hex_string(&self) -> String {
+        let mut buf = Vec::new();
+        self.append_to_buffer(&mut buf);
+        let i32 = unsafe { core::mem::transmute::<Vec<u32>, Vec<i32>>(buf) };
+        instruction_buffer_as_hex(&i32)
+    }
+}
+
+impl ToHexString for u32 {
+    fn to_hex_string(&self) -> String {
+        let buf = vec![*self as i32];
+        instruction_buffer_as_hex(&buf)
+    }
+}
+
 pub fn instruction_buffer_as_hex(buf: &[i32]) -> String {
     let ptr = buf.as_ptr() as *const u8;
     unsafe {

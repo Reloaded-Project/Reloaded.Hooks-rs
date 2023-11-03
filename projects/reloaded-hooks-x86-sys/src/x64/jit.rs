@@ -55,7 +55,6 @@ impl Jit<Register> for JitX64 {
         ]
     }
 }
-
 fn encode_instruction_x64(
     assembler: &mut CodeAssembler,
     operation: &Operation<Register>,

@@ -1,12 +1,11 @@
+extern crate alloc;
+
+use super::push::encode_push;
+use crate::{all_registers::AllRegisters, instructions::mov_immediate::MovImmediate};
+use alloc::{string::ToString, vec::Vec};
 use reloaded_hooks_portable::api::jit::{
     compiler::JitError, operation_aliases::PushConst, push_operation::PushOperation,
 };
-extern crate alloc;
-use crate::{all_registers::AllRegisters, instructions::mov_immediate::MovImmediate};
-use alloc::string::ToString;
-use alloc::vec::Vec;
-
-use super::push::encode_push;
 
 /// Encoded as MOVK/MOVZ + STR
 pub fn encode_push_constant(
@@ -15,9 +14,7 @@ pub fn encode_push_constant(
     buf: &mut Vec<i32>,
 ) -> Result<(), JitError<AllRegisters>> {
     if x.scratch.is_none() {
-        return Err(JitError::NoScratchRegister(
-            "Needed for PushConstantOperation.".to_string(),
-        ));
+        return Err(JitError::NoScratchRegister("for PushConstant.".to_string()));
     }
 
     unsafe {

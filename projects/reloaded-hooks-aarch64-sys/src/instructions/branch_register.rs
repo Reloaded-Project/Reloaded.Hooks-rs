@@ -41,14 +41,23 @@ impl BranchRegister {
         value
     }
 
-    /// Create a new BLR instruction with the specified register.
-    pub fn new_blr(register: u8) -> Self {
-        Self::initialize(register, 0b01111110000)
+    /// Create a new B(L)R instruction with the specified register.
+    pub fn new_b(register: u8, link: bool) -> Self {
+        if link {
+            Self::new_blr(register)
+        } else {
+            Self::new_br(register)
+        }
     }
 
     /// Create a new BR instruction with the specified register.
     pub fn new_br(register: u8) -> Self {
         Self::initialize(register, 0b00111110000)
+    }
+
+    /// Create a new BLR instruction with the specified register.
+    pub fn new_blr(register: u8) -> Self {
+        Self::initialize(register, 0b01111110000)
     }
 
     /// Create a new ret instruction

@@ -1,10 +1,10 @@
-use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::MultiPopVec};
-use smallvec::SmallVec;
 extern crate alloc;
-use crate::all_registers::AllRegisters;
-use alloc::vec::Vec;
 
 use super::{pop::encode_pop, pop_two::encode_pop_two};
+use crate::all_registers::AllRegisters;
+use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::MultiPopVec};
+use smallvec::SmallVec;
 
 pub fn encode_multi_pop(
     x: &SmallVec<MultiPopVec<AllRegisters>>,

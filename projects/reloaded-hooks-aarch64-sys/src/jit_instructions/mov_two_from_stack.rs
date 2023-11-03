@@ -1,7 +1,8 @@
-use reloaded_hooks_portable::api::jit::compiler::JitError;
 extern crate alloc;
+
 use crate::{all_registers::AllRegisters, instructions::ldp_immediate::LdpImmediate};
 use alloc::vec::Vec;
+use reloaded_hooks_portable::api::jit::compiler::JitError;
 
 /// https://developer.arm.com/documentation/ddi0602/2022-03/Base-Instructions/LDP--Load-Pair-of-Registers-?lang=en
 pub fn encode_mov_two_from_stack(

@@ -30,7 +30,7 @@
     b 0x200 ; Branch to address at current IP + 0x200
     ```
 
-=== "ARM64 (< 4GiB)"
+=== "ARM64 (+- 4GiB)"
 
     ```asm
     adrp x9, #0          ; Load 4K page, relative to PC. (round address down to 4096)
