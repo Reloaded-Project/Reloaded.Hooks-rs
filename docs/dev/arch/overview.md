@@ -9,12 +9,10 @@ Lists currently supported architectures.
 | Feature                                                                         | x86 & x64 | ARM64 |
 | ------------------------------------------------------------------------------- | --------- | ----- |
 | [Basic Function Hooking](#basic-function-hooking)                               | ✅         | ✅     |
-| [Code Relocation](#code-relocation)                                             | ✅ ^1      | ✅ ^1  |
+| [Code Relocation](#code-relocation)                                             | WIP        | ✅  |
 | [Hook Stacking](#hook-stacking)                                                 | ✅         | ✅     |
 | [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ✅     |
 | [Optimal Wrapper Generation](#optimal-wrapper-generation)                       | ✅         | ✅     |
-
-^1 Only *guaranteed* for platforms supporting [Targeted Memory Allocation](../platform/overview.md).
 
 ## Basic Function Hooking
 
