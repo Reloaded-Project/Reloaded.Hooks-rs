@@ -5,8 +5,6 @@
 #[cfg(not(tarpaulin_include))]
 pub mod all_registers;
 
-pub mod preset_calling_convention;
-
 pub(crate) mod common {
     pub mod jit_common;
 
@@ -21,6 +19,7 @@ pub mod x86 {
         pub mod x86_rewriter;
     }
 
+    pub mod preset_calling_convention;
     pub mod register;
     pub use register::Register;
     pub mod jit;
