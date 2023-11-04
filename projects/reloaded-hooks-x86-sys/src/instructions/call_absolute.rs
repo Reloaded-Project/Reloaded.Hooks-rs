@@ -1,12 +1,10 @@
 extern crate alloc;
+
+use crate::all_registers::AllRegisters;
+use crate::common::jit_common::{convert_error, ARCH_NOT_SUPPORTED};
 use alloc::string::ToString;
 use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::CallAbs};
-
-use crate::{
-    all_registers::AllRegisters,
-    jit_common::{convert_error, ARCH_NOT_SUPPORTED},
-};
 
 pub(crate) fn encode_call_absolute(
     a: &mut CodeAssembler,

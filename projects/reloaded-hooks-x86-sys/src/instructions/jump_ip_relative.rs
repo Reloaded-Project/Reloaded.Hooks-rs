@@ -1,11 +1,11 @@
 extern crate alloc;
+
+use crate::all_registers::AllRegisters;
+use crate::common::jit_common::convert_error;
 use alloc::string::ToString;
-use iced_x86::code_asm::CodeAssembler;
+use iced_x86::code_asm::{qword_ptr, CodeAssembler};
 use reloaded_hooks_portable::api::jit::compiler::JitError;
 use reloaded_hooks_portable::api::jit::operation_aliases::JumpIpRel;
-
-use crate::{all_registers::AllRegisters, jit_common::convert_error};
-use iced_x86::code_asm::qword_ptr;
 
 pub(crate) fn encode_jump_ip_relative(
     a: &mut CodeAssembler,

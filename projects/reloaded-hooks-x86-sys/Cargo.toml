@@ -19,7 +19,7 @@ reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portabl
 version = "1.20.0"
 default-features = false
 # See below for all features
-features = ["no_std", "code_asm"]
+features = ["no_std", "code_asm", "decoder", "block_encoder", "op_code_info", "instr_info"]
 
 [dev-dependencies]
 criterion = "0.5.1"

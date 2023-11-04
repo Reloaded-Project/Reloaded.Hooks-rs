@@ -4,13 +4,16 @@
 
 #[cfg(not(tarpaulin_include))]
 pub mod all_registers;
-pub mod jit_common;
-
-#[allow(dead_code)]
-#[cfg(not(tarpaulin_include))]
-pub mod jit_conversions_common;
 
 pub mod preset_calling_convention;
+
+pub(crate) mod common {
+    pub mod jit_common;
+
+    #[allow(dead_code)]
+    #[cfg(not(tarpaulin_include))]
+    pub mod jit_conversions_common;
+}
 
 /// Contains the public namespaces for x86
 pub mod x86 {

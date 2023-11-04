@@ -1,11 +1,11 @@
 // JIT for x86
 extern crate alloc;
 
-use crate::{
-    jit_common::encode_instruction,
-    jit_conversions_common::{map_allregisters_to_x86, map_register_x86_to_allregisters},
-    x86::register::Register,
+use crate::common::jit_common::encode_instruction;
+use crate::common::jit_conversions_common::{
+    map_allregisters_to_x86, map_register_x86_to_allregisters,
 };
+use crate::x86::register::Register;
 use alloc::{rc::Rc, string::ToString};
 use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::{

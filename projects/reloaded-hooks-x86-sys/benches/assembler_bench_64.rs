@@ -1,11 +1,11 @@
 use std::rc::Rc;
 
-use reloaded_hooks_portable::api::jit::compiler::Jit;
-use reloaded_hooks_portable::api::jit::operation_aliases::*;
-use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::Operation};
-use reloaded_hooks_x86_sys::x64;
-use reloaded_hooks_x86_sys::x64::jit::JitX64;
-use reloaded_hooks_x86_sys::x64::Register;
+use reloaded_hooks_portable::api::jit::{
+    compiler::{Jit, JitError},
+    operation::Operation,
+    operation_aliases::*,
+};
+use reloaded_hooks_x86_sys::x64::{self, jit::JitX64, Register};
 
 // Separate function for the code to be benchmarked.
 #[allow(dead_code)]
