@@ -159,14 +159,16 @@ fn patch_relative_branch(
 
     let target = instruction.near_branch_target();
     let scratch_reg = scratch_gpr.as_iced_allregister().unwrap();
-    let mov_ins = Instruction::with2(Code::Mov_r64_imm64, scratch_reg, target)
+    let mut mov_ins = Instruction::with2(Code::Mov_r64_imm64, scratch_reg, target)
         .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    let branch_ins = if is_call {
+    mov_ins.set_len(10);
+    let mut branch_ins = if is_call {
         Instruction::with1(Code::Call_rm64, scratch_reg)
     } else {
         Instruction::with1(Code::Jmp_rm64, scratch_reg)
     }
     .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    branch_ins.set_len(2);
 
     append_instruction_with_new_pc(new_isns, current_new_pc, &mov_ins);
     append_instruction_with_new_pc(new_isns, current_new_pc, &branch_ins);
@@ -391,8 +393,13 @@ mod tests {
 
     // Some tests when in upper bytes
     #[case::simple_branch_upper_64("eb02", 0x8000000000001000, 0x8000000000000000, "e9ff0f0000")] // jmp +2 -> jmp +4098
-    #[case::to_absolute_jmp_8b_64("eb02", 0x8000000080000000, 0x8000000000000000, "e9ff0f0000")] // jmp +2 -> mov rax, 0x8000000000000004 + jmp rax
-                                                                                                 //#[case::rip_relative_beyond_2gib("488B0500000000", 0, 0x100000000, "488b0500000000")]
+    #[case::to_absolute_jmp_8b_64(
+        "eb02",
+        0x8000000080000000,
+        0x8000000000000000,
+        "48b80400008000000080ffe0"
+    )] // jmp +2 -> mov rax, 0x8000000000000004 + jmp rax
+       //#[case::rip_relative_beyond_2gib("488B0500000000", 0, 0x100000000, "488b0500000000")]
     fn relocate_64b(
         #[case] instructions: String,
         #[case] old_address: usize,
