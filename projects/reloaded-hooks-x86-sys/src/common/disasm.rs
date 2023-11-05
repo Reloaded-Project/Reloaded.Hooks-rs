@@ -73,12 +73,7 @@ pub(crate) fn relocate_code(
 
                     continue;
                 } else if instruction.is_loopcc() || instruction.is_loop() {
-                    patch_loopcc_conditional(
-                        scratch_gpr,
-                        &mut new_isns,
-                        &mut current_new_pc,
-                        instruction,
-                    )?;
+                    patch_loop(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
                     continue;
                 }
 
@@ -133,6 +128,18 @@ fn append_if_can_encode_relative(
     let delta = (target - *current_new_pc as u64) as i64;
     if (-0x80000000..0x7FFFFFFF).contains(&delta) {
         append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
+        return true;
+    }
+
+    false
+}
+
+fn can_encode_relative(current_new_pc: &mut usize, instruction: &Instruction) -> bool {
+    // If the branch offset is within 2GiB, do no action
+    // because Iced will handle it for us on re-encode.
+    let target = instruction.near_branch_target();
+    let delta = (target - *current_new_pc as u64) as i64;
+    if (-0x80000000..0x7FFFFFFF).contains(&delta) {
         return true;
     }
 
@@ -225,14 +232,20 @@ fn patch_jump_conditional(
     Ok(())
 }
 
-fn patch_loopcc_conditional(
+fn patch_loop(
     scratch_gpr: AllRegisters,
     new_isns: &mut SmallVec<[Instruction; 4]>,
     current_new_pc: &mut usize,
     instruction: &Instruction,
 ) -> Result<(), CodeRewriterError> {
-    if append_if_can_encode_relative(new_isns, current_new_pc, instruction) {
-        return Ok(());
+    if can_encode_relative(current_new_pc, instruction) {
+        if instruction.is_loop() {
+            // 'loop' has optimized version for imm32, but loope/loopne can't be optimized.
+            return patch_loop_imm32(new_isns, current_new_pc, instruction);
+        } else {
+            append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
+            return Ok(());
+        }
     }
 
     /*
@@ -273,6 +286,35 @@ fn patch_loopcc_conditional(
     append_instruction_with_new_pc(new_isns, current_new_pc, &jmp_skip);
     append_instruction_with_new_pc(new_isns, current_new_pc, &mov_ins);
     append_instruction_with_new_pc(new_isns, current_new_pc, &branch_ins);
+
+    Ok(())
+}
+
+fn patch_loop_imm32(
+    new_isns: &mut SmallVec<[Instruction; 4]>,
+    current_new_pc: &mut usize,
+    instruction: &Instruction,
+) -> Result<(), CodeRewriterError> {
+    /*
+        Strategy (for >2GiB):
+
+        0:  dec   ecx  # jump to '<reg>, OLD_LOOP_INS_JUMP_TARGET' instruction.
+        2:  jnz   <original target>
+    */
+
+    // Jump forward
+    let target = instruction.near_branch_target();
+
+    let mut dec = Instruction::with1(Code::Dec_rm64, iced_x86::Register::RCX)
+        .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    dec.set_len(2);
+
+    let mut jnz = Instruction::with_branch(Code::Jne_rel32_64, target)
+        .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    jnz.set_len(6);
+
+    append_instruction_with_new_pc(new_isns, current_new_pc, &dec);
+    append_instruction_with_new_pc(new_isns, current_new_pc, &jnz);
 
     Ok(())
 }
@@ -339,7 +381,12 @@ mod tests {
     #[case::loop_backward_abs("50e2fa", 0x80001000, 0, "50e202eb0c48b8fd0f008000000000ffe0")] // push rax + loop -3 -> push rax + loop +2 + jmp 0x11 + movabs rax, 0x80000ffd + jmp rax
     #[case::loope_backward_abs("50e1fa", 0x80001000, 0, "50e102eb0c48b8fd0f008000000000ffe0")] // push rax + loope -3 -> push rax + loope +2 + jmp 0x11 + movabs rax, 0x80000ffd + jmp rax
     #[case::loopne_backward_abs("50e0fa", 0x80001000, 0, "50e002eb0c48b8fd0f008000000000ffe0")] // push rax + loopne -3 -> push rax + loopne +2 + jmp 0x11 + movabs rax, 0x80000ffd + jmp rax
-                                                                                                // [OPTIMIZE THIS with dec+jnz] #[case::loop_backward_i8("50e2fa", 4096, 0, "50e202eb05e9f30f0000")] // push rax + loop -3 -> push rax + loop +2 + jmp 0xa + jmp 0xffd
+    #[case::loop_backward_i8("50e2fa", 4096, 0, "5048ffc90f85f30f0000")] // push rax + loop -3 -> push rax + dec ecx + jnz 0xffd
+    #[case::loop_backward_i32("50e2fa", 0x8000000, 0, "5048ffc90f85f3ffff07")] // push rax + loop -3 -> push rax + dec ecx + jnz 0x7fffffd
+    #[case::loope_backward_i8("50e1fa", 4096, 0, "50e102eb05e9f30f0000")] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0xffd
+    #[case::loope_backward_i32("50e1fa", 0x8000000, 0, "50e102eb05e9f3ffff07")] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x7fffffd
+    #[case::loopne_backward_i8("50e0fa", 4096, 0, "50e002eb05e9f30f0000")] // push rax + loopne -3 -> push rax + loopne 5 + jmp 0xa + jmp 0xffd
+    #[case::loopne_backward_i32("50e0fa", 0x8000000, 0, "50e002eb05e9f3ffff07")] // push rax + loopne -3 -> push rax + loopne 5 + jmp 0xa + jmp 0x7fffffd
 
     //#[case::rip_relative_beyond_2gib("488B0500000000", 0, 0x100000000, "488b0500000000")]
     fn relocate_64b(
