@@ -304,12 +304,12 @@ If the instruction is Prefetch `PRFM`, it is discarded if it can't be re-encoded
 The `TBZ` instruction in ARM architectures tests a specified bit in a register and performs a conditional branch if the bit is zero. If the tested bit is not zero, the next sequential instruction is executed.
 
 **Behaviour**:  
-The `TBZ` instruction is rewritten based on the distance to the new branch target. It is transformed into one of the following patterns:
-- TBZ
-- TBZ <skip> + B
-- TBZ <skip> + ADRP + BR
-- TBZ <skip> + ADRP + ADD + BR
-- TBZ <skip> + MOV to Register + Branch Register
+The `TBZ` instruction is rewritten based on the distance to the new branch target. It is transformed into one of the following patterns:  
+- TBZ  
+- TBZ <skip> + B  
+- TBZ <skip> + ADRP + BR  
+- TBZ <skip> + ADRP + ADD + BR  
+- TBZ <skip> + MOV to Register + Branch Register  
 
 Here, `<skip>` is used to indicate a conditional skip over a set of instructions if the tested bit is not zero. The specific transformation depends on the offset between the current position and the new branch target.
 

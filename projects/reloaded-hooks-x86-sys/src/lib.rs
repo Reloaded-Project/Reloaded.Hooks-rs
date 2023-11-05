@@ -6,6 +6,13 @@
 pub mod all_registers;
 
 pub(crate) mod common {
+
+    pub(crate) mod util {
+        pub mod get_stolen_instructions;
+        pub mod invert_branch_condition;
+    }
+
+    pub mod disasm;
     pub mod jit_common;
 
     #[allow(dead_code)]
