@@ -340,28 +340,28 @@ mod tests {
     // TODO: Library is borked with code in 4GiB addresses.
 
     #[rstest]
-    #[case::simple_branch_pad("50eb02", 4096, 0, "50e9ff0f0000")] // push + jmp 4 -> push + jmp 4100
-    #[case::simple_branch("eb02", 4096, 0, "e9ff0f0000")] // jmp 4 -> jmp 4100
-    #[case::to_absolute_jmp_8b("eb02", 0x80000000, 0, "48b80400008000000000ffe0")] // jmp 4 -> mov rax, 0x80000004 + jmp rax
-    #[case::to_absolute_jmp_32b("e9fb0f0000", 0x80000000, 0, "48b80010008000000000ffe0")] // jmp 4096 -> mov rax, 0x80001000 + jmp rax
-    #[case::to_absolute_call("e8ffffffff", 0x80000000, 0, "48b80400008000000000ffd0")] // call 4 -> call rax, 0x80000004 + call rax
-    #[case::to_abs_cond_jmp_jo("7002", 0x80000000, 0, "710c48b80400008000000000ffe0")] // jo 0x4 -> jno +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_pad("507002", 0x80000000, 0, "50710c48b80500008000000000ffe0")] // push + jo 0x4 -> push + jno +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jb("7202", 0x80000000, 0, "730c48b80400008000000000ffe0")] // jb 0x4 -> jnb +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jz("7402", 0x80000000, 0, "750c48b80400008000000000ffe0")] // jz 0x4 -> jnz +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jbe("7602", 0x80000000, 0, "770c48b80400008000000000ffe0")] // jbe 0x4 -> jnbe +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_js("7802", 0x80000000, 0, "790c48b80400008000000000ffe0")] // js 0x4 -> jns +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jp("7a02", 0x80000000, 0, "7b0c48b80400008000000000ffe0")] // jp 0x4 -> jnp +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jl("7c02", 0x80000000, 0, "7d0c48b80400008000000000ffe0")] // jl 0x4 -> jnl +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jle("7e02", 0x80000000, 0, "7f0c48b80400008000000000ffe0")] // jle 0x4 -> jnle +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jno("7102", 0x80000000, 0, "700c48b80400008000000000ffe0")] // jno 0x4 -> jo +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnb("7302", 0x80000000, 0, "720c48b80400008000000000ffe0")] // jnb 0x4 -> jb +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnz("7502", 0x80000000, 0, "740c48b80400008000000000ffe0")] // jnz 0x4 -> jz +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnbe("7702", 0x80000000, 0, "760c48b80400008000000000ffe0")] // jnbe 0x4 -> jbe +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jns("7902", 0x80000000, 0, "780c48b80400008000000000ffe0")] // jns 0x4 -> js +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnp("7b02", 0x80000000, 0, "7a0c48b80400008000000000ffe0")] // jnp 0x4 -> jp +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnl("7d02", 0x80000000, 0, "7c0c48b80400008000000000ffe0")] // jnl 0x4 -> jl +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnle("7f02", 0x80000000, 0, "7e0c48b80400008000000000ffe0")] // jnle 0x4 -> jle +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::simple_branch_pad("50eb02", 4096, 0, "50e9ff0f0000")] // push + jmp +2 -> push + jmp +4098
+    #[case::simple_branch("eb02", 4096, 0, "e9ff0f0000")] // jmp +2 -> jmp +4098
+    #[case::to_absolute_jmp_8b("eb02", 0x80000000, 0, "48b80400008000000000ffe0")] // jmp +2 -> mov rax, 0x80000004 + jmp rax
+    #[case::to_absolute_jmp_32b("e9fb0f0000", 0x80000000, 0, "48b80010008000000000ffe0")] // jmp +4091 -> mov rax, 0x80001000 + jmp rax
+    #[case::to_absolute_call("e8ffffffff", 0x80000000, 0, "48b80400008000000000ffd0")] // call -1 -> call rax, 0x80000004 + call rax
+    #[case::to_abs_cond_jmp_jo("7002", 0x80000000, 0, "710c48b80400008000000000ffe0")] // jo +2 -> jno +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_pad("507002", 0x80000000, 0, "50710c48b80500008000000000ffe0")] // push + jo +2 -> push + jno +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jb("7202", 0x80000000, 0, "730c48b80400008000000000ffe0")] // jb +2 -> jnb +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jz("7402", 0x80000000, 0, "750c48b80400008000000000ffe0")] // jz +2 -> jnz +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jbe("7602", 0x80000000, 0, "770c48b80400008000000000ffe0")] // jbe +2 -> jnbe +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_js("7802", 0x80000000, 0, "790c48b80400008000000000ffe0")] // js +2 -> jns +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jp("7a02", 0x80000000, 0, "7b0c48b80400008000000000ffe0")] // jp +2 -> jnp +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jl("7c02", 0x80000000, 0, "7d0c48b80400008000000000ffe0")] // jl +2 -> jnl +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jle("7e02", 0x80000000, 0, "7f0c48b80400008000000000ffe0")] // jle +2 -> jnle +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jno("7102", 0x80000000, 0, "700c48b80400008000000000ffe0")] // jno +2 -> jo +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jnb("7302", 0x80000000, 0, "720c48b80400008000000000ffe0")] // jnb +2 -> jb +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jnz("7502", 0x80000000, 0, "740c48b80400008000000000ffe0")] // jnz +2 -> jz +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jnbe("7702", 0x80000000, 0, "760c48b80400008000000000ffe0")] // jnbe +2 -> jbe +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jns("7902", 0x80000000, 0, "780c48b80400008000000000ffe0")] // jns +2 -> js +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jnp("7b02", 0x80000000, 0, "7a0c48b80400008000000000ffe0")] // jnp +2 -> jp +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jnl("7d02", 0x80000000, 0, "7c0c48b80400008000000000ffe0")] // jnl +2 -> jl +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_cond_jmp_jnle("7f02", 0x80000000, 0, "7e0c48b80400008000000000ffe0")] // jnle +2 -> jle +12 <skip> + mov rax, 0x80000004 + jmp rax
     #[case::to_abs_cond_jmp_jo_i32("0f80fa0f0000", 0x80000000, 0, "710c48b80010008000000000ffe0")] // jo 4096 -> jno +12 <skip> + mov rax, 0x80001000 + jmp rax
     #[case::to_abs_cond_jmp_jb_i32("0f82fa0f0000", 0x80000000, 0, "730c48b80010008000000000ffe0")] // jb 4096 -> jnb +12 <skip> + mov rax, 0x80001000 + jmp rax
     #[case::to_abs_cond_jmp_jz_i32("0f84fa0f0000", 0x80000000, 0, "750c48b80010008000000000ffe0")] // jz 4096 -> jnz +12 <skip> + mov rax, 0x80001000 + jmp rax
@@ -386,9 +386,13 @@ mod tests {
     #[case::loope_backward_i8("50e1fa", 4096, 0, "50e102eb05e9f30f0000")] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0xffd
     #[case::loope_backward_i32("50e1fa", 0x8000000, 0, "50e102eb05e9f3ffff07")] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x7fffffd
     #[case::loopne_backward_i8("50e0fa", 4096, 0, "50e002eb05e9f30f0000")] // push rax + loopne -3 -> push rax + loopne 5 + jmp 0xa + jmp 0xffd
-    #[case::loopne_backward_i32("50e0fa", 0x8000000, 0, "50e002eb05e9f3ffff07")] // push rax + loopne -3 -> push rax + loopne 5 + jmp 0xa + jmp 0x7fffffd
+    #[case::loopne_backward_i32("50e0fa", 0x8000000, 0, "50e002eb05e9f3ffff07")]
+    // push rax + loopne -3 -> push rax + loopne 5 + jmp 0xa + jmp 0x7fffffd
 
-    //#[case::rip_relative_beyond_2gib("488B0500000000", 0, 0x100000000, "488b0500000000")]
+    // Some tests when in upper bytes
+    #[case::simple_branch_upper_64("eb02", 0x8000000000001000, 0x8000000000000000, "e9ff0f0000")] // jmp +2 -> jmp +4098
+    #[case::to_absolute_jmp_8b_64("eb02", 0x8000000080000000, 0x8000000000000000, "e9ff0f0000")] // jmp +2 -> mov rax, 0x8000000000000004 + jmp rax
+                                                                                                 //#[case::rip_relative_beyond_2gib("488B0500000000", 0, 0x100000000, "488b0500000000")]
     fn relocate_64b(
         #[case] instructions: String,
         #[case] old_address: usize,
