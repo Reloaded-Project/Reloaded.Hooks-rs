@@ -12,7 +12,10 @@ pub(crate) mod common {
         pub mod invert_branch_condition;
     }
 
-    pub mod disasm;
+    pub mod rewriter {
+        pub mod code_rewriter;
+        pub mod patches;
+    }
     pub mod jit_common;
 
     #[allow(dead_code)]
