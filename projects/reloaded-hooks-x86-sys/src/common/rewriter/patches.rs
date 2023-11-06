@@ -156,7 +156,7 @@ pub(crate) fn patch_loop(
     Ok(())
 }
 
-pub(crate) fn patch_loop_imm32(
+fn patch_loop_imm32(
     new_isns: &mut SmallVec<[Instruction; 4]>,
     current_new_pc: &mut usize,
     instruction: &Instruction,
@@ -182,5 +182,88 @@ pub(crate) fn patch_loop_imm32(
     append_instruction_with_new_pc(new_isns, current_new_pc, &dec);
     append_instruction_with_new_pc(new_isns, current_new_pc, &jnz);
 
+    Ok(())
+}
+
+pub(crate) fn patch_jcx(
+    scratch_gpr: AllRegisters,
+    new_isns: &mut SmallVec<[Instruction; 4]>,
+    current_new_pc: &mut usize,
+    instruction: &Instruction,
+) -> Result<(), CodeRewriterError> {
+    if can_encode_relative(current_new_pc, instruction) {
+        return patch_jcx_imm32(new_isns, current_new_pc, instruction);
+    }
+
+    /*
+        Strategy (for >2GiB):
+
+        0:  jcx    4  # jump to '<reg>, OLD_LOOP_INS_JUMP_TARGET' instruction.
+        2:  jmp    16 # jump to code after `jmp OLD_LOOP_JUMP_TARGET`
+        4:  mov    <reg>, OLD_LOOP_INS_JUMP_TARGET
+        14: jmp    <reg>
+        16: <other code>
+
+        Note:
+
+        We cannot use same strategy of `jnz` from <2GiB scenario, unfortunately, it wouldn't be as efficient.
+    */
+
+    // Jump forward
+    let target = instruction.near_branch_target();
+    let scratch_reg = scratch_gpr.as_iced_allregister().unwrap();
+
+    let mut jcx_over = Instruction::with_branch(instruction.code(), (*current_new_pc + 4) as u64)
+        .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    jcx_over.set_len(2);
+
+    let mut jmp_skip = Instruction::with_branch(Code::Jmp_rel8_64, (*current_new_pc + 16) as u64)
+        .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    jmp_skip.set_len(2);
+
+    let mut mov_ins = Instruction::with2(Code::Mov_r64_imm64, scratch_reg, target)
+        .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    mov_ins.set_len(10);
+
+    let mut branch_ins = Instruction::with1(Code::Jmp_rm64, scratch_reg)
+        .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    branch_ins.set_len(2);
+
+    append_instruction_with_new_pc(new_isns, current_new_pc, &jcx_over);
+    append_instruction_with_new_pc(new_isns, current_new_pc, &jmp_skip);
+    append_instruction_with_new_pc(new_isns, current_new_pc, &mov_ins);
+    append_instruction_with_new_pc(new_isns, current_new_pc, &branch_ins);
+
+    Ok(())
+}
+
+fn patch_jcx_imm32(
+    new_isns: &mut SmallVec<[Instruction; 4]>,
+    current_new_pc: &mut usize,
+    instruction: &Instruction,
+) -> Result<(), CodeRewriterError> {
+    /*
+        Strategy (for >2GiB):
+
+        0:  test rcx, rcx  # Test for zero flag.
+        2:  jnz   <original target>
+    */
+
+    // Jump forward
+    let target = instruction.near_branch_target();
+    let mut dec = Instruction::with2(
+        Code::Test_rm32_r32,
+        iced_x86::Register::ECX,
+        iced_x86::Register::ECX,
+    )
+    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    dec.set_len(2); // test ECX for portability
+
+    let mut jnz = Instruction::with_branch(Code::Jne_rel32_64, target)
+        .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    jnz.set_len(6);
+
+    append_instruction_with_new_pc(new_isns, current_new_pc, &dec);
+    append_instruction_with_new_pc(new_isns, current_new_pc, &jnz);
     Ok(())
 }

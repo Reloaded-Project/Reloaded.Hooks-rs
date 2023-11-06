@@ -8,7 +8,7 @@ use iced_x86::{BlockEncoder, BlockEncoderOptions, Code, FlowControl, Instruction
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use smallvec::{smallvec, SmallVec};
 
-use super::patches::{patch_jump_conditional, patch_loop, patch_relative_branch};
+use super::patches::{patch_jcx, patch_jump_conditional, patch_loop, patch_relative_branch};
 
 /// Relocates the code to a new location.
 ///
@@ -76,6 +76,9 @@ pub(crate) fn relocate_code(
                     continue;
                 } else if instruction.is_loopcc() || instruction.is_loop() {
                     patch_loop(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
+                    continue;
+                } else if instruction.is_jcx_short() {
+                    patch_jcx(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
                     continue;
                 }
 
@@ -215,8 +218,10 @@ mod tests {
     #[case::loope_backward_i8("50e1fa", 4096, 0, "50e102eb05e9f30f0000")] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0xffd
     #[case::loope_backward_i32("50e1fa", 0x8000000, 0, "50e102eb05e9f3ffff07")] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x7fffffd
     #[case::loopne_backward_i8("50e0fa", 4096, 0, "50e002eb05e9f30f0000")] // push rax + loopne -3 -> push rax + loopne 5 + jmp 0xa + jmp 0xffd
-    #[case::loopne_backward_i32("50e0fa", 0x8000000, 0, "50e002eb05e9f3ffff07")]
-    // push rax + loopne -3 -> push rax + loopne 5 + jmp 0xa + jmp 0x7fffffd
+    #[case::loopne_backward_i32("50e0fa", 0x8000000, 0, "50e002eb05e9f3ffff07")] // push rax + loopne -3 -> push rax + loopne 5 + jmp 0xa + jmp 0x7fffffd
+    #[case::jrcxz_i32("50e3fa", 0x8000000, 0, "5085c90f85f4ffff07")] // push rax + jrcxz -3 -> push rax + test ecx, rcx + jne 0x7fffffd
+    #[case::jrcxz_abs("50e3fa", 0x80001000, 0, "50e302eb0c48b8fd0f008000000000ffe0")]
+    // push rax + jrcxz -3 -> push rax + jrcxz 5 + jmp 0x11 + mov rax, 0x80000ffd + jmp rax
 
     // Some tests when in upper bytes
     #[case::simple_branch_upper64("eb02", 0x8000000000001000, 0x8000000000000000, "e9ff0f0000")] // jmp +2 -> jmp +4098
@@ -256,8 +261,7 @@ mod tests {
         0x8000000000000000,
         "50e102eb05e9f30f0000"
     )] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x8000000080000ffd
-
-    //#[case::rip_relative_beyond_2gib("488B0500000000", 0, 0x100000000, "488b0500000000")]
+       //#[case::rip_relative_beyond_2gib("488B0500000000", 0, 0x100000000, "488b0500000000")]
     fn relocate_64b(
         #[case] instructions: String,
         #[case] old_address: usize,
