@@ -32,82 +32,46 @@ pub(crate) fn relocate_code(
     // Note: These translations can only happen in x64, because in x86, branches will always be reachable.
     // Otherwise we need to translate the jmp/call to an absolute address.
     for instruction in instructions {
-        let flow_control = instruction.flow_control();
-        match flow_control {
-            FlowControl::UnconditionalBranch | FlowControl::Call => {
-                // Note: Check docs for `UnconditionalBranch` and `Call` above for instructions accepted into this branch.
-                // If this is not a near call or jump, copy the instruction straight up.
-                let is_call_near = instruction.is_call_near();
-                let is_jmp_near = instruction.is_jmp_short_or_near();
-                if !is_call_near && !is_jmp_near {
-                    append_instruction_with_new_pc(&mut new_isns, &mut current_new_pc, instruction);
-                    continue;
-                }
-
-                patch_relative_branch(
-                    scratch_gpr,
-                    &mut new_isns,
-                    &mut current_new_pc,
-                    instruction,
-                    is_call_near,
-                )?;
-            }
-            FlowControl::IndirectBranch | FlowControl::IndirectCall => {
-                // Unless this is RIP relative, we leave this alone.
-            }
-            FlowControl::ConditionalBranch => {
-                // Conditional Branch
-
-                /*
-                    Jcc: https://www.felixcloutier.com/x86/jcc
-                    LOOP: https://www.felixcloutier.com/x86/loop:loopcc
-                    JRCXZ: https://en.wikibooks.org/wiki/X86_Assembly/Control_Flow#Jump_if_counter_register_is_zero
-                    JKccD: ??
-                */
-
-                if instruction.is_jcc_short_or_near() {
-                    patch_jump_conditional(
-                        scratch_gpr,
-                        &mut new_isns,
-                        &mut current_new_pc,
-                        instruction,
-                    )?;
-
-                    continue;
-                } else if instruction.is_loopcc() || instruction.is_loop() {
-                    patch_loop(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
-                    continue;
-                } else if instruction.is_jcx_short() {
-                    patch_jcx(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
-                    continue;
-                }
-
-                // Otherwise if unhandled, we copy.
-                append_instruction_with_new_pc(&mut new_isns, &mut current_new_pc, instruction);
-            }
-            FlowControl::Next => {
-                // Detect RIP Relative Read
-                append_instruction_with_new_pc(&mut new_isns, &mut current_new_pc, instruction);
-            }
-            _ => {
-                append_instruction_with_new_pc(&mut new_isns, &mut current_new_pc, instruction);
-            }
+        // Note: Check docs for `UnconditionalBranch` and `Call` above for instructions accepted into this branch.
+        // If this is not a near call or jump, copy the instruction straight up.
+        let is_call_near = instruction.is_call_near();
+        let is_jmp_near = instruction.is_jmp_short_or_near();
+        if is_call_near || is_jmp_near {
+            patch_relative_branch(
+                scratch_gpr,
+                &mut new_isns,
+                &mut current_new_pc,
+                instruction,
+                is_call_near,
+            )?;
+            continue;
         }
+
+        // Conditional Branch
+        if instruction.is_jcc_short_or_near() {
+            patch_jump_conditional(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
+
+            continue;
+        } else if instruction.is_loopcc() || instruction.is_loop() {
+            patch_loop(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
+            continue;
+        } else if instruction.is_jcx_short() {
+            patch_jcx(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
+            continue;
+        }
+
+        // Potential Candidates (RIP Relative)
+        // iced_x86::code::Code::Mov_r64_rm64
+        // iced_x86::code::Code::Mov_rm64_r64
+        // iced_x86::code::Code::Mov__Sreg_r64m16
+        // iced_x86::code::Code::Mov_rm64_r64
+        // iced_x86::code::Code::Mov_rm64_imm32
+
+        // Everything else is unhandled
+        append_instruction_with_new_pc(&mut new_isns, &mut current_new_pc, instruction);
     }
 
-    // Relocate the code to some new location. It can fix short/near branches and
-    // convert them to short/near/long forms if needed. This also works even if it's a
-    // jrcxz/loop/loopcc instruction which only have short forms.
-    //
-    // It can currently only fix RIP relative operands if the new location is within 2GB
-    // of the target data location.
-    //
-    // Note that a block is not the same thing as a basic block. A block can contain any
-    // number of instructions, including any number of branch instructions. One block
-    // should be enough unless you must relocate different blocks to different locations.
-
     let block = InstructionBlock::new(&new_isns, new_pc as u64);
-    // This method can also encode more than one block but that's rarely needed, see above comment.
     let result = match BlockEncoder::encode(
         if is_64bit { 64 } else { 32 },
         block,
@@ -222,7 +186,6 @@ mod tests {
     #[case::jrcxz_i32("50e3fa", 0x8000000, 0, "5085c90f85f4ffff07")] // push rax + jrcxz -3 -> push rax + test ecx, rcx + jne 0x7fffffd
     #[case::jrcxz_abs("50e3fa", 0x80001000, 0, "50e302eb0c48b8fd0f008000000000ffe0")]
     // push rax + jrcxz -3 -> push rax + jrcxz 5 + jmp 0x11 + mov rax, 0x80000ffd + jmp rax
-
     // Some tests when in upper bytes
     #[case::simple_branch_upper64("eb02", 0x8000000000001000, 0x8000000000000000, "e9ff0f0000")] // jmp +2 -> jmp +4098
     #[case::to_absolute_jmp_8b_upper64(
@@ -261,7 +224,7 @@ mod tests {
         0x8000000000000000,
         "50e102eb05e9f30f0000"
     )] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x8000000080000ffd
-       //#[case::rip_relative_beyond_2gib("488B0500000000", 0, 0x100000000, "488b0500000000")]
+       //#[case::rip_relative_beyond_2gib("488b0508000000", 0x100000000, 0, "488b0500000000")]
     fn relocate_64b(
         #[case] instructions: String,
         #[case] old_address: usize,
@@ -293,3 +256,142 @@ mod tests {
             .collect()
     }
 }
+
+// TODO
+/*
+    According to MOD R/M, this doesn't work with immediates so only valid forms are:
+        mov rax, [rip + 8]
+        mov [rip + 8], rax
+
+    Data Transfer Instructions:
+        MOV
+        XCHG
+        BSWAP
+        PUSH
+        POP
+        PUSHA
+        POPA
+        MOVSX
+        MOVZX
+        LEA
+
+    Binary Arithmetic Instructions:
+        ADD
+        ADC
+        SUB
+        SBB
+        IMUL
+        MUL
+        IDIV
+        DIV
+        INC
+        DEC
+        NEG
+        CMP
+
+    Decimal Arithmetic Instructions:
+        DAA
+        DAS
+        AAA
+        AAS
+        AAM
+        AAD
+
+    Logical Instructions:
+        AND
+        OR
+        XOR
+        NOT
+        TEST
+
+    Shift and Rotate Instructions:
+        SAL/SHL
+        SAR
+        SHR
+        ROL
+        ROR
+        RCR
+        RCL
+
+    Control Transfer Instructions:
+        CALL
+        JMP
+        All conditional jumps like JE, JNE, JG, etc.
+        LOOP
+        LOOPE
+        LOOPNE
+
+    String Instructions:
+        MOVS
+        CMPS
+        SCAS
+        LODS
+        STOS
+
+    I/O Instructions:
+        IN
+        OUT
+        INS
+        OUTS
+
+    Enter and Leave Instructions:
+        ENTER
+        LEAVE
+
+    Flag Control (EFLAG) Instructions:
+        STC
+        CLC
+        CMC
+        CLD
+        STD
+        LAHF
+        SAHF
+        PUSHF
+        POPF
+
+    Segment Register Instructions:
+        LDS
+        LES
+        LFS
+        LGS
+        LSS
+
+    Miscellaneous Instructions:
+        LEA
+        NOP
+        PAUSE
+        WAIT
+        PREFETCH
+        MOVNTI
+        CLFLUSH
+        SFENCE
+        LFENCE
+        MFENCE
+
+    MMX Instructions:
+        MOVQ, PADD, PMULLW, etc.
+
+    SSE (Streaming SIMD Extensions) Instructions:
+        TMOVAPS, MOVUPS, MOVSS, MOVSD, ADDPS, MULPS, SUBPS, DIVPS, ANDPS, ORPS, XORPS, CMPSS, etc.
+
+    SSE2 Instructions:
+        SMOVDQA, MOVDQU, MOVHPD, MOVLPD, ADDPD, MULPD, SUBPD, DIVPD, ANDPD, ORPD, XORPD, CMPPD, etc.
+
+    SSE3 Instructions:
+        MOVDDUP, MOVSHDUP, MOVSLDUP, ADDSUBPD, etc.
+
+    SSSE3 (Supplemental SSE3) Instructions:
+        PSHUFB, PMULHRSW, PALIGNR, etc.
+
+    SSE4 (SSE4.1 and SSE4.2) Instructions:
+        PINSRB, PINSRD, PINSRQ, PMOVSXBW, PMOVSXBD, PMOVSXBQ, PMOVZX, PMULDQ, DPPS, DPPD, BLENDP, etc.
+
+    AVX (Advanced Vector Extensions) Instructions:
+        VMOVAPS, VMOVUPS, VADDPD, VMULPD, VFMADD, VFNMADD, etc.
+
+    AVX2 Instructions:
+        VPBROADCAST, VPERMD, VPMADDWD, VPADDD, etc.
+
+    AVX-512 Instructions:
+        VMOVAPD, VMOVDQA32, VPADDQ, VPMULLQ, VADDPD, VMULPD, VFMADD, VFMSUB, VPERMT2, etc.
+*/
