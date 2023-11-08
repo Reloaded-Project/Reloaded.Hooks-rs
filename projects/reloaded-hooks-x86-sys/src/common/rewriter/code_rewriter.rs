@@ -8,7 +8,10 @@ use iced_x86::{BlockEncoder, BlockEncoderOptions, Code, FlowControl, Instruction
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use smallvec::{smallvec, SmallVec};
 
-use super::patches::{patch_jcx, patch_jump_conditional, patch_loop, patch_relative_branch};
+use super::patches::{
+    patch_jcx, patch_jump_conditional, patch_loop, patch_relative_branch,
+    patch_rip_relative_operand,
+};
 
 /// Relocates the code to a new location.
 ///
@@ -18,6 +21,15 @@ use super::patches::{patch_jcx, patch_jump_conditional, patch_loop, patch_relati
 /// `new_pc`: The new program counter (RIP/EIP).
 /// `scratch_gpr`: A scratch general purpose register that can be used for operations.
 /// `scratch_xmm`: A scratch general xmm register that can be used for operations.
+///
+/// # Safety (For >= 2GiB relocations)
+///
+/// By contract, `scratch_gpr` and `scratch_xmm` must be caller saved
+/// registers which are NOT used at all in the function prologue.
+/// (Neither as source, or destination.)
+///
+/// As eventually all registers would wind up being used, this effectively means that this code
+/// can only be used for rewriting function prologues.
 #[allow(dead_code)]
 pub(crate) fn relocate_code(
     is_64bit: bool,
@@ -31,6 +43,9 @@ pub(crate) fn relocate_code(
 
     // Note: These translations can only happen in x64, because in x86, branches will always be reachable.
     // Otherwise we need to translate the jmp/call to an absolute address.
+
+    // Note: It's techincally possible the original code moves the value to a register, then moves
+    // or uses the value from that register in very next instruction, making our rewriting unstable.
     for instruction in instructions {
         // Note: Check docs for `UnconditionalBranch` and `Call` above for instructions accepted into this branch.
         // If this is not a near call or jump, copy the instruction straight up.
@@ -58,14 +73,16 @@ pub(crate) fn relocate_code(
         } else if instruction.is_jcx_short() {
             patch_jcx(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
             continue;
+        } else if instruction.memory_base() == iced_x86::Register::RIP {
+            patch_rip_relative_operand(
+                scratch_gpr,
+                scratch_xmm,
+                &mut new_isns,
+                &mut current_new_pc,
+                instruction,
+            )?;
+            continue;
         }
-
-        // Potential Candidates (RIP Relative)
-        // iced_x86::code::Code::Mov_r64_rm64
-        // iced_x86::code::Code::Mov_rm64_r64
-        // iced_x86::code::Code::Mov__Sreg_r64m16
-        // iced_x86::code::Code::Mov_rm64_r64
-        // iced_x86::code::Code::Mov_rm64_imm32
 
         // Everything else is unhandled
         append_instruction_with_new_pc(&mut new_isns, &mut current_new_pc, instruction);
@@ -133,7 +150,7 @@ mod tests {
     use crate::common::util::get_stolen_instructions::get_stolen_instructions;
     use rstest::rstest;
 
-    // TODO: Library is borked with code in 4GiB addresses.
+    // TODO: Iced library is potentially borked with code in 4GiB addresses in 32bit.
 
     #[rstest]
     #[case::simple_branch_pad("50eb02", 4096, 0, "50e9ff0f0000")] // push + jmp +2 -> push + jmp +4098
@@ -224,7 +241,11 @@ mod tests {
         0x8000000000000000,
         "50e102eb05e9f30f0000"
     )] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x8000000080000ffd
-       //#[case::rip_relative_beyond_2gib("488b0508000000", 0x100000000, 0, "488b0500000000")]
+    #[case::rip_relative_2gib("488b0508000000", 0x7FFFFFF7, 0, "488b05ffffff7f")] // mov rax, qword ptr [rip + 8] -> mov rax, qword ptr [rip + 0x7fffffff]
+    #[case::mov_rip_rel_over2gib("488b1d08000000", 0x100000000, 0, "48b80f00000001000000488b18")] // mov rbx, [rip + 8] -> mov rax, 0x10000000f + mov rbx, [rax]
+
+    // Baseline test to ensure RIP relative within 2GiB is not borked.
+    //#[case::mov_rip_rel_over2gib("48890508000000", 0x100000000, 0, "xxx")] // mov [rip + 8], rax -> mov rbx, 0x10000000f + mov [rbx], rax
     fn relocate_64b(
         #[case] instructions: String,
         #[case] old_address: usize,

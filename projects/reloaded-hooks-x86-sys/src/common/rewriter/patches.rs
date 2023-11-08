@@ -6,7 +6,7 @@ use super::code_rewriter::{
 use crate::all_registers::AllRegisters;
 use crate::common::util::invert_branch_condition::invert_branch_condition;
 use alloc::string::ToString;
-use iced_x86::{Code, Instruction};
+use iced_x86::{Code, Instruction, MemoryOperand, Register};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use smallvec::SmallVec;
 
@@ -266,4 +266,68 @@ fn patch_jcx_imm32(
     append_instruction_with_new_pc(new_isns, current_new_pc, &dec);
     append_instruction_with_new_pc(new_isns, current_new_pc, &jnz);
     Ok(())
+}
+
+pub(crate) fn append_if_can_encode_relative_rip(
+    new_isns: &mut SmallVec<[Instruction; 4]>,
+    current_new_pc: &mut usize,
+    instruction: &Instruction,
+) -> bool {
+    // If the branch offset is within 2GiB, do no action
+    // because Iced will handle it for us on re-encode.
+    let target = instruction.memory_displacement64();
+    let delta = (target - *current_new_pc as u64) as i64;
+    if (-0x80000000..0x7FFFFFFF).contains(&delta) {
+        append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
+        return true;
+    }
+
+    false
+}
+
+pub(crate) fn patch_rip_relative_operand(
+    scratch_gpr: AllRegisters,
+    scratch_xmm: AllRegisters,
+    new_isns: &mut SmallVec<[Instruction; 4]>,
+    current_new_pc: &mut usize,
+    instruction: &Instruction,
+) -> Result<(), CodeRewriterError> {
+    if append_if_can_encode_relative_rip(new_isns, current_new_pc, instruction) {
+        return Ok(());
+    }
+
+    // Potential Candidates (RIP Relative)
+    // iced_x86::code::Code::Mov_r64_rm64
+    // iced_x86::code::Code::Mov_rm64_r64
+    // iced_x86::code::Code::Mov__Sreg_r64m16
+    // iced_x86::code::Code::Mov_rm64_r64
+    // iced_x86::code::Code::Mov_rm64_imm32
+    let target = instruction.memory_displacement64();
+    let scratch_reg = scratch_gpr.as_iced_allregister().unwrap();
+
+    if instruction.code() == Code::Mov_rm64_r64 {
+        // Patch Mov_rm64_r64, e.g. mov [rip + 8], <param reg>
+        // as mov <scratch_reg>, 0x10000000f + mov [scratch_reg], <param reg>
+        // Note: Function has no reason to move a value
+        append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
+        return Ok(());
+    } else {
+        // Patch Mov_r64_rm64, e.g. mov rax, [rip + 8]
+        // as mov rax, 0x10000000f + mov rax, [rax]
+        let mut mov_address_ins = Instruction::with2(Code::Mov_r64_imm64, scratch_reg, target)
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+        mov_address_ins.set_len(10);
+
+        let mut mov_value_ins = Instruction::with2(
+            Code::Mov_r64_rm64,
+            instruction.op0_register(),
+            MemoryOperand::with_base(scratch_reg),
+        )
+        .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+        mov_value_ins.set_len(3);
+
+        append_instruction_with_new_pc(new_isns, current_new_pc, &mov_address_ins);
+        append_instruction_with_new_pc(new_isns, current_new_pc, &mov_value_ins);
+        Ok(())
+    }
 }
