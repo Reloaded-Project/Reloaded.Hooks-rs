@@ -276,8 +276,9 @@ pub(crate) fn append_if_can_encode_relative_rip(
     // If the branch offset is within 2GiB, do no action
     // because Iced will handle it for us on re-encode.
     let target = instruction.memory_displacement64();
-    let delta = (target - *current_new_pc as u64) as i64;
-    if (-0x80000000..0x7FFFFFFF).contains(&delta) {
+    let end_of_new_inst = *current_new_pc + instruction.len();
+    let delta = (target - end_of_new_inst as u64) as i64;
+    if (-0x80000000..=0x7FFFFFFF).contains(&delta) {
         append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
         return true;
     }
@@ -285,6 +286,7 @@ pub(crate) fn append_if_can_encode_relative_rip(
     false
 }
 
+#[rustfmt::skip] // <= Don't reformat our 'match' block.
 pub(crate) fn patch_rip_relative_operand(
     scratch_gpr: AllRegisters,
     scratch_xmm: AllRegisters,
@@ -296,38 +298,89 @@ pub(crate) fn patch_rip_relative_operand(
         return Ok(());
     }
 
-    // Potential Candidates (RIP Relative)
-    // iced_x86::code::Code::Mov_r64_rm64
-    // iced_x86::code::Code::Mov_rm64_r64
-    // iced_x86::code::Code::Mov__Sreg_r64m16
-    // iced_x86::code::Code::Mov_rm64_r64
-    // iced_x86::code::Code::Mov_rm64_imm32
     let target = instruction.memory_displacement64();
     let scratch_reg = scratch_gpr.as_iced_allregister().unwrap();
 
-    if instruction.code() == Code::Mov_rm64_r64 {
-        // Patch Mov_rm64_r64, e.g. mov [rip + 8], <param reg>
-        // as mov <scratch_reg>, 0x10000000f + mov [scratch_reg], <param reg>
-        // Note: Function has no reason to move a value
-        append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
-        return Ok(());
-    } else {
-        // Patch Mov_r64_rm64, e.g. mov rax, [rip + 8]
-        // as mov rax, 0x10000000f + mov rax, [rax]
-        let mut mov_address_ins = Instruction::with2(Code::Mov_r64_imm64, scratch_reg, target)
-            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-        mov_address_ins.set_len(10);
+    let mut params = PatchInstructionParams {
+        instruction,
+        scratch_reg,
+        target,
+        new_isns,
+        current_new_pc,
+    };
 
-        let mut mov_value_ins = Instruction::with2(
-            Code::Mov_r64_rm64,
-            instruction.op0_register(),
-            MemoryOperand::with_base(scratch_reg),
-        )
-        .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-        mov_value_ins.set_len(3);
-
-        append_instruction_with_new_pc(new_isns, current_new_pc, &mov_address_ins);
-        append_instruction_with_new_pc(new_isns, current_new_pc, &mov_value_ins);
-        Ok(())
+    // Every single instruction marked as `r/m16/32/64` on left or right (when no immediate involved)
+    // http://ref.x86asm.net/coder64.html
+    // Items below are in opcode hex order (aside from first few).
+    match instruction.code() {
+        Code::Mov_rm64_r64 => patch_rip_rel_op(&mut params, Code::Mov_rm64_r64, OpType::RegToMem, 3),
+        Code::Mov_r64_rm64 => patch_rip_rel_op(&mut params, Code::Mov_r64_rm64, OpType::MemToReg, 3),
+        Code::Xchg_rm64_r64 => patch_rip_rel_op(&mut params, Code::Xchg_rm64_r64, OpType::RegToMem, 3),
+        Code::Add_rm64_r64 => patch_rip_rel_op(&mut params, Code::Add_rm64_r64, OpType::RegToMem, 3),
+        Code::Add_r64_rm64 => patch_rip_rel_op(&mut params, Code::Add_r64_rm64, OpType::MemToReg, 3),
+        Code::Adc_rm64_r64 => patch_rip_rel_op(&mut params, Code::Adc_rm64_r64, OpType::RegToMem, 3),
+        Code::Adc_r64_rm64 => patch_rip_rel_op(&mut params, Code::Adc_r64_rm64, OpType::MemToReg, 3),
+        Code::Or_rm64_r64 => patch_rip_rel_op(&mut params, Code::Or_rm64_r64, OpType::RegToMem, 3),
+        Code::Or_r64_rm64 => patch_rip_rel_op(&mut params, Code::Or_r64_rm64, OpType::MemToReg, 3),
+        Code::Sbb_rm64_r64 => patch_rip_rel_op(&mut params, Code::Sbb_rm64_r64, OpType::RegToMem, 3),
+        Code::Sbb_r64_rm64 => patch_rip_rel_op(&mut params, Code::Sbb_r64_rm64, OpType::MemToReg, 3),
+        Code::And_rm64_r64 => patch_rip_rel_op(&mut params, Code::And_rm64_r64, OpType::RegToMem, 3),
+        Code::And_r64_rm64 => patch_rip_rel_op(&mut params, Code::And_r64_rm64, OpType::MemToReg, 3),
+        Code::Sub_rm64_r64 => patch_rip_rel_op(&mut params, Code::Sub_rm64_r64, OpType::RegToMem, 3),
+        Code::Sub_r64_rm64 => patch_rip_rel_op(&mut params, Code::Sub_r64_rm64, OpType::MemToReg, 3),
+        Code::Xor_rm64_r64 => patch_rip_rel_op(&mut params, Code::Xor_rm64_r64, OpType::RegToMem, 3),
+        Code::Xor_r64_rm64 => patch_rip_rel_op(&mut params, Code::Xor_r64_rm64, OpType::MemToReg, 3),
+        Code::Cmp_rm64_r64 => patch_rip_rel_op(&mut params, Code::Cmp_rm64_r64, OpType::RegToMem, 3),
+        Code::Cmp_r64_rm64 => patch_rip_rel_op(&mut params, Code::Cmp_r64_rm64, OpType::MemToReg, 3),
+        Code::Imul_r64_rm64 => patch_rip_rel_op(&mut params, Code::Imul_r64_rm64, OpType::MemToReg, 4),
+        Code::Test_rm64_r64 => patch_rip_rel_op(&mut params, Code::Test_rm64_r64, OpType::RegToMem, 3),
+        _ => {
+            append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
+            Ok(())
+        }
     }
+}
+
+struct PatchInstructionParams<'a> {
+    instruction: &'a Instruction,
+    scratch_reg: Register,
+    target: u64,
+    new_isns: &'a mut SmallVec<[Instruction; 4]>,
+    current_new_pc: &'a mut usize,
+}
+
+enum OpType {
+    RegToMem, // e.g., `add [rip + 8], rbx`
+    MemToReg, // e.g., `add rbx, [rip + 8]`
+}
+
+fn patch_rip_rel_op(
+    params: &mut PatchInstructionParams,
+    opcode: Code,
+    operand_type: OpType,
+    patched_ins_len: usize,
+) -> Result<(), CodeRewriterError> {
+    let mut mov_address_ins =
+        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    mov_address_ins.set_len(10);
+
+    let mut patched_ins = match operand_type {
+        OpType::RegToMem => Instruction::with2(
+            opcode,
+            MemoryOperand::with_base(params.scratch_reg),
+            params.instruction.op1_register(),
+        ),
+        OpType::MemToReg => Instruction::with2(
+            opcode,
+            params.instruction.op0_register(),
+            MemoryOperand::with_base(params.scratch_reg),
+        ),
+    }
+    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    patched_ins.set_len(patched_ins_len); // Use the new parameter
+
+    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
+    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
+    Ok(())
 }

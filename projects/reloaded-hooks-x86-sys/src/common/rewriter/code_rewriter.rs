@@ -112,7 +112,7 @@ pub(crate) fn append_if_can_encode_relative(
     // because Iced will handle it for us on re-encode.
     let target = instruction.near_branch_target();
     let delta = (target - *current_new_pc as u64) as i64;
-    if (-0x80000000..0x7FFFFFFF).contains(&delta) {
+    if (-0x80000000..=0x7FFFFFFF).contains(&delta) {
         append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
         return true;
     }
@@ -125,7 +125,7 @@ pub(crate) fn can_encode_relative(current_new_pc: &mut usize, instruction: &Inst
     // because Iced will handle it for us on re-encode.
     let target = instruction.near_branch_target();
     let delta = (target - *current_new_pc as u64) as i64;
-    if (-0x80000000..0x7FFFFFFF).contains(&delta) {
+    if (-0x80000000..=0x7FFFFFFF).contains(&delta) {
         return true;
     }
 
@@ -153,6 +153,7 @@ mod tests {
     // TODO: Iced library is potentially borked with code in 4GiB addresses in 32bit.
 
     #[rstest]
+    #[case::rip_relative_2gib("488b0508000000", 0x7FFFFFF7, 0, "488b05ffffff7f")] // mov rax, qword ptr [rip + 8] -> mov rax, qword ptr [rip + 0x7fffffff]
     #[case::simple_branch_pad("50eb02", 4096, 0, "50e9ff0f0000")] // push + jmp +2 -> push + jmp +4098
     #[case::simple_branch("eb02", 4096, 0, "e9ff0f0000")] // jmp +2 -> jmp +4098
     #[case::to_absolute_jmp_i8("eb02", 0x80000000, 0, "48b80400008000000000ffe0")] // jmp +2 -> mov rax, 0x80000004 + jmp rax
@@ -241,11 +242,39 @@ mod tests {
         0x8000000000000000,
         "50e102eb05e9f30f0000"
     )] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x8000000080000ffd
-    #[case::rip_relative_2gib("488b0508000000", 0x7FFFFFF7, 0, "488b05ffffff7f")] // mov rax, qword ptr [rip + 8] -> mov rax, qword ptr [rip + 0x7fffffff]
-    #[case::mov_rip_rel_over2gib("488b1d08000000", 0x100000000, 0, "48b80f00000001000000488b18")] // mov rbx, [rip + 8] -> mov rax, 0x10000000f + mov rbx, [rax]
+    #[case::mov_rip_rel_abs_lhs("48891d08000000", 0x100000000, 0, "48b80f00000001000000488918")] // mov [rip + 8], rbx -> mov rax, 0x10000000f + mov [rax], rbx
+    #[case::mov_rip_rel_abs_rhs("488b1d08000000", 0x100000000, 0, "48b80f00000001000000488b18")] // mov rbx, [rip + 8] -> mov rax, 0x10000000f + mov rbx, [rax]
+    #[case::xchg_rip_rel_abs_src("48871d08000000", 0x100000000, 0, "48b80f00000001000000488718")] // xchg rbx, [rip + 8] -> mov rax, 0x10000000f + xchg [rax], rbx
+    #[case::add_rip_rel_abs_lhs("48011d08000000", 0x100000000, 0, "48b80f00000001000000480118")] // add [rip + 8], rbx -> mov rax, 0x10000000f + add [rax], rbx
+    #[case::add_rip_rel_abs_rhs("48031d08000000", 0x100000000, 0, "48b80f00000001000000480318")] // add rbx, [rip + 8] -> mov rax, 0x10000000f + add rbx, [rax]
+    #[case::adc_rip_rel_abs_lhs("48111d08000000", 0x100000000, 0, "48b80f00000001000000481118")] // adc [rip + 8], rbx -> mov rax, 0x10000000f + adc [rax], rbx
+    #[case::adc_rip_rel_abs_rhs("48131d08000000", 0x100000000, 0, "48b80f00000001000000481318")] // adc rbx, [rip + 8] -> mov rax, 0x10000000f + adc rbx, [rax]
+    #[case::or_rip_rel_abs_lhs("48091d08000000", 0x100000000, 0, "48b80f00000001000000480918")] // or [rip + 8], rbx -> mov rax, 0x10000000f + or [rax], rbx
+    #[case::or_rip_rel_abs_rhs("480b1d08000000", 0x100000000, 0, "48b80f00000001000000480b18")] // or rbx, [rip + 8] -> mov rax, 0x10000000f + or rbx, [rax]
+    #[case::sbb_rip_rel_abs_lhs("48191d08000000", 0x100000000, 0, "48b80f00000001000000481918")] // sbb [rip + 8], rbx -> mov rax, 0x10000000f + sbb [rax], rbx
+    #[case::sbb_rip_rel_abs_rhs("481b1d08000000", 0x100000000, 0, "48b80f00000001000000481b18")] // sbb rbx, [rip + 8] -> mov rax, 0x10000000f + sbb rbx, [rax]
+    #[case::and_rip_rel_abs_lhs("48211d08000000", 0x100000000, 0, "48b80f00000001000000482118")] // and [rip + 8], rbx -> mov rax, 0x10000000f + and [rax], rbx
+    #[case::and_rip_rel_abs_rhs("48231d08000000", 0x100000000, 0, "48b80f00000001000000482318")] // and rbx, [rip + 8] -> mov rax, 0x10000000f + and rbx, [rax]
+    #[case::sub_rip_rel_abs_lhs("48291d08000000", 0x100000000, 0, "48b80f00000001000000482918")] // sub [rip + 8], rbx -> mov rax, 0x10000000f + sub [rax], rbx
+    #[case::sub_rip_rel_abs_rhs("482b1d08000000", 0x100000000, 0, "48b80f00000001000000482b18")] // sub rbx, [rip + 8] -> mov rax, 0x10000000f + sub rbx, [rax]
+    #[case::xor_rip_rel_abs_lhs("48311d08000000", 0x100000000, 0, "48b80f00000001000000483118")] // xor [rip + 8], rbx -> mov rax, 0x10000000f + xor [rax], rbx
+    #[case::xor_rip_rel_abs_rhs("48331d08000000", 0x100000000, 0, "48b80f00000001000000483318")] // xor rbx, [rip + 8] -> mov rax, 0x10000000f + xor rbx, [rax]
+    #[case::cmp_rip_rel_abs_lhs("48391d08000000", 0x100000000, 0, "48b80f00000001000000483918")] // cmp [rip + 8], rbx -> mov rax, 0x10000000f + cmp [rax], rbx
+    #[case::cmp_rip_rel_abs_rhs("483b1d08000000", 0x100000000, 0, "48b80f00000001000000483b18")] // cmp rbx, [rip + 8] -> mov rax, 0x10000000f + cmp rbx, [rax]
+    #[case::imul_rip_rel_abs_rhs(
+        "480faf1d08000000",
+        0x100000000,
+        0,
+        "48b81000000001000000480faf18"
+    )] // imul rbx, [rip + 8] -> mov rax, 0x100000010 + imul rbx, [rax]
+    #[case::test_rip_rel_over2gib_lhs(
+        "48851d08000000",
+        0x100000000,
+        0,
+        "48b80f00000001000000488518"
+    )] // test [rip + 8], rbx -> mov rax, 0x10000000f + test [rax], rbx
 
     // Baseline test to ensure RIP relative within 2GiB is not borked.
-    //#[case::mov_rip_rel_over2gib("48890508000000", 0x100000000, 0, "xxx")] // mov [rip + 8], rax -> mov rbx, 0x10000000f + mov [rbx], rax
     fn relocate_64b(
         #[case] instructions: String,
         #[case] old_address: usize,
@@ -277,142 +306,3 @@ mod tests {
             .collect()
     }
 }
-
-// TODO
-/*
-    According to MOD R/M, this doesn't work with immediates so only valid forms are:
-        mov rax, [rip + 8]
-        mov [rip + 8], rax
-
-    Data Transfer Instructions:
-        MOV
-        XCHG
-        BSWAP
-        PUSH
-        POP
-        PUSHA
-        POPA
-        MOVSX
-        MOVZX
-        LEA
-
-    Binary Arithmetic Instructions:
-        ADD
-        ADC
-        SUB
-        SBB
-        IMUL
-        MUL
-        IDIV
-        DIV
-        INC
-        DEC
-        NEG
-        CMP
-
-    Decimal Arithmetic Instructions:
-        DAA
-        DAS
-        AAA
-        AAS
-        AAM
-        AAD
-
-    Logical Instructions:
-        AND
-        OR
-        XOR
-        NOT
-        TEST
-
-    Shift and Rotate Instructions:
-        SAL/SHL
-        SAR
-        SHR
-        ROL
-        ROR
-        RCR
-        RCL
-
-    Control Transfer Instructions:
-        CALL
-        JMP
-        All conditional jumps like JE, JNE, JG, etc.
-        LOOP
-        LOOPE
-        LOOPNE
-
-    String Instructions:
-        MOVS
-        CMPS
-        SCAS
-        LODS
-        STOS
-
-    I/O Instructions:
-        IN
-        OUT
-        INS
-        OUTS
-
-    Enter and Leave Instructions:
-        ENTER
-        LEAVE
-
-    Flag Control (EFLAG) Instructions:
-        STC
-        CLC
-        CMC
-        CLD
-        STD
-        LAHF
-        SAHF
-        PUSHF
-        POPF
-
-    Segment Register Instructions:
-        LDS
-        LES
-        LFS
-        LGS
-        LSS
-
-    Miscellaneous Instructions:
-        LEA
-        NOP
-        PAUSE
-        WAIT
-        PREFETCH
-        MOVNTI
-        CLFLUSH
-        SFENCE
-        LFENCE
-        MFENCE
-
-    MMX Instructions:
-        MOVQ, PADD, PMULLW, etc.
-
-    SSE (Streaming SIMD Extensions) Instructions:
-        TMOVAPS, MOVUPS, MOVSS, MOVSD, ADDPS, MULPS, SUBPS, DIVPS, ANDPS, ORPS, XORPS, CMPSS, etc.
-
-    SSE2 Instructions:
-        SMOVDQA, MOVDQU, MOVHPD, MOVLPD, ADDPD, MULPD, SUBPD, DIVPD, ANDPD, ORPD, XORPD, CMPPD, etc.
-
-    SSE3 Instructions:
-        MOVDDUP, MOVSHDUP, MOVSLDUP, ADDSUBPD, etc.
-
-    SSSE3 (Supplemental SSE3) Instructions:
-        PSHUFB, PMULHRSW, PALIGNR, etc.
-
-    SSE4 (SSE4.1 and SSE4.2) Instructions:
-        PINSRB, PINSRD, PINSRQ, PMOVSXBW, PMOVSXBD, PMOVSXBQ, PMOVZX, PMULDQ, DPPS, DPPD, BLENDP, etc.
-
-    AVX (Advanced Vector Extensions) Instructions:
-        VMOVAPS, VMOVUPS, VADDPD, VMULPD, VFMADD, VFNMADD, etc.
-
-    AVX2 Instructions:
-        VPBROADCAST, VPERMD, VPMADDWD, VPADDD, etc.
-
-    AVX-512 Instructions:
-        VMOVAPD, VMOVDQA32, VPADDQ, VPMULLQ, VADDPD, VMULPD, VFMADD, VFMSUB, VPERMT2, etc.
-*/
