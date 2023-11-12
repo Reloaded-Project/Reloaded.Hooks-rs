@@ -9,6 +9,7 @@ pub(crate) mod common {
 
     pub(crate) mod util {
         pub mod get_stolen_instructions;
+        pub mod get_instruction_length;
         pub mod invert_branch_condition;
     }
 

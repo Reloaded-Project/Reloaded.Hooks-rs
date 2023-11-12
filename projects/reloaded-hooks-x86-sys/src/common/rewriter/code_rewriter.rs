@@ -156,42 +156,42 @@ mod tests {
     #[case::rip_relative_2gib("488b0508000000", 0x7FFFFFF7, 0, "488b05ffffff7f")] // mov rax, qword ptr [rip + 8] -> mov rax, qword ptr [rip + 0x7fffffff]
     #[case::simple_branch_pad("50eb02", 4096, 0, "50e9ff0f0000")] // push + jmp +2 -> push + jmp +4098
     #[case::simple_branch("eb02", 4096, 0, "e9ff0f0000")] // jmp +2 -> jmp +4098
-    #[case::to_absolute_jmp_i8("eb02", 0x80000000, 0, "48b80400008000000000ffe0")] // jmp +2 -> mov rax, 0x80000004 + jmp rax
-    #[case::to_absolute_jmp_i32("e9fb0f0000", 0x80000000, 0, "48b80010008000000000ffe0")] // jmp +4091 -> mov rax, 0x80001000 + jmp rax
+    #[case::to_abs_jmp_i8("eb02", 0x80000000, 0, "48b80400008000000000ffe0")] // jmp +2 -> mov rax, 0x80000004 + jmp rax
+    #[case::to_abs_jmp_i32("e9fb0f0000", 0x80000000, 0, "48b80010008000000000ffe0")] // jmp +4091 -> mov rax, 0x80001000 + jmp rax
     #[case::to_absolute_call("e8ffffffff", 0x80000000, 0, "48b80400008000000000ffd0")] // call -1 -> call rax, 0x80000004 + call rax
-    #[case::to_abs_cond_jmp_jo("7002", 0x80000000, 0, "710c48b80400008000000000ffe0")] // jo +2 -> jno +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_pad("507002", 0x80000000, 0, "50710c48b80500008000000000ffe0")] // push + jo +2 -> push + jno +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jb("7202", 0x80000000, 0, "730c48b80400008000000000ffe0")] // jb +2 -> jnb +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jz("7402", 0x80000000, 0, "750c48b80400008000000000ffe0")] // jz +2 -> jnz +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jbe("7602", 0x80000000, 0, "770c48b80400008000000000ffe0")] // jbe +2 -> jnbe +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_js("7802", 0x80000000, 0, "790c48b80400008000000000ffe0")] // js +2 -> jns +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jp("7a02", 0x80000000, 0, "7b0c48b80400008000000000ffe0")] // jp +2 -> jnp +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jl("7c02", 0x80000000, 0, "7d0c48b80400008000000000ffe0")] // jl +2 -> jnl +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jle("7e02", 0x80000000, 0, "7f0c48b80400008000000000ffe0")] // jle +2 -> jnle +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jno("7102", 0x80000000, 0, "700c48b80400008000000000ffe0")] // jno +2 -> jo +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnb("7302", 0x80000000, 0, "720c48b80400008000000000ffe0")] // jnb +2 -> jb +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnz("7502", 0x80000000, 0, "740c48b80400008000000000ffe0")] // jnz +2 -> jz +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnbe("7702", 0x80000000, 0, "760c48b80400008000000000ffe0")] // jnbe +2 -> jbe +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jns("7902", 0x80000000, 0, "780c48b80400008000000000ffe0")] // jns +2 -> js +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnp("7b02", 0x80000000, 0, "7a0c48b80400008000000000ffe0")] // jnp +2 -> jp +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnl("7d02", 0x80000000, 0, "7c0c48b80400008000000000ffe0")] // jnl +2 -> jl +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jnle("7f02", 0x80000000, 0, "7e0c48b80400008000000000ffe0")] // jnle +2 -> jle +12 <skip> + mov rax, 0x80000004 + jmp rax
-    #[case::to_abs_cond_jmp_jo_i32("0f80fa0f0000", 0x80000000, 0, "710c48b80010008000000000ffe0")] // jo 4096 -> jno +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jb_i32("0f82fa0f0000", 0x80000000, 0, "730c48b80010008000000000ffe0")] // jb 4096 -> jnb +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jz_i32("0f84fa0f0000", 0x80000000, 0, "750c48b80010008000000000ffe0")] // jz 4096 -> jnz +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jbe_i32("0f86fa0f0000", 0x80000000, 0, "770c48b80010008000000000ffe0")] // jbe 4096 -> jnbe +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_js_i32("0f88fa0f0000", 0x80000000, 0, "790c48b80010008000000000ffe0")] // js 4096 -> jns +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jp_i32("0f8afa0f0000", 0x80000000, 0, "7b0c48b80010008000000000ffe0")] // jp 4096 -> jnp +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jl_i32("0f8cfa0f0000", 0x80000000, 0, "7d0c48b80010008000000000ffe0")] // jl 4096 -> jnl +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jle_i32("0f8efa0f0000", 0x80000000, 0, "7f0c48b80010008000000000ffe0")] // jle 4096 -> jnle +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jno_i32("0f81fa0f0000", 0x80000000, 0, "700c48b80010008000000000ffe0")] // jno 4096 -> jo +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jnb_i32("0f83fa0f0000", 0x80000000, 0, "720c48b80010008000000000ffe0")] // jnb 4096 -> jb +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jnz_i32("0f85fa0f0000", 0x80000000, 0, "740c48b80010008000000000ffe0")] // jnz 4096 -> jz +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jnbe_i32("0f87fa0f0000", 0x80000000, 0, "760c48b80010008000000000ffe0")] // jnbe 4096 -> jbe +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jns_i32("0f89fa0f0000", 0x80000000, 0, "780c48b80010008000000000ffe0")] // jns 4096 -> js +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jnp_i32("0f8bfa0f0000", 0x80000000, 0, "7a0c48b80010008000000000ffe0")] // jnp 4096 -> jp +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jnl_i32("0f8dfa0f0000", 0x80000000, 0, "7c0c48b80010008000000000ffe0")] // jnl 4096 -> jl +12 <skip> + mov rax, 0x80001000 + jmp rax
-    #[case::to_abs_cond_jmp_jnle_i32("0f8ffa0f0000", 0x80000000, 0, "7e0c48b80010008000000000ffe0")] // jnle 4096 -> jle +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jo("7002", 0x80000000, 0, "710c48b80400008000000000ffe0")] // jo +2 -> jno +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jo_pad("507002", 0x80000000, 0, "50710c48b80500008000000000ffe0")] // push + jo +2 -> push + jno +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jb("7202", 0x80000000, 0, "730c48b80400008000000000ffe0")] // jb +2 -> jnb +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jz("7402", 0x80000000, 0, "750c48b80400008000000000ffe0")] // jz +2 -> jnz +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jbe("7602", 0x80000000, 0, "770c48b80400008000000000ffe0")] // jbe +2 -> jnbe +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::js("7802", 0x80000000, 0, "790c48b80400008000000000ffe0")] // js +2 -> jns +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jp("7a02", 0x80000000, 0, "7b0c48b80400008000000000ffe0")] // jp +2 -> jnp +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jl("7c02", 0x80000000, 0, "7d0c48b80400008000000000ffe0")] // jl +2 -> jnl +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jle("7e02", 0x80000000, 0, "7f0c48b80400008000000000ffe0")] // jle +2 -> jnle +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jno("7102", 0x80000000, 0, "700c48b80400008000000000ffe0")] // jno +2 -> jo +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jnb("7302", 0x80000000, 0, "720c48b80400008000000000ffe0")] // jnb +2 -> jb +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jnz("7502", 0x80000000, 0, "740c48b80400008000000000ffe0")] // jnz +2 -> jz +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jnbe("7702", 0x80000000, 0, "760c48b80400008000000000ffe0")] // jnbe +2 -> jbe +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jns("7902", 0x80000000, 0, "780c48b80400008000000000ffe0")] // jns +2 -> js +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jnp("7b02", 0x80000000, 0, "7a0c48b80400008000000000ffe0")] // jnp +2 -> jp +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jnl("7d02", 0x80000000, 0, "7c0c48b80400008000000000ffe0")] // jnl +2 -> jl +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jnle("7f02", 0x80000000, 0, "7e0c48b80400008000000000ffe0")] // jnle +2 -> jle +12 <skip> + mov rax, 0x80000004 + jmp rax
+    #[case::jo_i32("0f80fa0f0000", 0x80000000, 0, "710c48b80010008000000000ffe0")] // jo 4096 -> jno +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jb_i32("0f82fa0f0000", 0x80000000, 0, "730c48b80010008000000000ffe0")] // jb 4096 -> jnb +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jz_i32("0f84fa0f0000", 0x80000000, 0, "750c48b80010008000000000ffe0")] // jz 4096 -> jnz +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jbe_i32("0f86fa0f0000", 0x80000000, 0, "770c48b80010008000000000ffe0")] // jbe 4096 -> jnbe +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::js_i32("0f88fa0f0000", 0x80000000, 0, "790c48b80010008000000000ffe0")] // js 4096 -> jns +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jp_i32("0f8afa0f0000", 0x80000000, 0, "7b0c48b80010008000000000ffe0")] // jp 4096 -> jnp +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jl_i32("0f8cfa0f0000", 0x80000000, 0, "7d0c48b80010008000000000ffe0")] // jl 4096 -> jnl +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jle_i32("0f8efa0f0000", 0x80000000, 0, "7f0c48b80010008000000000ffe0")] // jle 4096 -> jnle +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jno_i32("0f81fa0f0000", 0x80000000, 0, "700c48b80010008000000000ffe0")] // jno 4096 -> jo +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jnb_i32("0f83fa0f0000", 0x80000000, 0, "720c48b80010008000000000ffe0")] // jnb 4096 -> jb +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jnz_i32("0f85fa0f0000", 0x80000000, 0, "740c48b80010008000000000ffe0")] // jnz 4096 -> jz +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jnbe_i32("0f87fa0f0000", 0x80000000, 0, "760c48b80010008000000000ffe0")] // jnbe 4096 -> jbe +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jns_i32("0f89fa0f0000", 0x80000000, 0, "780c48b80010008000000000ffe0")] // jns 4096 -> js +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jnp_i32("0f8bfa0f0000", 0x80000000, 0, "7a0c48b80010008000000000ffe0")] // jnp 4096 -> jp +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jnl_i32("0f8dfa0f0000", 0x80000000, 0, "7c0c48b80010008000000000ffe0")] // jnl 4096 -> jl +12 <skip> + mov rax, 0x80001000 + jmp rax
+    #[case::jnle_i32("0f8ffa0f0000", 0x80000000, 0, "7e0c48b80010008000000000ffe0")] // jnle 4096 -> jle +12 <skip> + mov rax, 0x80001000 + jmp rax
     #[case::loop_backward_abs("50e2fa", 0x80001000, 0, "50e202eb0c48b8fd0f008000000000ffe0")] // push rax + loop -3 -> push rax + loop +2 + jmp 0x11 + movabs rax, 0x80000ffd + jmp rax
     #[case::loope_backward_abs("50e1fa", 0x80001000, 0, "50e102eb0c48b8fd0f008000000000ffe0")] // push rax + loope -3 -> push rax + loope +2 + jmp 0x11 + movabs rax, 0x80000ffd + jmp rax
     #[case::loopne_backward_abs("50e0fa", 0x80001000, 0, "50e002eb0c48b8fd0f008000000000ffe0")] // push rax + loopne -3 -> push rax + loopne +2 + jmp 0x11 + movabs rax, 0x80000ffd + jmp rax
@@ -206,13 +206,13 @@ mod tests {
     // push rax + jrcxz -3 -> push rax + jrcxz 5 + jmp 0x11 + mov rax, 0x80000ffd + jmp rax
     // Some tests when in upper bytes
     #[case::simple_branch_upper64("eb02", 0x8000000000001000, 0x8000000000000000, "e9ff0f0000")] // jmp +2 -> jmp +4098
-    #[case::to_absolute_jmp_8b_upper64(
+    #[case::to_abs_jmp_8b_upper64(
         "eb02",
         0x8000000080000000,
         0x8000000000000000,
         "48b80400008000000080ffe0"
     )] // jmp +2 -> mov rax, 0x8000000000000004 + jmp rax
-    #[case::to_absolute_jmp_i32_upper64(
+    #[case::to_abs_jmp_i32_upper64(
         "e9fb0f0000",
         0x8000000080000000,
         0x8000000000000000,
@@ -230,7 +230,7 @@ mod tests {
         0x8000000000000000,
         "50e202eb0c48b8fd0f008000000080ffe0"
     )] // push rax + loop -3 -> push rax + loop +2 + jmp 0x11 + movabs rax, 0x8000000080000ffd + jmp rax
-    #[case::to_abs_cond_jmp_jo_upper64(
+    #[case::jo_upper64(
         "7002",
         0x8000000080000000,
         0x8000000000000000,
@@ -242,37 +242,53 @@ mod tests {
         0x8000000000000000,
         "50e102eb05e9f30f0000"
     )] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x8000000080000ffd
-    #[case::mov_rip_rel_abs_lhs("48891d08000000", 0x100000000, 0, "48b80f00000001000000488918")] // mov [rip + 8], rbx -> mov rax, 0x10000000f + mov [rax], rbx
-    #[case::mov_rip_rel_abs_lhs_32("891d08000000", 0x100000000, 0, "48b80e000000010000008918")] // mov [rip + 8], ebx -> mov rax, 0x10000000e + mov [rax], ebx
-    #[case::mov_rip_rel_abs_lhs_16("66891d08000000", 0x100000000, 0, "48b80f00000001000000668918")] // mov [rip + 8], bx -> mov rax, 0x10000000f + mov [rax], bx
-    #[case::mov_rip_rel_abs_rhs("488b1d08000000", 0x100000000, 0, "48b80f00000001000000488b18")] // mov rbx, [rip + 8] -> mov rax, 0x10000000f + mov rbx, [rax]
-    #[case::mov_rip_rel_abs_rhs_32("8b1d08000000", 0x100000000, 0, "48b80e000000010000008b18")] // mov ebx, [rip + 8] -> mov rax, 0x10000000e + mov ebx, [rax]
-    #[case::mov_rip_rel_abs_rhs_16("668b1d08000000", 0x100000000, 0, "48b80f00000001000000668b18")] // mov bx, [rip + 8] -> mov rax, 0x10000000f + mov bx, [rax]
-    #[case::xchg_rip_rel_abs_src("48871d08000000", 0x100000000, 0, "48b80f00000001000000488718")] // xchg rbx, [rip + 8] -> mov rax, 0x10000000f + xchg [rax], rbx
-    #[case::add_rip_rel_abs_lhs("48011d08000000", 0x100000000, 0, "48b80f00000001000000480118")] // add [rip + 8], rbx -> mov rax, 0x10000000f + add [rax], rbx
-    #[case::add_rip_rel_abs_rhs("48031d08000000", 0x100000000, 0, "48b80f00000001000000480318")] // add rbx, [rip + 8] -> mov rax, 0x10000000f + add rbx, [rax]
-    #[case::adc_rip_rel_abs_lhs("48111d08000000", 0x100000000, 0, "48b80f00000001000000481118")] // adc [rip + 8], rbx -> mov rax, 0x10000000f + adc [rax], rbx
-    #[case::adc_rip_rel_abs_rhs("48131d08000000", 0x100000000, 0, "48b80f00000001000000481318")] // adc rbx, [rip + 8] -> mov rax, 0x10000000f + adc rbx, [rax]
-    #[case::or_rip_rel_abs_lhs("48091d08000000", 0x100000000, 0, "48b80f00000001000000480918")] // or [rip + 8], rbx -> mov rax, 0x10000000f + or [rax], rbx
-    #[case::or_rip_rel_abs_rhs("480b1d08000000", 0x100000000, 0, "48b80f00000001000000480b18")] // or rbx, [rip + 8] -> mov rax, 0x10000000f + or rbx, [rax]
-    #[case::sbb_rip_rel_abs_lhs("48191d08000000", 0x100000000, 0, "48b80f00000001000000481918")] // sbb [rip + 8], rbx -> mov rax, 0x10000000f + sbb [rax], rbx
-    #[case::sbb_rip_rel_abs_rhs("481b1d08000000", 0x100000000, 0, "48b80f00000001000000481b18")] // sbb rbx, [rip + 8] -> mov rax, 0x10000000f + sbb rbx, [rax]
-    #[case::and_rip_rel_abs_lhs("48211d08000000", 0x100000000, 0, "48b80f00000001000000482118")] // and [rip + 8], rbx -> mov rax, 0x10000000f + and [rax], rbx
-    #[case::and_rip_rel_abs_rhs("48231d08000000", 0x100000000, 0, "48b80f00000001000000482318")] // and rbx, [rip + 8] -> mov rax, 0x10000000f + and rbx, [rax]
-    #[case::sub_rip_rel_abs_lhs("48291d08000000", 0x100000000, 0, "48b80f00000001000000482918")] // sub [rip + 8], rbx -> mov rax, 0x10000000f + sub [rax], rbx
-    #[case::sub_rip_rel_abs_rhs("482b1d08000000", 0x100000000, 0, "48b80f00000001000000482b18")] // sub rbx, [rip + 8] -> mov rax, 0x10000000f + sub rbx, [rax]
-    #[case::xor_rip_rel_abs_lhs("48311d08000000", 0x100000000, 0, "48b80f00000001000000483118")] // xor [rip + 8], rbx -> mov rax, 0x10000000f + xor [rax], rbx
-    #[case::xor_rip_rel_abs_rhs("48331d08000000", 0x100000000, 0, "48b80f00000001000000483318")] // xor rbx, [rip + 8] -> mov rax, 0x10000000f + xor rbx, [rax]
-    #[case::cmp_rip_rel_abs_lhs("48391d08000000", 0x100000000, 0, "48b80f00000001000000483918")] // cmp [rip + 8], rbx -> mov rax, 0x10000000f + cmp [rax], rbx
-    #[case::cmp_rip_rel_abs_rhs("483b1d08000000", 0x100000000, 0, "48b80f00000001000000483b18")] // cmp rbx, [rip + 8] -> mov rax, 0x10000000f + cmp rbx, [rax]
-    #[case::imul_rip_rel_abs_rhs("480faf1d08000000",0x100000000,0,"48b81000000001000000480faf18")] // imul rbx, [rip + 8] -> mov rax, 0x100000010 + imul rbx, [rax]
-    #[case::test_rip_rel_abs_lhs("48851d08000000",0x100000000,0,"48b80f00000001000000488518")] // test [rip + 8], rbx -> mov rax, 0x10000000f + test [rax], rbx
-    #[case::crc32_rip_rel_abs_r32_rm8("f20f38f01d08000000",0x100000000,0,"48b81100000001000000f20f38f018")] // crc32 ebx, byte ptr [rip + 8] -> mov rax, 0x100000011 + crc32 ebx, byte ptr [rax]
-    #[case::crc32_rip_rel_abs_r32_rm16("66f20f38f11d08000000",0x100000000,0,"48b8120000000100000066f20f38f118")] // crc32 ebx, word ptr [rip + 8] -> mov rax, 0x100000012 + crc32 ebx, word ptr [rax]
-    #[case::crc32_rip_rel_abs_r32_rm32("f20f38f11d08000000",0x100000000,0,"48b81100000001000000f20f38f118")] // crc32 ebx, dword ptr [rip + 8] -> mov rax, 0x100000011 + crc32 ebx, dword ptr [rax]
-    #[case::lea_rip_rel_abs_64("488d1d08000000", 0x100000000, 0, "48b80f00000001000000488d18")] // lea rbx, [rip + 8] -> mov rax, 0x10000000f + lea rbx, [rax]
-    #[case::lea_rip_rel_abs_32("8d1d08000000", 0x100000000, 0, "48b80e000000010000008d18")] // lea ebx, [rip + 8] -> mov rax, 0x10000000e + lea ebx, [rax]
-    #[case::lea_rip_rel_abs_16("668d1d08000000", 0x100000000, 0, "48b80f00000001000000668d18")] // lea bx, [rip + 8] -> mov rax, 0x10000000f + lea bx, [rax]
+
+    fn relocate_64b_branch(
+        #[case] instructions: String,
+        #[case] old_address: usize,
+        #[case] new_address: usize,
+        #[case] expected: String,
+    ) {
+        relocate_64b(instructions, old_address, new_address, expected);
+    }
+
+    #[rstest]
+    #[case::mov_lhs("48891d08000000", 0x100000000, 0, "48b80f00000001000000488918")] // mov [rip + 8], rbx -> mov rax, 0x10000000f + mov [rax], rbx
+    #[case::mov_lhs_32("891d08000000", 0x100000000, 0, "48b80e000000010000008918")] // mov [rip + 8], ebx -> mov rax, 0x10000000e + mov [rax], ebx
+    #[case::mov_lhs_16("66891d08000000", 0x100000000, 0, "48b80f00000001000000668918")] // mov [rip + 8], bx -> mov rax, 0x10000000f + mov [rax], bx
+    #[case::mov_rhs("488b1d08000000", 0x100000000, 0, "48b80f00000001000000488b18")] // mov rbx, [rip + 8] -> mov rax, 0x10000000f + mov rbx, [rax]
+    #[case::mov_rhs_32("8b1d08000000", 0x100000000, 0, "48b80e000000010000008b18")] // mov ebx, [rip + 8] -> mov rax, 0x10000000e + mov ebx, [rax]
+    #[case::mov_rhs_16("668b1d08000000", 0x100000000, 0, "48b80f00000001000000668b18")] // mov bx, [rip + 8] -> mov rax, 0x10000000f + mov bx, [rax]
+    #[case::xchg_src("48871d08000000", 0x100000000, 0, "48b80f00000001000000488718")] // xchg rbx, [rip + 8] -> mov rax, 0x10000000f + xchg [rax], rbx
+    #[case::add_lhs("48011d08000000", 0x100000000, 0, "48b80f00000001000000480118")] // add [rip + 8], rbx -> mov rax, 0x10000000f + add [rax], rbx
+    #[case::add_rhs("48031d08000000", 0x100000000, 0, "48b80f00000001000000480318")] // add rbx, [rip + 8] -> mov rax, 0x10000000f + add rbx, [rax]
+    #[case::adc_lhs("48111d08000000", 0x100000000, 0, "48b80f00000001000000481118")] // adc [rip + 8], rbx -> mov rax, 0x10000000f + adc [rax], rbx
+    #[case::adc_rhs("48131d08000000", 0x100000000, 0, "48b80f00000001000000481318")] // adc rbx, [rip + 8] -> mov rax, 0x10000000f + adc rbx, [rax]
+    #[case::or_lhs("48091d08000000", 0x100000000, 0, "48b80f00000001000000480918")] // or [rip + 8], rbx -> mov rax, 0x10000000f + or [rax], rbx
+    #[case::or_rhs("480b1d08000000", 0x100000000, 0, "48b80f00000001000000480b18")] // or rbx, [rip + 8] -> mov rax, 0x10000000f + or rbx, [rax]
+    #[case::sbb_lhs("48191d08000000", 0x100000000, 0, "48b80f00000001000000481918")] // sbb [rip + 8], rbx -> mov rax, 0x10000000f + sbb [rax], rbx
+    #[case::sbb_rhs("481b1d08000000", 0x100000000, 0, "48b80f00000001000000481b18")] // sbb rbx, [rip + 8] -> mov rax, 0x10000000f + sbb rbx, [rax]
+    #[case::and_lhs("48211d08000000", 0x100000000, 0, "48b80f00000001000000482118")] // and [rip + 8], rbx -> mov rax, 0x10000000f + and [rax], rbx
+    #[case::and_rhs("48231d08000000", 0x100000000, 0, "48b80f00000001000000482318")] // and rbx, [rip + 8] -> mov rax, 0x10000000f + and rbx, [rax]
+    #[case::sub_lhs("48291d08000000", 0x100000000, 0, "48b80f00000001000000482918")] // sub [rip + 8], rbx -> mov rax, 0x10000000f + sub [rax], rbx
+    #[case::sub_rhs("482b1d08000000", 0x100000000, 0, "48b80f00000001000000482b18")] // sub rbx, [rip + 8] -> mov rax, 0x10000000f + sub rbx, [rax]
+    #[case::xor_lhs("48311d08000000", 0x100000000, 0, "48b80f00000001000000483118")] // xor [rip + 8], rbx -> mov rax, 0x10000000f + xor [rax], rbx
+    #[case::xor_rhs("48331d08000000", 0x100000000, 0, "48b80f00000001000000483318")] // xor rbx, [rip + 8] -> mov rax, 0x10000000f + xor rbx, [rax]
+    #[case::cmp_lhs("48391d08000000", 0x100000000, 0, "48b80f00000001000000483918")] // cmp [rip + 8], rbx -> mov rax, 0x10000000f + cmp [rax], rbx
+    #[case::cmp_rhs("483b1d08000000", 0x100000000, 0, "48b80f00000001000000483b18")] // cmp rbx, [rip + 8] -> mov rax, 0x10000000f + cmp rbx, [rax]
+    #[case::imul_rhs("480faf1d08000000", 0x100000000, 0, "48b81000000001000000480faf18")] // imul rbx, [rip + 8] -> mov rax, 0x100000010 + imul rbx, [rax]
+    #[case::test_lhs("48851d08000000", 0x100000000, 0, "48b80f00000001000000488518")] // test [rip + 8], rbx -> mov rax, 0x10000000f + test [rax], rbx
+    #[case::crc32_r32_rm8("f20f38f01d08000000", 0x100000000, 0, "48b81100000001000000f20f38f018")] // crc32 ebx, byte ptr [rip + 8] -> mov rax, 0x100000011 + crc32 ebx, byte ptr [rax]
+    #[case::crc32_r32_rm16(
+        "66f20f38f11d08000000",
+        0x100000000,
+        0,
+        "48b8120000000100000066f20f38f118"
+    )] // crc32 ebx, word ptr [rip + 8] -> mov rax, 0x100000012 + crc32 ebx, word ptr [rax]
+    #[case::crc32_r32_rm32("f20f38f11d08000000", 0x100000000, 0, "48b81100000001000000f20f38f118")] // crc32 ebx, dword ptr [rip + 8] -> mov rax, 0x100000011 + crc32 ebx, dword ptr [rax]
+    #[case::lea_64("488d1d08000000", 0x100000000, 0, "48b80f00000001000000488d18")] // lea rbx, [rip + 8] -> mov rax, 0x10000000f + lea rbx, [rax]
+    #[case::lea_32("8d1d08000000", 0x100000000, 0, "48b80e000000010000008d18")] // lea ebx, [rip + 8] -> mov rax, 0x10000000e + lea ebx, [rax]
+    #[case::lea_16("668d1d08000000", 0x100000000, 0, "48b80f00000001000000668d18")] // lea bx, [rip + 8] -> mov rax, 0x10000000f + lea bx, [rax]
     #[case::cmovo_rip_rel_abs("480f401d08000000", 0x100000000, 0, "48b81000000001000000480f4018")] // cmovo rbx, [rip + 8] -> mov rax, 0x100000010 + cmovo rbx, [rax]
     #[case::cmovno_rip_rel_abs("480f411d08000000", 0x100000000, 0, "48b81000000001000000480f4118")] // cmovno rbx, [rip + 8] -> mov rax, 0x100000010 + cmovno rbx, [rax]
     #[case::cmovb_rip_rel_abs("480f421d08000000", 0x100000000, 0, "48b81000000001000000480f4218")] // cmovb rbx, [rip + 8] -> mov rax, 0x100000010 + cmovb rbx, [rax]
@@ -290,29 +306,36 @@ mod tests {
     #[case::cmovle_rip_rel_abs("480f4e1d08000000", 0x100000000, 0, "48b81000000001000000480f4e18")] // cmovle rbx, [rip + 8] -> mov rax, 0x100000010 + cmovle rbx, [rax]
     #[case::cmovnle_rip_rel_abs("480f4f1d08000000", 0x100000000, 0, "48b81000000001000000480f4f18")] // cmovnle rbx, [rip + 8] -> mov rax, 0x100000010 + cmovnle rbx, [rax]
     #[case::bt_rip_rel_abs("0fa31d08000000", 0x100000000, 0, "48b80f000000010000000fa318")] // bt [rip + 8], ebx -> mov rax, 0x10000000f + bt [rax], ebx
-    #[case::shld_rip_rel_abs_cl("0fa51d08000000", 0x100000000, 0, "48b80f000000010000000fa518")] // shld [rip + 8], ebx, CL -> mov rax, 0x10000000f + shld [rax], ebx, CL
-    #[case::shld_rip_rel_abs_imm8("0fa41d0800000005", 0x100000000, 0, "48b810000000010000000fa41805")] // shld [rip + 8], ebx, 5 -> mov rax, 0x100000010 + shld [rax], ebx, 5
-    #[case::shrd_rip_rel_abs_cl("0fad1d08000000", 0x100000000, 0, "48b80f000000010000000fad18")] // shrd [rip + 8], ebx, CL -> mov rax, 0x10000000f + shrd [rax], ebx, CL
-    #[case::shrd_rip_rel_abs_imm8("0fac1d0800000005", 0x100000000, 0, "48b810000000010000000fac1805")] // shrd [rip + 8], ebx, 5 -> mov rax, 0x100000010 + shrd [rax], ebx, 5
+    #[case::shld_cl("0fa51d08000000", 0x100000000, 0, "48b80f000000010000000fa518")] // shld [rip + 8], ebx, CL -> mov rax, 0x10000000f + shld [rax], ebx, CL
+    #[case::shld_imm8("0fa41d0800000005", 0x100000000, 0, "48b810000000010000000fa41805")] // shld [rip + 8], ebx, 5 -> mov rax, 0x100000010 + shld [rax], ebx, 5
+    #[case::shrd_cl("0fad1d08000000", 0x100000000, 0, "48b80f000000010000000fad18")] // shrd [rip + 8], ebx, CL -> mov rax, 0x10000000f + shrd [rax], ebx, CL
+    #[case::shrd_imm8("0fac1d0800000005", 0x100000000, 0, "48b810000000010000000fac1805")] // shrd [rip + 8], ebx, 5 -> mov rax, 0x100000010 + shrd [rax], ebx, 5
     #[case::bts_rip_rel_abs("0fab1d08000000", 0x100000000, 0, "48b80f000000010000000fab18")] // bts [rip + 8], ebx -> mov rax, 0x10000000f + bts [rax], ebx
     #[case::cmpxchg_rip_rel_abs("0fb11d08000000", 0x100000000, 0, "48b80f000000010000000fb118")] // cmpxchg [rip + 8], ebx -> mov rax, 0x10000000f + cmpxchg [rax], ebx
     #[case::btr_rip_rel_abs("0fb31d08000000", 0x100000000, 0, "48b80f000000010000000fb318")] // btr [rip + 8], ebx -> mov rax, 0x10000000f + btr [rax], ebx
     #[case::popcnt_rip_rel_abs("f30fb81d08000000", 0x100000000, 0, "48b81000000001000000f30fb818")] // popcnt ebx, [rip + 8] -> mov rax, 0x100000010 + popcnt ebx, [rax]
     #[case::btc_rip_rel_abs("0fbb1d08000000", 0x100000000, 0, "48b80f000000010000000fbb18")] // btc [rip + 8], ebx -> mov rax, 0x10000000f + btc [rax], ebx
-    #[case::bt_rip_rel_abs_imm8("480fba250800000008", 0x100000000, 0, "48b81100000001000000480fba2008")] // bt qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + bt [rax], 8
-    #[case::btc_rip_rel_abs_imm8("480fba3d0800000008", 0x100000000, 0, "48b81100000001000000480fba3808")] // btc qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + btc [rax], 8
-    #[case::btr_rip_rel_abs_imm8("480fba350800000008", 0x100000000, 0, "48b81100000001000000480fba3008")] // btr qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + btr [rax], 8
-    #[case::bts_rip_rel_abs_imm8("480fba2d0800000008", 0x100000000, 0, "48b81100000001000000480fba2808")] // bts qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + bts [rax], 8
+    #[case::bt_imm8("480fba250800000008", 0x100000000, 0, "48b81100000001000000480fba2008")] // bt qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + bt [rax], 8
+    #[case::btc_imm8("480fba3d0800000008", 0x100000000, 0, "48b81100000001000000480fba3808")] // btc qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + btc [rax], 8
+    #[case::btr_imm8("480fba350800000008", 0x100000000, 0, "48b81100000001000000480fba3008")] // btr qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + btr [rax], 8
+    #[case::bts_imm8("480fba2d0800000008", 0x100000000, 0, "48b81100000001000000480fba2808")] // bts qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + bts [rax], 8
     #[case::bsf_rip_rel_abs("0fbc1d08000000", 0x100000000, 0, "48b80f000000010000000fbc18")] // bsf ebx, [rip + 8] -> mov rax, 0x10000000f + bsf ebx, [rax]
     #[case::bsr_rip_rel_abs("0fbd1d08000000", 0x100000000, 0, "48b80f000000010000000fbd18")] // bsr ebx, [rip + 8] -> mov rax, 0x10000000f + bsr ebx, [rax]
     #[case::xadd_rip_rel_abs("0fc11d08000000", 0x100000000, 0, "48b80f000000010000000fc118")] // xadd [rip + 8], ebx -> mov rax, 0x10000000f + xadd [rax], ebx
-
-    // Baseline test to ensure RIP relative within 2GiB is not borked.
-    fn relocate_64b(
+    fn relocate_64b_rip_rel(
         #[case] instructions: String,
         #[case] old_address: usize,
         #[case] new_address: usize,
         #[case] expected: String,
+    ) {
+        relocate_64b(instructions, old_address, new_address, expected);
+    }
+
+    fn relocate_64b(
+        instructions: String,
+        old_address: usize,
+        new_address: usize,
+        expected: String,
     ) {
         // Remove spaces and convert the string to a vector of bytes
         let hex_bytes: Vec<u8> = as_vec(instructions);
