@@ -243,7 +243,11 @@ mod tests {
         "50e102eb05e9f30f0000"
     )] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x8000000080000ffd
     #[case::mov_rip_rel_abs_lhs("48891d08000000", 0x100000000, 0, "48b80f00000001000000488918")] // mov [rip + 8], rbx -> mov rax, 0x10000000f + mov [rax], rbx
+    #[case::mov_rip_rel_abs_lhs_32("891d08000000", 0x100000000, 0, "48b80e000000010000008918")] // mov [rip + 8], ebx -> mov rax, 0x10000000e + mov [rax], ebx
+    #[case::mov_rip_rel_abs_lhs_16("66891d08000000", 0x100000000, 0, "48b80f00000001000000668918")] // mov [rip + 8], bx -> mov rax, 0x10000000f + mov [rax], bx
     #[case::mov_rip_rel_abs_rhs("488b1d08000000", 0x100000000, 0, "48b80f00000001000000488b18")] // mov rbx, [rip + 8] -> mov rax, 0x10000000f + mov rbx, [rax]
+    #[case::mov_rip_rel_abs_rhs_32("8b1d08000000", 0x100000000, 0, "48b80e000000010000008b18")] // mov ebx, [rip + 8] -> mov rax, 0x10000000e + mov ebx, [rax]
+    #[case::mov_rip_rel_abs_rhs_16("668b1d08000000", 0x100000000, 0, "48b80f00000001000000668b18")] // mov bx, [rip + 8] -> mov rax, 0x10000000f + mov bx, [rax]
     #[case::xchg_rip_rel_abs_src("48871d08000000", 0x100000000, 0, "48b80f00000001000000488718")] // xchg rbx, [rip + 8] -> mov rax, 0x10000000f + xchg [rax], rbx
     #[case::add_rip_rel_abs_lhs("48011d08000000", 0x100000000, 0, "48b80f00000001000000480118")] // add [rip + 8], rbx -> mov rax, 0x10000000f + add [rax], rbx
     #[case::add_rip_rel_abs_rhs("48031d08000000", 0x100000000, 0, "48b80f00000001000000480318")] // add rbx, [rip + 8] -> mov rax, 0x10000000f + add rbx, [rax]
@@ -261,18 +265,47 @@ mod tests {
     #[case::xor_rip_rel_abs_rhs("48331d08000000", 0x100000000, 0, "48b80f00000001000000483318")] // xor rbx, [rip + 8] -> mov rax, 0x10000000f + xor rbx, [rax]
     #[case::cmp_rip_rel_abs_lhs("48391d08000000", 0x100000000, 0, "48b80f00000001000000483918")] // cmp [rip + 8], rbx -> mov rax, 0x10000000f + cmp [rax], rbx
     #[case::cmp_rip_rel_abs_rhs("483b1d08000000", 0x100000000, 0, "48b80f00000001000000483b18")] // cmp rbx, [rip + 8] -> mov rax, 0x10000000f + cmp rbx, [rax]
-    #[case::imul_rip_rel_abs_rhs(
-        "480faf1d08000000",
-        0x100000000,
-        0,
-        "48b81000000001000000480faf18"
-    )] // imul rbx, [rip + 8] -> mov rax, 0x100000010 + imul rbx, [rax]
-    #[case::test_rip_rel_over2gib_lhs(
-        "48851d08000000",
-        0x100000000,
-        0,
-        "48b80f00000001000000488518"
-    )] // test [rip + 8], rbx -> mov rax, 0x10000000f + test [rax], rbx
+    #[case::imul_rip_rel_abs_rhs("480faf1d08000000",0x100000000,0,"48b81000000001000000480faf18")] // imul rbx, [rip + 8] -> mov rax, 0x100000010 + imul rbx, [rax]
+    #[case::test_rip_rel_abs_lhs("48851d08000000",0x100000000,0,"48b80f00000001000000488518")] // test [rip + 8], rbx -> mov rax, 0x10000000f + test [rax], rbx
+    #[case::crc32_rip_rel_abs_r32_rm8("f20f38f01d08000000",0x100000000,0,"48b81100000001000000f20f38f018")] // crc32 ebx, byte ptr [rip + 8] -> mov rax, 0x100000011 + crc32 ebx, byte ptr [rax]
+    #[case::crc32_rip_rel_abs_r32_rm16("66f20f38f11d08000000",0x100000000,0,"48b8120000000100000066f20f38f118")] // crc32 ebx, word ptr [rip + 8] -> mov rax, 0x100000012 + crc32 ebx, word ptr [rax]
+    #[case::crc32_rip_rel_abs_r32_rm32("f20f38f11d08000000",0x100000000,0,"48b81100000001000000f20f38f118")] // crc32 ebx, dword ptr [rip + 8] -> mov rax, 0x100000011 + crc32 ebx, dword ptr [rax]
+    #[case::lea_rip_rel_abs_64("488d1d08000000", 0x100000000, 0, "48b80f00000001000000488d18")] // lea rbx, [rip + 8] -> mov rax, 0x10000000f + lea rbx, [rax]
+    #[case::lea_rip_rel_abs_32("8d1d08000000", 0x100000000, 0, "48b80e000000010000008d18")] // lea ebx, [rip + 8] -> mov rax, 0x10000000e + lea ebx, [rax]
+    #[case::lea_rip_rel_abs_16("668d1d08000000", 0x100000000, 0, "48b80f00000001000000668d18")] // lea bx, [rip + 8] -> mov rax, 0x10000000f + lea bx, [rax]
+    #[case::cmovo_rip_rel_abs("480f401d08000000", 0x100000000, 0, "48b81000000001000000480f4018")] // cmovo rbx, [rip + 8] -> mov rax, 0x100000010 + cmovo rbx, [rax]
+    #[case::cmovno_rip_rel_abs("480f411d08000000", 0x100000000, 0, "48b81000000001000000480f4118")] // cmovno rbx, [rip + 8] -> mov rax, 0x100000010 + cmovno rbx, [rax]
+    #[case::cmovb_rip_rel_abs("480f421d08000000", 0x100000000, 0, "48b81000000001000000480f4218")] // cmovb rbx, [rip + 8] -> mov rax, 0x100000010 + cmovb rbx, [rax]
+    #[case::cmovnb_rip_rel_abs("480f431d08000000", 0x100000000, 0, "48b81000000001000000480f4318")] // cmovnb rbx, [rip + 8] -> mov rax, 0x100000010 + cmovnb rbx, [rax]
+    #[case::cmovz_rip_rel_abs("480f441d08000000", 0x100000000, 0, "48b81000000001000000480f4418")] // cmovz rbx, [rip + 8] -> mov rax, 0x100000010 + cmovz rbx, [rax]
+    #[case::cmovnz_rip_rel_abs("480f451d08000000", 0x100000000, 0, "48b81000000001000000480f4518")] // cmovnz rbx, [rip + 8] -> mov rax, 0x100000010 + cmovnz rbx, [rax]
+    #[case::cmovbe_rip_rel_abs("480f461d08000000", 0x100000000, 0, "48b81000000001000000480f4618")] // cmovbe rbx, [rip + 8] -> mov rax, 0x100000010 + cmovbe rbx, [rax]
+    #[case::cmovnbe_rip_rel_abs("480f471d08000000", 0x100000000, 0, "48b81000000001000000480f4718")] // cmovnbe rbx, [rip + 8] -> mov rax, 0x100000010 + cmovnbe rbx, [rax]
+    #[case::cmovs_rip_rel_abs("480f481d08000000", 0x100000000, 0, "48b81000000001000000480f4818")] // cmovs rbx, [rip + 8] -> mov rax, 0x100000010 + cmovs rbx, [rax]
+    #[case::cmovns_rip_rel_abs("480f491d08000000", 0x100000000, 0, "48b81000000001000000480f4918")] // cmovns rbx, [rip + 8] -> mov rax, 0x100000010 + cmovns rbx, [rax]
+    #[case::cmovp_rip_rel_abs("480f4a1d08000000", 0x100000000, 0, "48b81000000001000000480f4a18")] // cmovp rbx, [rip + 8] -> mov rax, 0x100000010 + cmovp rbx, [rax]
+    #[case::cmovnp_rip_rel_abs("480f4b1d08000000", 0x100000000, 0, "48b81000000001000000480f4b18")] // cmovnp rbx, [rip + 8] -> mov rax, 0x100000010 + cmovnp rbx, [rax]
+    #[case::cmovl_rip_rel_abs("480f4c1d08000000", 0x100000000, 0, "48b81000000001000000480f4c18")] // cmovl rbx, [rip + 8] -> mov rax, 0x100000010 + cmovl rbx, [rax]
+    #[case::cmovnl_rip_rel_abs("480f4d1d08000000", 0x100000000, 0, "48b81000000001000000480f4d18")] // cmovnl rbx, [rip + 8] -> mov rax, 0x100000010 + cmovnl rbx, [rax]
+    #[case::cmovle_rip_rel_abs("480f4e1d08000000", 0x100000000, 0, "48b81000000001000000480f4e18")] // cmovle rbx, [rip + 8] -> mov rax, 0x100000010 + cmovle rbx, [rax]
+    #[case::cmovnle_rip_rel_abs("480f4f1d08000000", 0x100000000, 0, "48b81000000001000000480f4f18")] // cmovnle rbx, [rip + 8] -> mov rax, 0x100000010 + cmovnle rbx, [rax]
+    #[case::bt_rip_rel_abs("0fa31d08000000", 0x100000000, 0, "48b80f000000010000000fa318")] // bt [rip + 8], ebx -> mov rax, 0x10000000f + bt [rax], ebx
+    #[case::shld_rip_rel_abs_cl("0fa51d08000000", 0x100000000, 0, "48b80f000000010000000fa518")] // shld [rip + 8], ebx, CL -> mov rax, 0x10000000f + shld [rax], ebx, CL
+    #[case::shld_rip_rel_abs_imm8("0fa41d0800000005", 0x100000000, 0, "48b810000000010000000fa41805")] // shld [rip + 8], ebx, 5 -> mov rax, 0x100000010 + shld [rax], ebx, 5
+    #[case::shrd_rip_rel_abs_cl("0fad1d08000000", 0x100000000, 0, "48b80f000000010000000fad18")] // shrd [rip + 8], ebx, CL -> mov rax, 0x10000000f + shrd [rax], ebx, CL
+    #[case::shrd_rip_rel_abs_imm8("0fac1d0800000005", 0x100000000, 0, "48b810000000010000000fac1805")] // shrd [rip + 8], ebx, 5 -> mov rax, 0x100000010 + shrd [rax], ebx, 5
+    #[case::bts_rip_rel_abs("0fab1d08000000", 0x100000000, 0, "48b80f000000010000000fab18")] // bts [rip + 8], ebx -> mov rax, 0x10000000f + bts [rax], ebx
+    #[case::cmpxchg_rip_rel_abs("0fb11d08000000", 0x100000000, 0, "48b80f000000010000000fb118")] // cmpxchg [rip + 8], ebx -> mov rax, 0x10000000f + cmpxchg [rax], ebx
+    #[case::btr_rip_rel_abs("0fb31d08000000", 0x100000000, 0, "48b80f000000010000000fb318")] // btr [rip + 8], ebx -> mov rax, 0x10000000f + btr [rax], ebx
+    #[case::popcnt_rip_rel_abs("f30fb81d08000000", 0x100000000, 0, "48b81000000001000000f30fb818")] // popcnt ebx, [rip + 8] -> mov rax, 0x100000010 + popcnt ebx, [rax]
+    #[case::btc_rip_rel_abs("0fbb1d08000000", 0x100000000, 0, "48b80f000000010000000fbb18")] // btc [rip + 8], ebx -> mov rax, 0x10000000f + btc [rax], ebx
+    #[case::bt_rip_rel_abs_imm8("480fba250800000008", 0x100000000, 0, "48b81100000001000000480fba2008")] // bt qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + bt [rax], 8
+    #[case::btc_rip_rel_abs_imm8("480fba3d0800000008", 0x100000000, 0, "48b81100000001000000480fba3808")] // btc qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + btc [rax], 8
+    #[case::btr_rip_rel_abs_imm8("480fba350800000008", 0x100000000, 0, "48b81100000001000000480fba3008")] // btr qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + btr [rax], 8
+    #[case::bts_rip_rel_abs_imm8("480fba2d0800000008", 0x100000000, 0, "48b81100000001000000480fba2808")] // bts qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + bts [rax], 8
+    #[case::bsf_rip_rel_abs("0fbc1d08000000", 0x100000000, 0, "48b80f000000010000000fbc18")] // bsf ebx, [rip + 8] -> mov rax, 0x10000000f + bsf ebx, [rax]
+    #[case::bsr_rip_rel_abs("0fbd1d08000000", 0x100000000, 0, "48b80f000000010000000fbd18")] // bsr ebx, [rip + 8] -> mov rax, 0x10000000f + bsr ebx, [rax]
+    #[case::xadd_rip_rel_abs("0fc11d08000000", 0x100000000, 0, "48b80f000000010000000fc118")] // xadd [rip + 8], ebx -> mov rax, 0x10000000f + xadd [rax], ebx
 
     // Baseline test to ensure RIP relative within 2GiB is not borked.
     fn relocate_64b(
