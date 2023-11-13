@@ -4,6 +4,7 @@ use super::code_rewriter::{
     append_if_can_encode_relative, append_instruction_with_new_pc, can_encode_relative,
 };
 use crate::common::rewriter::patches::get_instruction_length::get_instruction_length;
+use crate::common::util::iced_extensions::is_immediate;
 use crate::common::util::invert_branch_condition::invert_branch_condition;
 use crate::{all_registers::AllRegisters, common::util::get_instruction_length};
 use alloc::string::ToString;
@@ -314,51 +315,44 @@ pub(crate) fn patch_rip_relative_operand(
     // Intel® 64 and IA-32 Architectures Software Developer’s Manual
     let length = get_instruction_length(instruction.code());
 
-    if instruction.op_count() == 2
-        && instruction.op0_kind() == OpKind::Memory
-        && instruction.op1_kind() == OpKind::Register
-    {
-        patch_riprel_reg(&mut params, length)
-    } else if instruction.op_count() == 2
-        && instruction.op0_kind() == OpKind::Register
-        && instruction.op1_kind() == OpKind::Memory
-    {
-        patch_reg_riprel(&mut params, length)
-    } else if instruction.op_count() == 3
-        && instruction.op0_kind() == OpKind::Memory
-        && instruction.op1_kind() == OpKind::Register
-        && instruction.op2_kind() == OpKind::Register
-    {
-        patch_riprel_reg_reg(&mut params, length)
-    } else if instruction.op_count() == 3
-        && instruction.op0_kind() == OpKind::Memory
-        && instruction.op1_kind() == OpKind::Register
-        && instruction.op2_kind() == OpKind::Immediate8
-    {
-        patch_riprel_reg_imm(&mut params, length)
-    } else if instruction.op_count() == 3
-        && instruction.op0_kind() == OpKind::Register
-        && instruction.op1_kind() == OpKind::Register
-        && instruction.op2_kind() == OpKind::Memory
-    {
-        patch_reg_reg_riprel(&mut params, length)
-    } else if instruction.op_count() == 2
-        && instruction.op0_kind() == OpKind::Memory
-        && (instruction.op1_kind() == OpKind::Immediate8
-            || instruction.op1_kind() == OpKind::Immediate16
-            || instruction.op1_kind() == OpKind::Immediate32
-            || instruction.op1_kind() == OpKind::Immediate32to64
-            || instruction.op1_kind() == OpKind::Immediate64
-            || instruction.op1_kind() == OpKind::Immediate8to16
-            || instruction.op1_kind() == OpKind::Immediate8to32
-            || instruction.op1_kind() == OpKind::Immediate8to64
-            || instruction.op1_kind() == OpKind::Immediate8_2nd)
-    {
-        patch_riprel_imm(&mut params, length)
-    } else {
-        append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
-        Ok(())
+    if instruction.op_count() == 2 {
+        if instruction.op0_kind() == OpKind::Memory && instruction.op1_kind() == OpKind::Register {
+            return patch_riprel_reg(&mut params, length);
+        } else if instruction.op0_kind() == OpKind::Register
+            && instruction.op1_kind() == OpKind::Memory
+        {
+            return patch_reg_riprel(&mut params, length);
+        } else if instruction.op0_kind() == OpKind::Memory && is_immediate(instruction.op1_kind()) {
+            return patch_riprel_imm(&mut params, length);
+        }
+    } else if instruction.op_count() == 3 {
+        if instruction.op0_kind() == OpKind::Memory
+            && instruction.op1_kind() == OpKind::Register
+            && instruction.op2_kind() == OpKind::Register
+        {
+            return patch_riprel_reg_reg(&mut params, length);
+        } else if instruction.op0_kind() == OpKind::Memory
+            && instruction.op1_kind() == OpKind::Register
+            && instruction.op2_kind() == OpKind::Immediate8
+        {
+            return patch_riprel_reg_imm(&mut params, length);
+        } else if instruction.op0_kind() == OpKind::Register
+            && instruction.op1_kind() == OpKind::Register
+            && instruction.op2_kind() == OpKind::Memory
+        {
+            return patch_reg_reg_riprel(&mut params, length);
+        } else if instruction.op0_kind() == OpKind::Register
+            && instruction.op1_kind() == OpKind::Memory
+            && is_immediate(instruction.op2_kind())
+        {
+            return patch_reg_mem_imm(&mut params, length);
+        }
+    } else if instruction.op_count() == 1 {
+        return patch_riprel(&mut params, length);
     }
+
+    append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
+    Ok(())
 }
 
 struct PatchInstructionParams<'a> {
@@ -382,6 +376,27 @@ fn patch_riprel_reg(
         params.instruction.code(),
         MemoryOperand::with_base(params.scratch_reg),
         params.instruction.op1_register(),
+    )
+    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    patched_ins.set_len(patched_ins_len);
+
+    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
+    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
+    Ok(())
+}
+
+fn patch_riprel(
+    params: &mut PatchInstructionParams,
+    patched_ins_len: usize,
+) -> Result<(), CodeRewriterError> {
+    let mut mov_address_ins =
+        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    mov_address_ins.set_len(10);
+
+    let mut patched_ins = Instruction::with1(
+        params.instruction.code(),
+        MemoryOperand::with_base(params.scratch_reg),
     )
     .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
     patched_ins.set_len(patched_ins_len);
@@ -472,6 +487,29 @@ fn patch_reg_reg_riprel(
         params.instruction.op0_register(),
         params.instruction.op1_register(),
         MemoryOperand::with_base(params.scratch_reg),
+    )
+    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    patched_ins.set_len(patched_ins_len);
+
+    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
+    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
+    Ok(())
+}
+
+fn patch_reg_mem_imm(
+    params: &mut PatchInstructionParams,
+    patched_ins_len: usize,
+) -> Result<(), CodeRewriterError> {
+    let mut mov_address_ins =
+        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    mov_address_ins.set_len(10);
+
+    let mut patched_ins = Instruction::with3(
+        params.instruction.code(),
+        params.instruction.op0_register(),
+        MemoryOperand::with_base(params.scratch_reg),
+        params.instruction.immediate32(),
     )
     .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
     patched_ins.set_len(patched_ins_len);

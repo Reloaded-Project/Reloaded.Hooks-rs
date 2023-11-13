@@ -323,14 +323,32 @@ mod tests {
     #[case::bsr_rip_rel_abs("0fbd1d08000000", 0x100000000, 0, "48b80f000000010000000fbd18")] // bsr ebx, [rip + 8] -> mov rax, 0x10000000f + bsr ebx, [rax]
     #[case::xadd_rip_rel_abs("0fc11d08000000", 0x100000000, 0, "48b80f000000010000000fc118")] // xadd [rip + 8], ebx -> mov rax, 0x10000000f + xadd [rax], ebx
 
+    // Single Param
+    #[case::inc_rip_rel_abs("ff0508000000", 0x100000000, 0, "48b80e00000001000000ff00")]
+    // inc dword ptr [rip + 8] -> mov rax, 0x10000000e + inc dword ptr [rax]
+
+    // [Register, Memory, Immediate]
+    #[case::imul_reg_mem_imm("486b1d0800000020", 0x100000000, 0, "48b81000000001000000486b1820")]
+    // imul rbx, [rip + 8], 32 -> mov rax, 0x100000010 + imul rbx, qword ptr [rax], 0x20
+
     // Extensions
-    #[case::adcx_lhs("66480f38f61d08000000", 0x100000000, 0, "48b8120000000100000066480f38f618")] // adcx rbx, [rip + 8] -> mov rax, 0x100000012 + adcx rbx, [rax]
-    
+    #[case::adcx_lhs(
+        "66480f38f61d08000000",
+        0x100000000,
+        0,
+        "48b8120000000100000066480f38f618"
+    )] // adcx rbx, [rip + 8] -> mov rax, 0x100000012 + adcx rbx, [rax]
+
     // SSE/AVX
     #[case::addpd_rhs("660f580d08000000", 0x100000000, 0, "48b81000000001000000660f5808")] // addpd xmm1, [rip + 8] -> mov rax, 0x100000010 + addpd xmm1, [rax]
     #[case::vaddpd_rhs("c5ed580d08000000", 0x100000000, 0, "48b81000000001000000c5ed5808")] // vaddpd ymm1, ymm2, [rip + 8] -> mov rax, 0x100000010 + vaddpd ymm1, ymm2, [rax]
     #[case::vaddpd_rhs_xmm("c5e9580d08000000", 0x100000000, 0, "48b81000000001000000c5e95808")] // vaddpd xmm1, xmm2, [rip + 8] -> mov rax, 0x100000010 + vaddpd xmm1, xmm2, [rax]
-    #[case::vaddpd_rhs_zmm("62f1ed48580d08000000", 0x100000000, 0, "48b8120000000100000062f1ed485808")] // vaddpd zmm1, zmm2, [rip + 8] -> mov rax, 0x100000012 + vaddpd zmm1, zmm2, [rax]
+    #[case::vaddpd_rhs_zmm(
+        "62f1ed48580d08000000",
+        0x100000000,
+        0,
+        "48b8120000000100000062f1ed485808"
+    )] // vaddpd zmm1, zmm2, [rip + 8] -> mov rax, 0x100000012 + vaddpd zmm1, zmm2, [rax]
     fn relocate_64b_rip_rel(
         #[case] instructions: String,
         #[case] old_address: usize,
