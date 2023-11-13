@@ -255,9 +255,24 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Xadd_rm32_r32 => 3,
         Code::Xadd_rm16_r16 => 4,
 
-        // More Obscure Tech
+        // ADX
         Code::Adcx_r64_rm64 => 6,
         Code::Adcx_r32_rm32 => 5,
+
+        // SSE/AVX
+        Code::Addpd_xmm_xmmm128 => 4,
+        Code::VEX_Vaddpd_xmm_xmm_xmmm128 => 4,
+        Code::VEX_Vaddpd_ymm_ymm_ymmm256 => 4,
+        Code::EVEX_Vaddpd_xmm_k1z_xmm_xmmm128b64 => 6,
+        Code::EVEX_Vaddpd_ymm_k1z_ymm_ymmm256b64 => 6,
+        Code::EVEX_Vaddpd_zmm_k1z_zmm_zmmm512b64_er => 6,
+
+        Code::Addps_xmm_xmmm128 => 4,
+        Code::VEX_Vaddps_xmm_xmm_xmmm128 => 4,
+        Code::VEX_Vaddps_ymm_ymm_ymmm256 => 4,
+        Code::EVEX_Vaddps_xmm_k1z_xmm_xmmm128b32 => 6,
+        Code::EVEX_Vaddps_ymm_k1z_ymm_ymmm256b32 => 6,
+        Code::EVEX_Vaddps_zmm_k1z_zmm_zmmm512b32_er => 6,
 
         // Alternate instructions (untested)
         _ => panic!("Unknown instruction"),
@@ -269,3 +284,6 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
 
 // If you see 'o64' it means, '48' prefix, and thus +1 byte
 // If you see 'o16' it means, '66' prefix, and thus +1 byte
+// If you see AVX jibberish:
+//      VEX = 2 bytes, e.g. `VEX.256.66.0F.WIG`
+//      EVEX = 4 bytes, e.g. `EVEX.512.66.0F.W1`

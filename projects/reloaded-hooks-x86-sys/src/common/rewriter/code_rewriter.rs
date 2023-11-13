@@ -325,6 +325,12 @@ mod tests {
 
     // Extensions
     #[case::adcx_lhs("66480f38f61d08000000", 0x100000000, 0, "48b8120000000100000066480f38f618")] // adcx rbx, [rip + 8] -> mov rax, 0x100000012 + adcx rbx, [rax]
+    
+    // SSE/AVX
+    #[case::addpd_rhs("660f580d08000000", 0x100000000, 0, "48b81000000001000000660f5808")] // addpd xmm1, [rip + 8] -> mov rax, 0x100000010 + addpd xmm1, [rax]
+    #[case::vaddpd_rhs("c5ed580d08000000", 0x100000000, 0, "48b81000000001000000c5ed5808")] // vaddpd ymm1, ymm2, [rip + 8] -> mov rax, 0x100000010 + vaddpd ymm1, ymm2, [rax]
+    #[case::vaddpd_rhs_xmm("c5e9580d08000000", 0x100000000, 0, "48b81000000001000000c5e95808")] // vaddpd xmm1, xmm2, [rip + 8] -> mov rax, 0x100000010 + vaddpd xmm1, xmm2, [rax]
+    #[case::vaddpd_rhs_zmm("62f1ed48580d08000000", 0x100000000, 0, "48b8120000000100000062f1ed485808")] // vaddpd zmm1, zmm2, [rip + 8] -> mov rax, 0x100000012 + vaddpd zmm1, zmm2, [rax]
     fn relocate_64b_rip_rel(
         #[case] instructions: String,
         #[case] old_address: usize,
