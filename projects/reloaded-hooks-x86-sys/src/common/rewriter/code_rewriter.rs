@@ -322,6 +322,9 @@ mod tests {
     #[case::bsf_rip_rel_abs("0fbc1d08000000", 0x100000000, 0, "48b80f000000010000000fbc18")] // bsf ebx, [rip + 8] -> mov rax, 0x10000000f + bsf ebx, [rax]
     #[case::bsr_rip_rel_abs("0fbd1d08000000", 0x100000000, 0, "48b80f000000010000000fbd18")] // bsr ebx, [rip + 8] -> mov rax, 0x10000000f + bsr ebx, [rax]
     #[case::xadd_rip_rel_abs("0fc11d08000000", 0x100000000, 0, "48b80f000000010000000fc118")] // xadd [rip + 8], ebx -> mov rax, 0x10000000f + xadd [rax], ebx
+
+    // Extensions
+    #[case::adcx_lhs("66480f38f61d08000000", 0x100000000, 0, "48b8120000000100000066480f38f618")] // adcx rbx, [rip + 8] -> mov rax, 0x100000012 + adcx rbx, [rax]
     fn relocate_64b_rip_rel(
         #[case] instructions: String,
         #[case] old_address: usize,

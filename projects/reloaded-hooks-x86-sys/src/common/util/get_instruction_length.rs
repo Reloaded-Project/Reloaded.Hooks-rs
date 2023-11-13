@@ -2,7 +2,6 @@ use iced_x86::Code;
 
 pub(crate) fn get_instruction_length(code: Code) -> usize {
     match code {
-        // +1 for '66' or '48' or '88' prefix
         // Core x86 Instructions
         Code::Mov_rm64_r64 => 3,
         Code::Mov_r64_rm64 => 3,
@@ -10,8 +9,8 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Mov_r32_rm32 => 2,
         Code::Mov_rm16_r16 => 3,
         Code::Mov_r16_rm16 => 3,
-        Code::Mov_rm8_r8 => 3,
-        Code::Mov_r8_rm8 => 3,
+        Code::Mov_rm8_r8 => 2,
+        Code::Mov_r8_rm8 => 2,
 
         Code::Lea_r64_m => 3,
         Code::Lea_r32_m => 2,
@@ -20,7 +19,7 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Xchg_rm64_r64 => 3,
         Code::Xchg_rm32_r32 => 2,
         Code::Xchg_rm16_r16 => 3,
-        Code::Xchg_rm8_r8 => 3,
+        Code::Xchg_rm8_r8 => 2,
 
         Code::Add_rm64_r64 => 3,
         Code::Add_r64_rm64 => 3,
@@ -28,8 +27,8 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Add_r32_rm32 => 2,
         Code::Add_rm16_r16 => 3,
         Code::Add_r16_rm16 => 3,
-        Code::Add_rm8_r8 => 3,
-        Code::Add_r8_rm8 => 3,
+        Code::Add_rm8_r8 => 2,
+        Code::Add_r8_rm8 => 2,
 
         Code::Adc_rm64_r64 => 3,
         Code::Adc_r64_rm64 => 3,
@@ -37,8 +36,8 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Adc_r32_rm32 => 2,
         Code::Adc_rm16_r16 => 3,
         Code::Adc_r16_rm16 => 3,
-        Code::Adc_rm8_r8 => 3,
-        Code::Adc_r8_rm8 => 3,
+        Code::Adc_rm8_r8 => 2,
+        Code::Adc_r8_rm8 => 2,
 
         Code::Or_rm64_r64 => 3,
         Code::Or_r64_rm64 => 3,
@@ -46,8 +45,8 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Or_r32_rm32 => 2,
         Code::Or_rm16_r16 => 3,
         Code::Or_r16_rm16 => 3,
-        Code::Or_rm8_r8 => 3,
-        Code::Or_r8_rm8 => 3,
+        Code::Or_rm8_r8 => 2,
+        Code::Or_r8_rm8 => 2,
 
         Code::Sbb_rm64_r64 => 3,
         Code::Sbb_r64_rm64 => 3,
@@ -55,8 +54,8 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Sbb_r32_rm32 => 2,
         Code::Sbb_rm16_r16 => 3,
         Code::Sbb_r16_rm16 => 3,
-        Code::Sbb_rm8_r8 => 3,
-        Code::Sbb_r8_rm8 => 3,
+        Code::Sbb_rm8_r8 => 2,
+        Code::Sbb_r8_rm8 => 2,
 
         Code::And_rm64_r64 => 3,
         Code::And_r64_rm64 => 3,
@@ -64,8 +63,8 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::And_r32_rm32 => 2,
         Code::And_rm16_r16 => 3,
         Code::And_r16_rm16 => 3,
-        Code::And_rm8_r8 => 3,
-        Code::And_r8_rm8 => 3,
+        Code::And_rm8_r8 => 2,
+        Code::And_r8_rm8 => 2,
 
         Code::Sub_rm64_r64 => 3,
         Code::Sub_r64_rm64 => 3,
@@ -73,8 +72,8 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Sub_r32_rm32 => 2,
         Code::Sub_rm16_r16 => 3,
         Code::Sub_r16_rm16 => 3,
-        Code::Sub_rm8_r8 => 3,
-        Code::Sub_r8_rm8 => 3,
+        Code::Sub_rm8_r8 => 2,
+        Code::Sub_r8_rm8 => 2,
 
         Code::Xor_rm64_r64 => 3,
         Code::Xor_r64_rm64 => 3,
@@ -82,8 +81,8 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Xor_r32_rm32 => 2,
         Code::Xor_rm16_r16 => 3,
         Code::Xor_r16_rm16 => 3,
-        Code::Xor_rm8_r8 => 3,
-        Code::Xor_r8_rm8 => 3,
+        Code::Xor_rm8_r8 => 2,
+        Code::Xor_r8_rm8 => 2,
 
         Code::Cmp_rm64_r64 => 3,
         Code::Cmp_r64_rm64 => 3,
@@ -91,13 +90,13 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Cmp_r32_rm32 => 2,
         Code::Cmp_rm16_r16 => 3,
         Code::Cmp_r16_rm16 => 3,
-        Code::Cmp_rm8_r8 => 3,
-        Code::Cmp_r8_rm8 => 3,
+        Code::Cmp_rm8_r8 => 2,
+        Code::Cmp_r8_rm8 => 2,
 
         Code::Test_rm64_r64 => 3,
         Code::Test_rm32_r32 => 2,
         Code::Test_rm16_r16 => 3,
-        Code::Test_rm8_r8 => 3,
+        Code::Test_rm8_r8 => 2,
 
         // Multi-byte extensions (0F)
         Code::Imul_r64_rm64 => 4,
@@ -108,7 +107,7 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Crc32_r64_rm8 => 5,
         Code::Crc32_r32_rm32 => 4,
         Code::Crc32_r32_rm16 => 5,
-        Code::Crc32_r32_rm8 => 5,
+        Code::Crc32_r32_rm8 => 4,
 
         Code::Cmovo_r64_rm64 => 4,
         Code::Cmovo_r32_rm32 => 3,
@@ -195,54 +194,54 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Bts_rm32_r32 => 3,
         Code::Bts_rm16_r16 => 4,
 
-        Code::Shld_rm64_r64_CL => 3,
-        Code::Shld_rm32_r32_CL => 4,
+        Code::Shld_rm64_r64_CL => 4,
+        Code::Shld_rm32_r32_CL => 3,
         Code::Shld_rm16_r16_CL => 4,
 
-        Code::Shld_rm64_r64_imm8 => 4,
-        Code::Shld_rm32_r32_imm8 => 5,
+        Code::Shld_rm64_r64_imm8 => 5,
+        Code::Shld_rm32_r32_imm8 => 4,
         Code::Shld_rm16_r16_imm8 => 5,
 
-        Code::Shrd_rm64_r64_CL => 3,
-        Code::Shrd_rm32_r32_CL => 4,
+        Code::Shrd_rm64_r64_CL => 4,
+        Code::Shrd_rm32_r32_CL => 3,
         Code::Shrd_rm16_r16_CL => 4,
 
-        Code::Shrd_rm64_r64_imm8 => 4,
-        Code::Shrd_rm32_r32_imm8 => 5,
+        Code::Shrd_rm64_r64_imm8 => 5,
+        Code::Shrd_rm32_r32_imm8 => 4,
         Code::Shrd_rm16_r16_imm8 => 5,
 
-        Code::Cmpxchg_rm64_r64 => 3,
-        Code::Cmpxchg_rm32_r32 => 2,
-        Code::Cmpxchg_rm16_r16 => 3,
+        Code::Cmpxchg_rm64_r64 => 4,
+        Code::Cmpxchg_rm32_r32 => 3,
+        Code::Cmpxchg_rm16_r16 => 4,
         Code::Cmpxchg_rm8_r8 => 3,
 
         Code::Btr_rm64_r64 => 4,
         Code::Btr_rm32_r32 => 3,
         Code::Btr_rm16_r16 => 4,
 
-        Code::Popcnt_r64_rm64 => 4,
-        Code::Popcnt_r32_rm32 => 3,
-        Code::Popcnt_r16_rm16 => 4,
+        Code::Popcnt_r64_rm64 => 5,
+        Code::Popcnt_r32_rm32 => 4,
+        Code::Popcnt_r16_rm16 => 5,
 
         Code::Btc_rm64_r64 => 4,
         Code::Btc_rm32_r32 => 3,
         Code::Btc_rm16_r16 => 4,
 
         Code::Bt_rm64_imm8 => 5,
-        Code::Bt_rm32_imm8 => 6,
-        Code::Bt_rm16_imm8 => 6,
+        Code::Bt_rm32_imm8 => 4,
+        Code::Bt_rm16_imm8 => 5,
 
         Code::Bts_rm64_imm8 => 5,
-        Code::Bts_rm32_imm8 => 6,
-        Code::Bts_rm16_imm8 => 6,
+        Code::Bts_rm32_imm8 => 4,
+        Code::Bts_rm16_imm8 => 5,
 
         Code::Btr_rm64_imm8 => 5,
-        Code::Btr_rm32_imm8 => 6,
-        Code::Btr_rm16_imm8 => 6,
+        Code::Btr_rm32_imm8 => 4,
+        Code::Btr_rm16_imm8 => 5,
 
         Code::Btc_rm64_imm8 => 5,
-        Code::Btc_rm32_imm8 => 6,
-        Code::Btc_rm16_imm8 => 6,
+        Code::Btc_rm32_imm8 => 4,
+        Code::Btc_rm16_imm8 => 5,
 
         Code::Bsf_r64_rm64 => 4,
         Code::Bsf_r32_rm32 => 3,
@@ -256,6 +255,17 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::Xadd_rm32_r32 => 3,
         Code::Xadd_rm16_r16 => 4,
 
-        _ => 0,
+        // More Obscure Tech
+        Code::Adcx_r64_rm64 => 6,
+        Code::Adcx_r32_rm32 => 5,
+
+        // Alternate instructions (untested)
+        _ => panic!("Unknown instruction"),
     }
 }
+
+// Instructions for adding lengths
+// Check instruction/opcode docs for length.
+
+// If you see 'o64' it means, '48' prefix, and thus +1 byte
+// If you see 'o16' it means, '66' prefix, and thus +1 byte

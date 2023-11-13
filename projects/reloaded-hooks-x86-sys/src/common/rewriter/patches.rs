@@ -318,24 +318,24 @@ pub(crate) fn patch_rip_relative_operand(
         && instruction.op0_kind() == OpKind::Memory
         && instruction.op1_kind() == OpKind::Register
     {
-        patch_rip_rel_reg(&mut params, OpType::RegToMem, length)
+        patch_riprel_reg(&mut params, length)
     } else if instruction.op_count() == 2
         && instruction.op0_kind() == OpKind::Register
         && instruction.op1_kind() == OpKind::Memory
     {
-        patch_rip_rel_reg(&mut params, OpType::MemToReg, length)
+        patch_reg_riprel(&mut params, length)
     } else if instruction.op_count() == 3
         && instruction.op0_kind() == OpKind::Memory
         && instruction.op1_kind() == OpKind::Register
         && instruction.op2_kind() == OpKind::Register
     {
-        patch_rip_rel_reg_reg(&mut params, length)
+        patch_riprel_reg_reg(&mut params, length)
     } else if instruction.op_count() == 3
         && instruction.op0_kind() == OpKind::Memory
         && instruction.op1_kind() == OpKind::Register
         && instruction.op2_kind() == OpKind::Immediate8
     {
-        patch_rip_rel_reg_imm(&mut params, length)
+        patch_riprel_reg_imm(&mut params, length)
     } else if instruction.op_count() == 2
         && instruction.op0_kind() == OpKind::Memory
         && (instruction.op1_kind() == OpKind::Immediate8
@@ -348,7 +348,7 @@ pub(crate) fn patch_rip_relative_operand(
             || instruction.op1_kind() == OpKind::Immediate8to64
             || instruction.op1_kind() == OpKind::Immediate8_2nd)
     {
-        patch_rip_rel_imm(&mut params, length)
+        patch_riprel_imm(&mut params, length)
     } else {
         append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
         Ok(())
@@ -363,14 +363,8 @@ struct PatchInstructionParams<'a> {
     current_new_pc: &'a mut usize,
 }
 
-enum OpType {
-    RegToMem, // e.g., `add [rip + 8], rbx`
-    MemToReg, // e.g., `add rbx, [rip + 8]`
-}
-
-fn patch_rip_rel_reg(
+fn patch_riprel_reg(
     params: &mut PatchInstructionParams,
-    operand_type: OpType,
     patched_ins_len: usize,
 ) -> Result<(), CodeRewriterError> {
     let mut mov_address_ins =
@@ -378,18 +372,11 @@ fn patch_rip_rel_reg(
             .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
     mov_address_ins.set_len(10);
 
-    let mut patched_ins = match operand_type {
-        OpType::RegToMem => Instruction::with2(
-            params.instruction.code(),
-            MemoryOperand::with_base(params.scratch_reg),
-            params.instruction.op1_register(),
-        ),
-        OpType::MemToReg => Instruction::with2(
-            params.instruction.code(),
-            params.instruction.op0_register(),
-            MemoryOperand::with_base(params.scratch_reg),
-        ),
-    }
+    let mut patched_ins = Instruction::with2(
+        params.instruction.code(),
+        MemoryOperand::with_base(params.scratch_reg),
+        params.instruction.op1_register(),
+    )
     .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
     patched_ins.set_len(patched_ins_len);
 
@@ -398,7 +385,29 @@ fn patch_rip_rel_reg(
     Ok(())
 }
 
-fn patch_rip_rel_imm(
+fn patch_reg_riprel(
+    params: &mut PatchInstructionParams,
+    patched_ins_len: usize,
+) -> Result<(), CodeRewriterError> {
+    let mut mov_address_ins =
+        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    mov_address_ins.set_len(10);
+
+    let mut patched_ins = Instruction::with2(
+        params.instruction.code(),
+        params.instruction.op0_register(),
+        MemoryOperand::with_base(params.scratch_reg),
+    )
+    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    patched_ins.set_len(patched_ins_len);
+
+    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
+    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
+    Ok(())
+}
+
+fn patch_riprel_imm(
     params: &mut PatchInstructionParams,
     patched_ins_len: usize,
 ) -> Result<(), CodeRewriterError> {
@@ -420,7 +429,7 @@ fn patch_rip_rel_imm(
     Ok(())
 }
 
-fn patch_rip_rel_reg_reg(
+fn patch_riprel_reg_reg(
     params: &mut PatchInstructionParams,
     patched_ins_len: usize,
 ) -> Result<(), CodeRewriterError> {
@@ -443,7 +452,7 @@ fn patch_rip_rel_reg_reg(
     Ok(())
 }
 
-fn patch_rip_rel_reg_imm(
+fn patch_riprel_reg_imm(
     params: &mut PatchInstructionParams,
     patched_ins_len: usize,
 ) -> Result<(), CodeRewriterError> {
