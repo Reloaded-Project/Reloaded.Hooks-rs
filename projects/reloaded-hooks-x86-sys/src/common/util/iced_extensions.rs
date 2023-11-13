@@ -1,4 +1,4 @@
-use iced_x86::{Instruction, OpKind};
+use iced_x86::OpKind;
 
 pub(crate) fn is_immediate(kind: OpKind) -> bool {
     kind == OpKind::Immediate8
