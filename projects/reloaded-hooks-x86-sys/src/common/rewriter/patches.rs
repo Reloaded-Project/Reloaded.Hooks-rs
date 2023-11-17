@@ -290,7 +290,6 @@ pub(crate) fn append_if_can_encode_relative_rip(
 
 pub(crate) fn patch_rip_relative_operand(
     scratch_gpr: AllRegisters,
-    scratch_xmm: AllRegisters,
     new_isns: &mut SmallVec<[Instruction; 4]>,
     current_new_pc: &mut usize,
     instruction: &Instruction,

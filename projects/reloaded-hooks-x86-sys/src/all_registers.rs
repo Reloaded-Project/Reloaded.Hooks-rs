@@ -429,8 +429,6 @@ impl AllRegisters {
             AllRegisters::zmm13 => Ok(iced_x86::Register::ZMM13),
             AllRegisters::zmm14 => Ok(iced_x86::Register::ZMM14),
             AllRegisters::zmm15 => Ok(iced_x86::Register::ZMM15),
-
-            _ => Err(JitError::InvalidRegister(*self)),
         }
     }
 

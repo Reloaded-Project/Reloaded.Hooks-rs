@@ -37,5 +37,6 @@ pub(crate) fn rewrite_code_x86(
     _new_address: *const u8,
     _scratch_register: Option<u8>,
 ) -> Result<Vec<u8>, CodeRewriterError> {
-    todo!();
+    // Figure out how to not re-decode instructions when talking between generic code and new code.
+    todo!()
 }

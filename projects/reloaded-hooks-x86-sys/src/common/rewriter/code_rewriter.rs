@@ -1,10 +1,9 @@
 extern crate alloc;
 
 use crate::all_registers::AllRegisters;
-use crate::common::util::invert_branch_condition::invert_branch_condition;
-use alloc::{string::ToString, vec::Vec};
+use alloc::vec::Vec;
 use iced_x86::Instruction;
-use iced_x86::{BlockEncoder, BlockEncoderOptions, Code, FlowControl, InstructionBlock};
+use iced_x86::{BlockEncoder, BlockEncoderOptions, InstructionBlock};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use smallvec::{smallvec, SmallVec};
 
@@ -20,7 +19,6 @@ use super::patches::{
 /// `instructions`: The instructions to relocate.
 /// `new_pc`: The new program counter (RIP/EIP).
 /// `scratch_gpr`: A scratch general purpose register that can be used for operations.
-/// `scratch_xmm`: A scratch general xmm register that can be used for operations.
 ///
 /// # Safety (For >= 2GiB relocations)
 ///
@@ -36,56 +34,64 @@ pub(crate) fn relocate_code(
     instructions: &SmallVec<[Instruction; 4]>,
     new_pc: usize,
     scratch_gpr: AllRegisters,
-    scratch_xmm: AllRegisters,
 ) -> Result<Vec<u8>, CodeRewriterError> {
     let mut new_isns: SmallVec<[Instruction; 4]> = smallvec![];
     let mut current_new_pc = new_pc;
 
-    // Note: These translations can only happen in x64, because in x86, branches will always be reachable.
-    // Otherwise we need to translate the jmp/call to an absolute address.
+    // This code will be eliminated in a x86/x64 only build, because only 1 call will be made here
+    // and the compiler will eliminate out the constant branch.
+    if is_64bit {
+        // Note: These translations can only happen in x64, because in x86, branches will always be reachable.
+        // Otherwise we need to translate the jmp/call to an absolute address.
 
-    // Note: It's techincally possible the original code moves the value to a register, then moves
-    // or uses the value from that register in very next instruction, making our rewriting unstable.
-    for instruction in instructions {
-        // Note: Check docs for `UnconditionalBranch` and `Call` above for instructions accepted into this branch.
-        // If this is not a near call or jump, copy the instruction straight up.
-        let is_call_near = instruction.is_call_near();
-        let is_jmp_near = instruction.is_jmp_short_or_near();
-        if is_call_near || is_jmp_near {
-            patch_relative_branch(
-                scratch_gpr,
-                &mut new_isns,
-                &mut current_new_pc,
-                instruction,
-                is_call_near,
-            )?;
-            continue;
+        // Note: It's techincally possible the original code moves the value to a register, then moves
+        // or uses the value from that register in very next instruction, making our rewriting unstable.
+
+        for instruction in instructions {
+            // Note: Check docs for `UnconditionalBranch` and `Call` above for instructions accepted into this branch.
+            // If this is not a near call or jump, copy the instruction straight up.
+            let is_call_near = instruction.is_call_near();
+            let is_jmp_near = instruction.is_jmp_short_or_near();
+            if is_call_near || is_jmp_near {
+                patch_relative_branch(
+                    scratch_gpr,
+                    &mut new_isns,
+                    &mut current_new_pc,
+                    instruction,
+                    is_call_near,
+                )?;
+                continue;
+            }
+
+            // Conditional Branch
+            if instruction.is_jcc_short_or_near() {
+                patch_jump_conditional(
+                    scratch_gpr,
+                    &mut new_isns,
+                    &mut current_new_pc,
+                    instruction,
+                )?;
+
+                continue;
+            } else if instruction.is_loopcc() || instruction.is_loop() {
+                patch_loop(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
+                continue;
+            } else if instruction.is_jcx_short() {
+                patch_jcx(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
+                continue;
+            } else if instruction.memory_base() == iced_x86::Register::RIP {
+                patch_rip_relative_operand(
+                    scratch_gpr,
+                    &mut new_isns,
+                    &mut current_new_pc,
+                    instruction,
+                )?;
+                continue;
+            }
+
+            // Everything else is unhandled
+            append_instruction_with_new_pc(&mut new_isns, &mut current_new_pc, instruction);
         }
-
-        // Conditional Branch
-        if instruction.is_jcc_short_or_near() {
-            patch_jump_conditional(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
-
-            continue;
-        } else if instruction.is_loopcc() || instruction.is_loop() {
-            patch_loop(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
-            continue;
-        } else if instruction.is_jcx_short() {
-            patch_jcx(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
-            continue;
-        } else if instruction.memory_base() == iced_x86::Register::RIP {
-            patch_rip_relative_operand(
-                scratch_gpr,
-                scratch_xmm,
-                &mut new_isns,
-                &mut current_new_pc,
-                instruction,
-            )?;
-            continue;
-        }
-
-        // Everything else is unhandled
-        append_instruction_with_new_pc(&mut new_isns, &mut current_new_pc, instruction);
     }
 
     let block = InstructionBlock::new(&new_isns, new_pc as u64);
@@ -368,13 +374,7 @@ mod tests {
         let hex_bytes: Vec<u8> = as_vec(instructions);
         let instructions =
             get_stolen_instructions(true, hex_bytes.len() as u8, &hex_bytes, old_address).unwrap();
-        let result = relocate_code(
-            true,
-            &instructions.0,
-            new_address,
-            AllRegisters::rax,
-            AllRegisters::xmm0,
-        );
+        let result = relocate_code(true, &instructions.0, new_address, AllRegisters::rax);
 
         assert_eq!(hex::encode(result.unwrap()), expected);
     }
