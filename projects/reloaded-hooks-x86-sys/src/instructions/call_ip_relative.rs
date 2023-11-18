@@ -1,10 +1,10 @@
 extern crate alloc;
-use alloc::string::ToString;
-use iced_x86::code_asm::CodeAssembler;
-use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::CallIpRel};
 
-use crate::{all_registers::AllRegisters, jit_common::convert_error};
-use iced_x86::code_asm::qword_ptr;
+use crate::all_registers::AllRegisters;
+use crate::common::jit_common::convert_error;
+use alloc::string::ToString;
+use iced_x86::code_asm::{qword_ptr, CodeAssembler};
+use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::CallIpRel};
 
 pub(crate) fn encode_call_ip_relative(
     a: &mut CodeAssembler,

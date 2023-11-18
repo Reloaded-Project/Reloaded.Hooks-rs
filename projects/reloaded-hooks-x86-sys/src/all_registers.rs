@@ -336,6 +336,102 @@ impl AllRegisters {
         }
     }
 
+    pub(crate) fn as_iced_allregister(&self) -> Result<iced_x86::Register, JitError<AllRegisters>> {
+        match *self {
+            // x86
+            AllRegisters::eax => Ok(iced_x86::Register::EAX),
+            AllRegisters::ebx => Ok(iced_x86::Register::EBX),
+            AllRegisters::ecx => Ok(iced_x86::Register::ECX),
+            AllRegisters::edx => Ok(iced_x86::Register::EDX),
+            AllRegisters::esi => Ok(iced_x86::Register::ESI),
+            AllRegisters::edi => Ok(iced_x86::Register::EDI),
+            AllRegisters::ebp => Ok(iced_x86::Register::EBP),
+            AllRegisters::esp => Ok(iced_x86::Register::ESP),
+
+            // x64
+            AllRegisters::rax => Ok(iced_x86::Register::RAX),
+            AllRegisters::rbx => Ok(iced_x86::Register::RBX),
+            AllRegisters::rcx => Ok(iced_x86::Register::RCX),
+            AllRegisters::rdx => Ok(iced_x86::Register::RDX),
+            AllRegisters::rsi => Ok(iced_x86::Register::RSI),
+            AllRegisters::rdi => Ok(iced_x86::Register::RDI),
+            AllRegisters::rbp => Ok(iced_x86::Register::RBP),
+            AllRegisters::rsp => Ok(iced_x86::Register::RSP),
+            AllRegisters::r8 => Ok(iced_x86::Register::R8),
+            AllRegisters::r9 => Ok(iced_x86::Register::R9),
+            AllRegisters::r10 => Ok(iced_x86::Register::R10),
+            AllRegisters::r11 => Ok(iced_x86::Register::R11),
+            AllRegisters::r12 => Ok(iced_x86::Register::R12),
+            AllRegisters::r13 => Ok(iced_x86::Register::R13),
+            AllRegisters::r14 => Ok(iced_x86::Register::R14),
+            AllRegisters::r15 => Ok(iced_x86::Register::R15),
+
+            // x87 Floating-point stack registers
+            AllRegisters::st0 => Ok(iced_x86::Register::ST0),
+            AllRegisters::st1 => Ok(iced_x86::Register::ST1),
+            AllRegisters::st2 => Ok(iced_x86::Register::ST2),
+            AllRegisters::st3 => Ok(iced_x86::Register::ST3),
+            AllRegisters::st4 => Ok(iced_x86::Register::ST4),
+            AllRegisters::st5 => Ok(iced_x86::Register::ST5),
+            AllRegisters::st6 => Ok(iced_x86::Register::ST6),
+            AllRegisters::st7 => Ok(iced_x86::Register::ST7),
+
+            // SSE (Streaming SIMD Extensions) 128-bit registers
+            AllRegisters::xmm0 => Ok(iced_x86::Register::XMM0),
+            AllRegisters::xmm1 => Ok(iced_x86::Register::XMM1),
+            AllRegisters::xmm2 => Ok(iced_x86::Register::XMM2),
+            AllRegisters::xmm3 => Ok(iced_x86::Register::XMM3),
+            AllRegisters::xmm4 => Ok(iced_x86::Register::XMM4),
+            AllRegisters::xmm5 => Ok(iced_x86::Register::XMM5),
+            AllRegisters::xmm6 => Ok(iced_x86::Register::XMM6),
+            AllRegisters::xmm7 => Ok(iced_x86::Register::XMM7),
+            AllRegisters::xmm8 => Ok(iced_x86::Register::XMM8),
+            AllRegisters::xmm9 => Ok(iced_x86::Register::XMM9),
+            AllRegisters::xmm10 => Ok(iced_x86::Register::XMM10),
+            AllRegisters::xmm11 => Ok(iced_x86::Register::XMM11),
+            AllRegisters::xmm12 => Ok(iced_x86::Register::XMM12),
+            AllRegisters::xmm13 => Ok(iced_x86::Register::XMM13),
+            AllRegisters::xmm14 => Ok(iced_x86::Register::XMM14),
+            AllRegisters::xmm15 => Ok(iced_x86::Register::XMM15),
+
+            // AVX (Advanced Vector Extensions) 256-bit registers
+            AllRegisters::ymm0 => Ok(iced_x86::Register::YMM0),
+            AllRegisters::ymm1 => Ok(iced_x86::Register::YMM1),
+            AllRegisters::ymm2 => Ok(iced_x86::Register::YMM2),
+            AllRegisters::ymm3 => Ok(iced_x86::Register::YMM3),
+            AllRegisters::ymm4 => Ok(iced_x86::Register::YMM4),
+            AllRegisters::ymm5 => Ok(iced_x86::Register::YMM5),
+            AllRegisters::ymm6 => Ok(iced_x86::Register::YMM6),
+            AllRegisters::ymm7 => Ok(iced_x86::Register::YMM7),
+            AllRegisters::ymm8 => Ok(iced_x86::Register::YMM8),
+            AllRegisters::ymm9 => Ok(iced_x86::Register::YMM9),
+            AllRegisters::ymm10 => Ok(iced_x86::Register::YMM10),
+            AllRegisters::ymm11 => Ok(iced_x86::Register::YMM11),
+            AllRegisters::ymm12 => Ok(iced_x86::Register::YMM12),
+            AllRegisters::ymm13 => Ok(iced_x86::Register::YMM13),
+            AllRegisters::ymm14 => Ok(iced_x86::Register::YMM14),
+            AllRegisters::ymm15 => Ok(iced_x86::Register::YMM15),
+
+            // AVX-512 512-bit registers
+            AllRegisters::zmm0 => Ok(iced_x86::Register::ZMM0),
+            AllRegisters::zmm1 => Ok(iced_x86::Register::ZMM1),
+            AllRegisters::zmm2 => Ok(iced_x86::Register::ZMM2),
+            AllRegisters::zmm3 => Ok(iced_x86::Register::ZMM3),
+            AllRegisters::zmm4 => Ok(iced_x86::Register::ZMM4),
+            AllRegisters::zmm5 => Ok(iced_x86::Register::ZMM5),
+            AllRegisters::zmm6 => Ok(iced_x86::Register::ZMM6),
+            AllRegisters::zmm7 => Ok(iced_x86::Register::ZMM7),
+            AllRegisters::zmm8 => Ok(iced_x86::Register::ZMM8),
+            AllRegisters::zmm9 => Ok(iced_x86::Register::ZMM9),
+            AllRegisters::zmm10 => Ok(iced_x86::Register::ZMM10),
+            AllRegisters::zmm11 => Ok(iced_x86::Register::ZMM11),
+            AllRegisters::zmm12 => Ok(iced_x86::Register::ZMM12),
+            AllRegisters::zmm13 => Ok(iced_x86::Register::ZMM13),
+            AllRegisters::zmm14 => Ok(iced_x86::Register::ZMM14),
+            AllRegisters::zmm15 => Ok(iced_x86::Register::ZMM15),
+        }
+    }
+
     #[allow(dead_code)]
     pub(crate) fn as_iced_st(&self) -> Result<AsmRegisterSt, JitError<AllRegisters>> {
         match *self {

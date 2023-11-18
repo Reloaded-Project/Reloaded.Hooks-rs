@@ -1,30 +1,19 @@
 extern crate alloc;
 
-use crate::instructions::call_ip_relative::encode_call_ip_relative;
-use crate::instructions::call_relative::encode_call_relative;
-use crate::instructions::jump_absolute::encode_jump_absolute;
-use crate::instructions::jump_ip_relative::encode_jump_ip_relative;
-use crate::instructions::jump_relative::encode_jump_relative;
-use crate::instructions::mov::encode_mov;
-use crate::instructions::mov_from_stack::encode_mov_from_stack;
-use crate::instructions::multi_pop::encode_multi_pop;
-use crate::instructions::multi_push::encode_multi_push;
-use crate::instructions::pop::encode_pop;
-use crate::instructions::push::encode_push;
-use crate::instructions::push_const::encode_push_constant;
-use crate::instructions::push_stack::encode_push_stack;
-use crate::instructions::ret::encode_return;
-use crate::instructions::stack_alloc::encode_stack_alloc;
-use crate::instructions::xchg::encode_xchg;
-use crate::instructions::{
-    call_absolute::encode_call_absolute, jump_absolute_indirect::encode_jump_absolute_indirect,
-};
-use crate::jit_common::alloc::string::ToString;
-use iced_x86::code_asm::CodeAssembler;
-use iced_x86::IcedError;
-use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::Operation};
-
 use crate::all_registers::AllRegisters;
+use crate::common::jit_common::alloc::string::ToString;
+use crate::instructions::{
+    call_absolute::encode_call_absolute, call_ip_relative::encode_call_ip_relative,
+    call_relative::encode_call_relative, jump_absolute::encode_jump_absolute,
+    jump_absolute_indirect::encode_jump_absolute_indirect,
+    jump_ip_relative::encode_jump_ip_relative, jump_relative::encode_jump_relative,
+    mov::encode_mov, mov_from_stack::encode_mov_from_stack, multi_pop::encode_multi_pop,
+    multi_push::encode_multi_push, pop::encode_pop, push::encode_push,
+    push_const::encode_push_constant, push_stack::encode_push_stack, ret::encode_return,
+    stack_alloc::encode_stack_alloc, xchg::encode_xchg,
+};
+use iced_x86::{code_asm::CodeAssembler, IcedError};
+use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::Operation};
 
 pub const ARCH_NOT_SUPPORTED: &str = "Non 32/64bit architectures are not supported";
 

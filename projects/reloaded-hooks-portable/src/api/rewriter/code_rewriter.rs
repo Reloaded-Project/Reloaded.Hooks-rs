@@ -49,7 +49,18 @@ pub enum CodeRewriterError {
     )]
     OutOfRange(isize, String),
 
+    /// Failed to disassemble instruction. Unknown or invalid.
+    #[error("Failed to Disasemble Instruction. Instruction offset: {0:?}, Remaining Bytes (Starting with Instruction): {1:?}")]
+    FailedToDisasm(String, String),
+
+    /// Insufficient bytes to disassemble a single instruction.
+    #[error("Insufficient bytes to disassemble a single instruction.")]
+    InsufficientBytes,
+
     /// Missing a scratch register.
     #[error("Missing scratch register, required by function: {0:?}")]
     NoScratchRegister(String),
+
+    #[error("Third party assembler error: {0:?}")]
+    ThirdPartyAssemblerError(String),
 }

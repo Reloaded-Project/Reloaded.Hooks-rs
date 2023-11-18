@@ -1,5 +1,4 @@
 mod assembler_bench_64;
-
 use assembler_bench_64::{
     compile_instructions_64, create_and_assemble_instructions_64, create_operations_64,
 };

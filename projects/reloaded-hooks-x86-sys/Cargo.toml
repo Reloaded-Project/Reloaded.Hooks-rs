@@ -7,6 +7,9 @@ repository = "https://github.com/Reloaded-Project/reloaded-hooks"
 license-file = "LICENSE"
 include = ["src/**/*"]
 
+[lib]
+crate-type = ["dylib"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 libc = "0.2.147"
@@ -14,16 +17,16 @@ rstest = "0.18.2"
 derive-enum-all-values = "0.1.0"
 smallvec = { version = "1.11.0", features = ["const_new"] }
 reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portable" }
+hex = "0.4.3"
 
 [dependencies.iced-x86]
 version = "1.20.0"
 default-features = false
 # See below for all features
-features = ["no_std", "code_asm"]
+features = ["no_std", "code_asm", "decoder", "instr_info"]
 
 [dev-dependencies]
 criterion = "0.5.1"
-hex = "0.4.3"
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.12", features = ["flamegraph", "criterion"] }

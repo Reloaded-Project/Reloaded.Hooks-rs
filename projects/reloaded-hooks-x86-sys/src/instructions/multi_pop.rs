@@ -1,13 +1,10 @@
 extern crate alloc;
-use alloc::string::ToString;
-use iced_x86::code_asm::CodeAssembler;
-use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::Pop};
 
-use crate::jit_common::ARCH_NOT_SUPPORTED;
-use crate::{all_registers::AllRegisters, jit_common::convert_error};
-use iced_x86::code_asm::dword_ptr;
-use iced_x86::code_asm::qword_ptr;
-use iced_x86::code_asm::registers as iced_regs;
+use crate::all_registers::AllRegisters;
+use crate::common::jit_common::{convert_error, ARCH_NOT_SUPPORTED};
+use alloc::string::ToString;
+use iced_x86::code_asm::{dword_ptr, qword_ptr, registers as iced_regs, CodeAssembler};
+use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::Pop};
 
 macro_rules! multi_pop_item {
     ($a:expr, $reg:expr, $offset:expr, $convert_method:ident, $op:ident) => {

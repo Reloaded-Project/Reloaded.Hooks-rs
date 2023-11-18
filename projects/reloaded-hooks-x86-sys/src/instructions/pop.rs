@@ -1,14 +1,10 @@
 extern crate alloc;
+
+use crate::all_registers::AllRegisters;
+use crate::common::jit_common::{convert_error, ARCH_NOT_SUPPORTED};
 use alloc::string::ToString;
-use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
+use iced_x86::code_asm::{dword_ptr, qword_ptr, registers as iced_regs, CodeAssembler};
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::Pop};
-
-use crate::{
-    all_registers::AllRegisters,
-    jit_common::{convert_error, ARCH_NOT_SUPPORTED},
-};
-
-use iced_x86::code_asm::registers as iced_regs;
 
 macro_rules! encode_xmm_pop {
     ($a:expr, $reg:expr, $reg_type:ident, $op:ident) => {

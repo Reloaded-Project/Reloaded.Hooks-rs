@@ -4,34 +4,43 @@
 
 #[cfg(not(tarpaulin_include))]
 pub mod all_registers;
-pub mod jit_common;
-
-#[allow(dead_code)]
-#[cfg(not(tarpaulin_include))]
-pub mod jit_conversions_common;
-
-pub mod preset_calling_convention;
 
 /// Contains the public namespaces for x86
 pub mod x86 {
-    pub(crate) mod code_rewriter {
-        pub mod x86_rewriter;
-    }
-
+    pub mod preset_calling_convention;
     pub mod register;
     pub use register::Register;
     pub mod jit;
+    pub mod rewriter;
 }
 
 /// Contains the public namespaces for x64
 pub mod x64 {
-    pub(crate) mod code_rewriter {
-        pub mod x64_rewriter;
-    }
 
     pub mod register;
+    pub mod rewriter;
     pub use register::Register;
     pub mod jit;
+}
+
+pub(crate) mod common {
+
+    pub(crate) mod util {
+        pub mod get_instruction_length;
+        pub mod get_stolen_instructions;
+        pub mod iced_extensions;
+        pub mod invert_branch_condition;
+    }
+
+    pub mod rewriter {
+        pub mod code_rewriter;
+        pub mod patches;
+    }
+    pub mod jit_common;
+
+    #[allow(dead_code)]
+    #[cfg(not(tarpaulin_include))]
+    pub mod jit_conversions_common;
 }
 
 /// This namespace contains the code for encoding the JIT instructions

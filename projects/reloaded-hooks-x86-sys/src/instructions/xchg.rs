@@ -3,7 +3,8 @@ use alloc::string::ToString;
 use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::XChg};
 
-use crate::{all_registers::AllRegisters, jit_common::convert_error};
+use crate::all_registers::AllRegisters;
+use crate::common::jit_common::convert_error;
 
 macro_rules! encode_xchg_vector {
     ($fn_name:ident, $reg_type:ident, $mov_instr:ident) => {

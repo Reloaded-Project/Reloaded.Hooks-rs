@@ -55,7 +55,7 @@ impl LdrLiteral {
         if !(-0x100000..=0xFFFFF).contains(&pc_offset) {
             return Err(return_pc_out_of_range(
                 "LDR Literal",
-                "-0x100000..0xFFFFF",
+                "-0x100000..=0xFFFFF",
                 pc_offset as isize,
             ));
         }
