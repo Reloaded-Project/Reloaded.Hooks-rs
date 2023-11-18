@@ -9,10 +9,12 @@ Lists currently supported architectures.
 | Feature                                                                         | x86 & x64 | ARM64 |
 | ------------------------------------------------------------------------------- | --------- | ----- |
 | [Basic Function Hooking](#basic-function-hooking)                               | ✅         | ✅     |
-| [Code Relocation](#code-relocation)                                             | WIP        | ✅  |
+| [Code Relocation](#code-relocation)                                             | ✅*        | ✅  |
 | [Hook Stacking](#hook-stacking)                                                 | ✅         | ✅     |
 | [Calling Convention Wrapper Generation](#calling-convention-wrapper-generation) | ✅         | ✅     |
 | [Optimal Wrapper Generation](#optimal-wrapper-generation)                       | ✅         | ✅     |
+
+* x86 should work in all cases, but x64 isn't tested against all 5000+ instructions.
 
 ## Basic Function Hooking
 
