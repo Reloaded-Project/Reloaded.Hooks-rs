@@ -291,252 +291,262 @@ pub(crate) fn append_if_can_encode_relative_rip(
 pub(crate) fn patch_rip_relative_operand(
     scratch_gpr: AllRegisters,
     new_isns: &mut SmallVec<[Instruction; 4]>,
-    current_new_pc: &mut usize,
+    cur_new_pc: &mut usize,
     instruction: &Instruction,
 ) -> Result<(), CodeRewriterError> {
-    if append_if_can_encode_relative_rip(new_isns, current_new_pc, instruction) {
+    if append_if_can_encode_relative_rip(new_isns, cur_new_pc, instruction) {
         return Ok(());
     }
 
     let target = instruction.memory_displacement64();
     let scratch_reg = scratch_gpr.as_iced_allregister().unwrap();
-
-    let mut params = PatchInstructionParams {
-        instruction,
-        scratch_reg,
-        target,
-        new_isns,
-        current_new_pc,
-    };
-
-    // Need to cover every single instruction marked as `rModRM:r/m (r` in
-    // https://cdrdv2-public.intel.com/789583/325462-sdm-vol-1-2abcd-3abcd-4.pdf
-    // Intel® 64 and IA-32 Architectures Software Developer’s Manual
     let length = get_instruction_length(instruction.code());
+
+    // For encoding, Iced allows us to specify immediates as 32-bit, even if they are imm8 etc. let's abuse this.
+    // In any case, we have 3 main types of operands covered:
+    //  - reg (note: this includes vector registers)
+    //  - mem
+    //  - imm (8/16/32)
+
+    // We can have 0-5 operands, where any 1 operand can be RIP relative thus need to cover all permutations.
+    // According to our script projects/code-generators/x86/generate_enum_ins_combos.py, the following combinations exist
+    //
+    // (Note: `rip == mem`)
+    // (Note 2: These instructions were hand-checked by human, I may have done errors)
+    //
+    // 1 Operands:        [function name]
+    // - rip              patch_riprel
+    //
+    // 2 Operands:
+    // - rip, imm         patch_riprel_imm
+    // - rip, reg         patch_riprel_reg
+    // - reg, rip         patch_reg_riprel
+    //
+    // 3 Operands:
+    // - reg, reg, rip    patch_reg_reg_riprel
+    // - reg, rip, imm    patch_reg_riprel_imm
+    // - rip, reg, imm    patch_riprel_reg_imm
+    // - rip, reg, reg    patch_riprel_reg_reg
+    // - reg, rip, reg    patch_reg_riprel_reg
+    //
+    // 4 Operands:
+    // - reg, reg, rip, imm patch_reg_reg_riprel_imm
+    // - reg, reg, reg, rip patch_reg_reg_reg_riprel
+    //
+    // 5 Operands:
+    // - reg, reg, reg, rip, imm patch_reg_reg_reg_riprel_imm
+    // - reg, reg, rip, reg, imm patch_reg_reg_riprel_reg_imm
+
+    // common code: mov [scratch], address
+    let mut mov_address_ins = Instruction::with2(Code::Mov_r64_imm64, scratch_reg, target)
+        .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+    mov_address_ins.set_len(10);
 
     if instruction.op_count() == 2 {
         if instruction.op0_kind() == OpKind::Memory && instruction.op1_kind() == OpKind::Register {
-            return patch_riprel_reg(&mut params, length);
+            // patch_riprel_reg
+            let mut patched_ins = Instruction::with2(
+                instruction.code(),
+                MemoryOperand::with_base(scratch_reg),
+                instruction.op1_register(),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
         } else if instruction.op0_kind() == OpKind::Register
             && instruction.op1_kind() == OpKind::Memory
         {
-            return patch_reg_riprel(&mut params, length);
+            // patch_reg_riprel
+            let mut patched_ins = Instruction::with2(
+                instruction.code(),
+                instruction.op0_register(),
+                MemoryOperand::with_base(scratch_reg),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
         } else if instruction.op0_kind() == OpKind::Memory && is_immediate(instruction.op1_kind()) {
-            return patch_riprel_imm(&mut params, length);
+            // patch_riprel_imm
+            let mut patched_ins = Instruction::with2(
+                instruction.code(),
+                MemoryOperand::with_base(scratch_reg),
+                instruction.immediate32(),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
         }
+    } else if instruction.op_count() == 1 {
+        // patch_riprel
+        let mut patched_ins =
+            Instruction::with1(instruction.code(), MemoryOperand::with_base(scratch_reg))
+                .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+        patched_ins.set_len(length);
+
+        return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
     } else if instruction.op_count() == 3 {
         if instruction.op0_kind() == OpKind::Memory
             && instruction.op1_kind() == OpKind::Register
             && instruction.op2_kind() == OpKind::Register
         {
-            return patch_riprel_reg_reg(&mut params, length);
+            // patch_riprel_reg_reg
+            let mut patched_ins = Instruction::with3(
+                instruction.code(),
+                MemoryOperand::with_base(scratch_reg),
+                instruction.op1_register(),
+                instruction.op2_register(),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
         } else if instruction.op0_kind() == OpKind::Memory
             && instruction.op1_kind() == OpKind::Register
-            && instruction.op2_kind() == OpKind::Immediate8
+            && is_immediate(instruction.op2_kind())
         {
-            return patch_riprel_reg_imm(&mut params, length);
+            // patch_riprel_reg_imm
+            let mut patched_ins = Instruction::with3(
+                instruction.code(),
+                MemoryOperand::with_base(scratch_reg),
+                instruction.op1_register(),
+                instruction.immediate32(),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
         } else if instruction.op0_kind() == OpKind::Register
             && instruction.op1_kind() == OpKind::Register
             && instruction.op2_kind() == OpKind::Memory
         {
-            return patch_reg_reg_riprel(&mut params, length);
+            // patch_reg_reg_riprel
+            let mut patched_ins = Instruction::with3(
+                instruction.code(),
+                instruction.op0_register(),
+                instruction.op1_register(),
+                MemoryOperand::with_base(scratch_reg),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
         } else if instruction.op0_kind() == OpKind::Register
             && instruction.op1_kind() == OpKind::Memory
             && is_immediate(instruction.op2_kind())
         {
-            return patch_reg_mem_imm(&mut params, length);
+            // patch_reg_riprel_imm
+            let mut patched_ins = Instruction::with3(
+                instruction.code(),
+                instruction.op0_register(),
+                MemoryOperand::with_base(scratch_reg),
+                instruction.immediate32(),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
+        } else if instruction.op0_kind() == OpKind::Register
+            && instruction.op1_kind() == OpKind::Memory
+            && instruction.op2_kind() == OpKind::Register
+        {
+            // patch_reg_riprel_reg
+            let mut patched_ins = Instruction::with3(
+                instruction.code(),
+                instruction.op0_register(),
+                MemoryOperand::with_base(scratch_reg),
+                instruction.op2_register(),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
         }
-    } else if instruction.op_count() == 1 {
-        return patch_riprel(&mut params, length);
+    } else if instruction.op_count() == 4 {
+        if instruction.op0_kind() == OpKind::Register
+            && instruction.op1_kind() == OpKind::Register
+            && instruction.op2_kind() == OpKind::Memory
+            && is_immediate(instruction.op3_kind())
+        {
+            // patch_reg_reg_riprel_imm
+            let mut patched_ins = Instruction::with4(
+                instruction.code(),
+                instruction.op0_register(),
+                instruction.op1_register(),
+                MemoryOperand::with_base(scratch_reg),
+                instruction.immediate32(),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
+        } else if instruction.op0_kind() == OpKind::Register
+            && instruction.op1_kind() == OpKind::Register
+            && instruction.op2_kind() == OpKind::Register
+            && instruction.op3_kind() == OpKind::Memory
+        {
+            // patch_reg_reg_reg_riprel
+            let mut patched_ins = Instruction::with4(
+                instruction.code(),
+                instruction.op0_register(),
+                instruction.op1_register(),
+                instruction.op2_register(),
+                MemoryOperand::with_base(scratch_reg),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
+        }
+    } else if instruction.op_count() == 5 {
+        if instruction.op0_kind() == OpKind::Register
+            && instruction.op1_kind() == OpKind::Register
+            && instruction.op2_kind() == OpKind::Register
+            && instruction.op3_kind() == OpKind::Memory
+            && is_immediate(instruction.op4_kind())
+        {
+            // patch_reg_reg_reg_riprel_imm
+            let mut patched_ins = Instruction::with5(
+                instruction.code(),
+                instruction.op0_register(),
+                instruction.op1_register(),
+                instruction.op2_register(),
+                MemoryOperand::with_base(scratch_reg),
+                instruction.immediate32(),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
+        } else if instruction.op0_kind() == OpKind::Register
+            && instruction.op1_kind() == OpKind::Register
+            && instruction.op2_kind() == OpKind::Memory
+            && instruction.op3_kind() == OpKind::Register
+            && is_immediate(instruction.op4_kind())
+        {
+            // patch_reg_reg_riprel_reg_imm
+            let mut patched_ins = Instruction::with5(
+                instruction.code(),
+                instruction.op0_register(),
+                instruction.op1_register(),
+                MemoryOperand::with_base(scratch_reg),
+                instruction.op3_register(),
+                instruction.immediate32(),
+            )
+            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
+            patched_ins.set_len(length);
+            return append_patched_instruction(new_isns, cur_new_pc, mov_address_ins, patched_ins);
+        }
     }
 
-    append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
+    append_instruction_with_new_pc(new_isns, cur_new_pc, instruction);
     Ok(())
 }
 
-struct PatchInstructionParams<'a> {
-    instruction: &'a Instruction,
-    scratch_reg: Register,
-    target: u64,
-    new_isns: &'a mut SmallVec<[Instruction; 4]>,
-    current_new_pc: &'a mut usize,
-}
-
-fn patch_riprel_reg(
-    params: &mut PatchInstructionParams,
-    patched_ins_len: usize,
+fn append_patched_instruction(
+    new_isns: &mut SmallVec<[Instruction; 4]>,
+    current_new_pc: &mut usize,
+    mov_address_ins: Instruction,
+    patched_ins: Instruction,
 ) -> Result<(), CodeRewriterError> {
-    let mut mov_address_ins =
-        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
-            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    mov_address_ins.set_len(10);
-
-    let mut patched_ins = Instruction::with2(
-        params.instruction.code(),
-        MemoryOperand::with_base(params.scratch_reg),
-        params.instruction.op1_register(),
-    )
-    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    patched_ins.set_len(patched_ins_len);
-
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
-    Ok(())
-}
-
-fn patch_riprel(
-    params: &mut PatchInstructionParams,
-    patched_ins_len: usize,
-) -> Result<(), CodeRewriterError> {
-    let mut mov_address_ins =
-        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
-            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    mov_address_ins.set_len(10);
-
-    let mut patched_ins = Instruction::with1(
-        params.instruction.code(),
-        MemoryOperand::with_base(params.scratch_reg),
-    )
-    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    patched_ins.set_len(patched_ins_len);
-
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
-    Ok(())
-}
-
-fn patch_reg_riprel(
-    params: &mut PatchInstructionParams,
-    patched_ins_len: usize,
-) -> Result<(), CodeRewriterError> {
-    let mut mov_address_ins =
-        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
-            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    mov_address_ins.set_len(10);
-
-    let mut patched_ins = Instruction::with2(
-        params.instruction.code(),
-        params.instruction.op0_register(),
-        MemoryOperand::with_base(params.scratch_reg),
-    )
-    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    patched_ins.set_len(patched_ins_len);
-
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
-    Ok(())
-}
-
-fn patch_riprel_imm(
-    params: &mut PatchInstructionParams,
-    patched_ins_len: usize,
-) -> Result<(), CodeRewriterError> {
-    let mut mov_address_ins =
-        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
-            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    mov_address_ins.set_len(10);
-
-    let mut patched_ins = Instruction::with2(
-        params.instruction.code(),
-        MemoryOperand::with_base(params.scratch_reg),
-        params.instruction.immediate32(),
-    )
-    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    patched_ins.set_len(patched_ins_len);
-
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
-    Ok(())
-}
-
-fn patch_riprel_reg_reg(
-    params: &mut PatchInstructionParams,
-    patched_ins_len: usize,
-) -> Result<(), CodeRewriterError> {
-    let mut mov_address_ins =
-        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
-            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    mov_address_ins.set_len(10);
-
-    let mut patched_ins = Instruction::with3(
-        params.instruction.code(),
-        MemoryOperand::with_base(params.scratch_reg),
-        params.instruction.op1_register(),
-        params.instruction.op2_register(),
-    )
-    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    patched_ins.set_len(patched_ins_len);
-
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
-    Ok(())
-}
-
-fn patch_reg_reg_riprel(
-    params: &mut PatchInstructionParams,
-    patched_ins_len: usize,
-) -> Result<(), CodeRewriterError> {
-    let mut mov_address_ins =
-        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
-            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    mov_address_ins.set_len(10);
-
-    let mut patched_ins = Instruction::with3(
-        params.instruction.code(),
-        params.instruction.op0_register(),
-        params.instruction.op1_register(),
-        MemoryOperand::with_base(params.scratch_reg),
-    )
-    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    patched_ins.set_len(patched_ins_len);
-
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
-    Ok(())
-}
-
-fn patch_reg_mem_imm(
-    params: &mut PatchInstructionParams,
-    patched_ins_len: usize,
-) -> Result<(), CodeRewriterError> {
-    let mut mov_address_ins =
-        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
-            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    mov_address_ins.set_len(10);
-
-    let mut patched_ins = Instruction::with3(
-        params.instruction.code(),
-        params.instruction.op0_register(),
-        MemoryOperand::with_base(params.scratch_reg),
-        params.instruction.immediate32(),
-    )
-    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    patched_ins.set_len(patched_ins_len);
-
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
-    Ok(())
-}
-
-fn patch_riprel_reg_imm(
-    params: &mut PatchInstructionParams,
-    patched_ins_len: usize,
-) -> Result<(), CodeRewriterError> {
-    let mut mov_address_ins =
-        Instruction::with2(Code::Mov_r64_imm64, params.scratch_reg, params.target)
-            .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    mov_address_ins.set_len(10);
-
-    let mut patched_ins = Instruction::with3(
-        params.instruction.code(),
-        MemoryOperand::with_base(params.scratch_reg),
-        params.instruction.op1_register(),
-        params.instruction.immediate32(),
-    )
-    .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
-    patched_ins.set_len(patched_ins_len);
-
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &mov_address_ins);
-    append_instruction_with_new_pc(params.new_isns, params.current_new_pc, &patched_ins);
+    append_instruction_with_new_pc(new_isns, current_new_pc, &mov_address_ins);
+    append_instruction_with_new_pc(new_isns, current_new_pc, &patched_ins);
     Ok(())
 }
