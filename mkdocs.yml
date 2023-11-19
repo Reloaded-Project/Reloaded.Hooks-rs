@@ -70,6 +70,7 @@ nav:
       - x86:
         - Overview (x86): dev/arch/x86/x86.md
         - Overview (x86_64): dev/arch/x86/x86_64.md
+        - Code Relocation: dev/arch/x86/code_relocation.md
       - arm64: 
         - Overview: dev/arch/arm64/aarch64.md
         - Code Relocation: dev/arch/arm64/code_relocation.md
