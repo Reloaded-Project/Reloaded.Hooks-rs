@@ -67,7 +67,7 @@ skipAdd:
 ```
 
 In a scenario like this, the hooking library would overwrite the `cmp` and `jg` instruction when
-it assembles the [hook entry ('enter hook')](../design/overview.md#key); and when the original
+it assembles the [hook entry ('enter hook')](../design/function-hooks/overview.md#key); and when the original
 function is called again by your hook the, 'wrapper' would now contain this `jg` instruction.
 
 Because `jg` is an instruction relative to the current instruction address, the library must be able

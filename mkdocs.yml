@@ -50,11 +50,13 @@ nav:
   - Home: index.md
   - Library Internals:
     - Design Docs: 
-      - Overview: dev/design/overview.md
-      - Wrapper Generation: dev/design/wrappers.md
-      - Interop (General): dev/design/interop-general.md
-      - Interop (x86): dev/design/interop-x86.md
-      - Interop (ARM64): dev/design/interop-arm64.md
+      - Function Hooks: 
+        - Overview: dev/design/function-hooks/overview.md
+        - Wrapper Genration: dev/design/function-hooks/wrappers.md
+        - Hooking Strategy: 
+          - General: dev/design/function-hooks/hooking-strategy.md
+          - x86: dev/design/function-hooks/hooking-strategy-x86.md
+          - ARM64: dev/design/function-hooks/hooking-strategy-arm64.md
     - Architectures:
       - Overview: dev/arch/overview.md
       - Operations: dev/arch/operations.md

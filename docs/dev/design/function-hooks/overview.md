@@ -102,6 +102,8 @@ the appropriate default convention in their wrappers.
 
 !!! note "If the calling convention of the hooked function and your function matches, this wrapper is simply just 1 `jmp` instruction."
 
+Wrappers are documented [in their own page here](./wrappers.md).
+
 ## ReverseWrapper(s)
 
 !!! info "Stub which converts from your code's calling convention to original function's calling convention"
