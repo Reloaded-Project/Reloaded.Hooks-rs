@@ -1,6 +1,6 @@
 # Contribution Guidelines
 
-!! tip "The wiki provides details on internals of the library. They may help you when contributing 😉."
+!!! tip "The wiki provides details on internals of the library. They may help you when contributing 😉."
 
 First off, thank you for considering contributing to reloaded-hooks.
 

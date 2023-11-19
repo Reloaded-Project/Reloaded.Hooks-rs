@@ -1,6 +1,16 @@
-# Hook Design
+# Function Hooks
 
-!!! info "I'm not a security person/researcher. I just make full stack game modding tools, mods and libraries. Naming in these design docs might be unconventional."
+!!! info "How hooking around entire functions works."
+
+!!! info "This hook is used to run custom callback for a function, modify its parameters or replace a function entirely. It is the most common hook."
+
+!!! note "I'm not a security person/researcher. I just make full stack game modding tools, mods and libraries. Naming in these design docs might be unconventional."
+
+This hook works by injecting a `jmp` instruction at the beginning of a function to a custom 
+replacement function, or a stub which will later call that function. 
+
+When the original function is called, it is done via a wrapper, which restores the originally 
+overwritten instructions that were sacrificed for the `jmp`.
 
 ## High Level Diagram
 
@@ -15,7 +25,7 @@
 
 ```mermaid
 flowchart TD
-    orig[Original Function] -- enter hook --> rev[Reverse Wrapper]
+    orig[Original Function] -- jump to wrapper --> rev[Reverse Wrapper]
     rev -- jump to your code --> target["&lt;Your Function&gt;"]
     target -- "call original via wrapper" --> stub["Wrapper &lt;with stolen bytes + jmp to original&gt;"]
     stub -- "call original" --> original["Original Function"]
@@ -28,6 +38,8 @@ When the hook is activated, a stub calls into your function; which becomes the '
 that is, control will return (`ret`) to the original function's caller from this function.
 
 When your function calls the original function, it will be an entirely separate method call.
+
+!!! note "Your function can technically not call the original and replace it outright."
 
 ### When Activated in 'Fast Mode'
 
@@ -45,9 +57,11 @@ flowchart TD
 
 This option allows for a small performance improvement, saving 1 instruction and some instruction prefetching load.  
 
-This is on by default, and will take into effect when no conversion between calling conventions is needed.  
+This is on by default (can be disabled), and will take into effect when no conversion between calling conventions is needed.  
 
 When conversion is needed, the logic will default back to [When Activated](#when-activated).  
+
+!!! note "When 'Fast Mode' is enabled, you lose the ability to unhook (for compatibility reasons)."
 
 ### When Deactivated
 
@@ -55,7 +69,7 @@ When conversion is needed, the logic will default back to [When Activated](#when
 
 ```mermaid
 flowchart TD
-    orig[Original Function] -- enter hook --> stub["Stub &lt;stolen bytes + jmp&gt;"]
+    orig[Original Function] -- jump to wrapper --> stub["Stub &lt;stolen bytes + jmp&gt;"]
     stub -- "jmp original" --> original["Original Function"]
 ```
 
@@ -101,6 +115,8 @@ the appropriate default convention in their wrappers.
 !!! info "Wrappers are stubs which convert from the calling convention of the original function to your calling convention."
 
 !!! note "If the calling convention of the hooked function and your function matches, this wrapper is simply just 1 `jmp` instruction."
+
+Wrappers are documented [in their own page here](./wrappers.md).
 
 ## ReverseWrapper(s)
 

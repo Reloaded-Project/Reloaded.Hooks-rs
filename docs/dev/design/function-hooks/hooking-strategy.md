@@ -10,7 +10,7 @@ can stack hooks ontop of `reloaded-hooks-rs`.
 !!! info "This is the general hooking strategy employed by `reloaded-hooks`; derived from the facts in the rest of this document."
 
 To ensure maximum compatibility with existing hooking systems, `reloaded-hooks` uses 
-[relative jumps](../arch/operations.md#jumprelative) as these are the most popular,
+[relative jumps](../../arch/operations.md#jumprelative) as these are the most popular,
 and thus best supported by other libraries when it comes to hook stacking.  
 
 These are the lowest overhead jumps, so are preferable in any case. 
@@ -22,31 +22,31 @@ In the very, very, unlikely event that using (target is further than
 
 #### No Existing Hook
 
-If no existing hook exists, an [absolute jump](../arch/operations.md#jumpabsolute) will be used (if possible).  
-- Prefer [indirect absolute jump](../arch/operations.md#jumpabsoluteindirect) (if possible).  
+If no existing hook exists, an [absolute jump](../../arch/operations.md#jumpabsolute) will be used (if possible).  
+- Prefer [indirect absolute jump](../../arch/operations.md#jumpabsoluteindirect) (if possible).  
 
 !!! note "We check for presence of 'existing hook' by catching some common instruction patterns."
 
 #### Existing Hook
 
-- If we have any allocated buffer in range, insert [relative jump](../arch/operations.md#jumprelative), 
-  and inside wrapper/stub use [absolute jump](../arch/operations.md#jumpabsolute) if needed.  
+- If we have any allocated buffer in range, insert [relative jump](../../arch/operations.md#jumprelative), 
+  and inside wrapper/stub use [absolute jump](../../arch/operations.md#jumpabsolute) if needed.  
     - This prevents [your hook longer than original error case](#when-your-hook-is-longer-than-original).  
 
 - Otherwise (if possible), use [available free space from function alignment](#fallback-strategy-free-space-from-function-alignment).  
-    - If supported [IP Relative Jmp](../arch/operations.md#jumpiprelative), with target address in free space.  
-    - Otherwise try store whole [absolute jump](../arch/operations.md#jumpabsolute), in said alignment space.
+    - If supported [IP Relative Jmp](../../arch/operations.md#jumpiprelative), with target address in free space.  
+    - Otherwise try store whole [absolute jump](../../arch/operations.md#jumpabsolute), in said alignment space.
 
-- Otherwise use [absolute jump](../arch/operations.md#jumpabsolute).
+- Otherwise use [absolute jump](../../arch/operations.md#jumpabsolute).
     - And attempt [return address patching](#return-address-patching), if this is ever re-implemented into library.  
 
 ### Calling Back into Original Function
 
-In order to optimize the [code relocation](../arch/overview.md#code-relocation) process, `reloaded-hooks`, 
+In order to optimize the [code relocation](../../arch/overview.md#code-relocation) process, `reloaded-hooks`, 
 will try to find a buffer that's within relative jump range to the original jump target.
 
-If this is not possible, `reloaded-hooks` will start rewriting [relative jump(s)](../arch/operations.md#jumprelative) 
-from the original function to [absolute jump(s)](../arch/operations.md#jumpabsolute) in the presence
+If this is not possible, `reloaded-hooks` will start rewriting [relative jump(s)](../../arch/operations.md#jumprelative) 
+from the original function to [absolute jump(s)](../../arch/operations.md#jumpabsolute) in the presence
 of recognised patterns; if the code rewriter supports this.
 
 ## Hook Length Mismatch Problem
@@ -81,7 +81,7 @@ Pretend you have the following ARM64 function:
     return x0;
     ```
 
-And then, a large hook using an [absolute jump](../arch/operations.md#jumpabsolute) with register is applied:
+And then, a large hook using an [absolute jump](../../arch/operations.md#jumpabsolute) with register is applied:
 
 ```asm
 # Original instructions here replaced
@@ -168,7 +168,7 @@ given most people use the 'popular' libraries.
 
 ### Free Space from Function Alignment
 
-!!! info "This is a strategy for encoding [absolute jumps](../arch//operations.md#callabsolute) using fewer instructions."
+!!! info "This is a strategy for encoding [absolute jumps](../../arch//operations.md#callabsolute) using fewer instructions."
 
 !!! info "Processors typically fetch instructions 16 byte boundaries."
 
@@ -191,8 +191,8 @@ or
 
 For any of this to be necessary, the following conditions must be true:  
 
-- An existing [relative jump](../arch/operations.md#jumprelative) hook exists.  
-- Reloaded can't find free memory within [relative jump](../arch/operations.md#jumprelative) range.  
+- An existing [relative jump](../../arch/operations.md#jumprelative) hook exists.  
+- Reloaded can't find free memory within [relative jump](../../arch/operations.md#jumprelative) range.  
   - The existing hook was somehow able to find free memory in this range, but we can't...  (<= main reason this is improbable!!)
 - [Free Space from Function Alignment Strategy](#free-space-from-function-alignment) fails.  
 - The instructions at beginning of the hooked function happened to just perfectly align such that our hook
@@ -266,18 +266,18 @@ This patching mechanism is rather complicated, relies on disassembling code at r
 
 !!! info "Libraries which can safely interoperate (stack hooks ontop) of Reloaded Hooks Hooks' must satisfy the following."
 
-- Must be able to patch (re-adjust) [relative jumps](../arch/operations.md#jumprelative).  
+- Must be able to patch (re-adjust) [relative jumps](../../arch/operations.md#jumprelative).  
     - In some cases when assembling call to original function, relative jump target may be out of range,
       compatible hooking software must handle this edge case.
 
 - Must be able to automatically determine number of bytes to steal from original function.  
-    - This makes it possible to interoperate with the rare times we do a [absolute jump](../arch/operations.md#jumpabsolute) when 
+    - This makes it possible to interoperate with the rare times we do a [absolute jump](../../arch/operations.md#jumpabsolute) when 
       it may not be possible to do a relative jump (i.e.) as we cannot allocate memory in close
       enough proximity. 
 
 ### Reloaded Hooks hooking over Existing Hooks
 
-!!! info "See: [Code Relocation](../arch/overview.md#code-relocation)"
+!!! info "See: [Code Relocation](../../arch/overview.md#code-relocation)"
 
 [detours]: https://github.com/microsoft/Detours
 [minhook]: https://github.com/TsudaKageyu/minhook.git
