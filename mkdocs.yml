@@ -19,6 +19,9 @@ markdown_extensions:
   - tables
   - pymdownx.details
   - pymdownx.highlight
+  - pymdownx.caret
+  - pymdownx.mark
+  - pymdownx.tilde
   - pymdownx.superfences:
       custom_fences:
         - name: mermaid
@@ -52,11 +55,14 @@ nav:
     - Design Docs: 
       - Function Hooks: 
         - Overview: dev/design/function-hooks/overview.md
-        - Wrapper Genration: dev/design/function-hooks/wrappers.md
         - Hooking Strategy: 
           - General: dev/design/function-hooks/hooking-strategy.md
           - x86: dev/design/function-hooks/hooking-strategy-x86.md
           - ARM64: dev/design/function-hooks/hooking-strategy-arm64.md
+        - Wrapper Generation: dev/design/function-hooks/wrappers.md
+      - Assembly Hooks: dev/design/assembly-hooks/overview.md
+      - Branch Hooks: dev/design/branch-hooks/overview.md
+      - VTable Hooks: dev/design/vtable-hooks/overview.md
     - Architectures:
       - Overview: dev/arch/overview.md
       - Operations: dev/arch/operations.md
