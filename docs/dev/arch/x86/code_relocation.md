@@ -48,7 +48,7 @@ Scratch register is determined by the following logic:
 
 Because rewriting a lot of code will lead to register exhaustion, it must be reiterated the rewriter can only be used for small bits of code.
 
-!!! danger "x64 has over 5000 ‼️ functions that require rewriting. Only a couple hundred are tested currently"
+!!! danger "x64 has over 5000 ‼️ instructions that require rewriting. Only a couple hundred are tested currently"
 
 ## Relative Branches
 
