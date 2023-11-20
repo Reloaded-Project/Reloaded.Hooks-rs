@@ -8,9 +8,13 @@ use alloc::vec::Vec;
 use crate::api::jit::operation::Operation;
 
 use super::{
-    buffers::buffer_abstractions::Buffer, calling_convention_info::CallingConventionInfo,
-    function_info::FunctionInfo, jit::compiler::Jit, platforms::platform_functions::BUFFER_FACTORY,
-    settings::proximity_target::ProximityTarget, traits::register_info::RegisterInfo,
+    buffers::buffer_abstractions::{Buffer, BufferFactory},
+    calling_convention_info::CallingConventionInfo,
+    function_info::FunctionInfo,
+    jit::compiler::Jit,
+    platforms::platform_functions::get_factory,
+    settings::proximity_target::ProximityTarget,
+    traits::register_info::RegisterInfo,
 };
 
 /// Options and additional context necessary for the wrapper generator.
@@ -42,7 +46,7 @@ where
     TJit: Jit<TRegister>,
 {
     fn get_buffer_from_factory(&self) -> (bool, Box<dyn Buffer>) {
-        let mut buffer_factory_lock = BUFFER_FACTORY.lock();
+        let buffer_factory: &mut Box<dyn BufferFactory> = get_factory();
 
         // Try known relative jump ranges.
         for &requested_proximity in TJit::max_relative_jump_distances() {
@@ -51,7 +55,7 @@ where
                 requested_proximity,
             );
 
-            let buf_opt = buffer_factory_lock.get_buffer(
+            let buf_opt = buffer_factory.get_buffer(
                 proximity_target.item_size,
                 proximity_target.target_address,
                 proximity_target.requested_proximity,
@@ -63,7 +67,7 @@ where
             }
         }
 
-        let buf_boxed = buffer_factory_lock
+        let buf_boxed = buffer_factory
             .get_any_buffer(256, <TJit as Jit<TRegister>>::code_alignment())
             .unwrap();
         (false, buf_boxed)

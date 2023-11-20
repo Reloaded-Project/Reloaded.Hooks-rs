@@ -12,10 +12,15 @@ use alloc::boxed::Box;
 
 use super::platform_functions_mmap_rs::{reprotect_memory_mmap_rs, unprotect_memory_mmap_rs};
 
-lazy_static! {
-/// The factory for creating read/write/execute buffers used by the library.
-    pub static ref BUFFER_FACTORY: Mutex<Box<dyn BufferFactory>> =
-    Mutex::new(Box::new(DefaultBufferFactory::new()));
+pub(crate) static mut BUFFER_FACTORY: Option<Box<dyn BufferFactory>> = None;
+
+/// Getter function for the BUFFER_FACTORY
+pub(crate) fn get_factory() -> &'static mut Box<dyn BufferFactory> {
+    unsafe {
+        BUFFER_FACTORY
+            .as_mut()
+            .expect("Buffer factory is not initialized")
+    }
 }
 
 /// See [`unprotect_memory`].
