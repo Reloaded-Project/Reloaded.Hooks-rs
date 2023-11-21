@@ -76,6 +76,9 @@ pub mod api {
         pub mod code_rewriter;
     }
 
+    /// Trait for determining length of disassembled instructions
+    pub mod length_disassembler;
+
     pub mod calling_convention_info;
     pub mod function_info;
     pub mod wrapper_generator;

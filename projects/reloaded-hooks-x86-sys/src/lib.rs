@@ -7,6 +7,7 @@ pub mod all_registers;
 
 /// Contains the public namespaces for x86
 pub mod x86 {
+    pub mod length_disassembler;
     pub mod preset_calling_convention;
     pub mod register;
     pub use register::Register;
@@ -16,7 +17,7 @@ pub mod x86 {
 
 /// Contains the public namespaces for x64
 pub mod x64 {
-
+    pub mod length_disassembler;
     pub mod register;
     pub mod rewriter;
     pub use register::Register;
@@ -30,6 +31,9 @@ pub(crate) mod common {
         pub mod get_stolen_instructions;
         pub mod iced_extensions;
         pub mod invert_branch_condition;
+
+        #[cfg(test)]
+        pub(crate) mod test_utilities;
     }
 
     pub mod rewriter {

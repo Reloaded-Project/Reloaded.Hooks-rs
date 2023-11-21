@@ -154,6 +154,7 @@ mod tests {
     use crate::all_registers::AllRegisters;
     use crate::common::rewriter::code_rewriter::relocate_code;
     use crate::common::util::get_stolen_instructions::get_stolen_instructions;
+    use crate::common::util::test_utilities::str_to_vec;
     use rstest::rstest;
 
     // TODO: Iced library is potentially borked with code in 4GiB addresses in 32bit.
@@ -371,21 +372,11 @@ mod tests {
         expected: String,
     ) {
         // Remove spaces and convert the string to a vector of bytes
-        let hex_bytes: Vec<u8> = as_vec(instructions);
+        let hex_bytes: Vec<u8> = str_to_vec(instructions);
         let instructions =
             get_stolen_instructions(true, hex_bytes.len() as u8, &hex_bytes, old_address).unwrap();
         let result = relocate_code(true, &instructions.0, new_address, AllRegisters::rax);
 
         assert_eq!(hex::encode(result.unwrap()), expected);
-    }
-
-    fn as_vec(hex: String) -> Vec<u8> {
-        hex.as_bytes()
-            .chunks(2)
-            .map(|chunk| {
-                let hex_str = std::str::from_utf8(chunk).unwrap();
-                u8::from_str_radix(hex_str, 16).unwrap()
-            })
-            .collect()
     }
 }

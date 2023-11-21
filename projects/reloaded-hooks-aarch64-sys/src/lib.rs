@@ -12,6 +12,9 @@ pub mod jit;
 /// Contains Code Rewriter which translates code from one address to another.
 pub mod rewriter;
 
+/// Contains the length disassembler, returning length of instructions requires for hooking.
+pub mod length_disassembler;
+
 /// Rewriting the code from one address to another!
 pub(crate) mod code_rewriter {
     pub mod aarch64_rewriter;

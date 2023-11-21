@@ -47,7 +47,7 @@ a function.
 /// 
 /// # Returns
 /// Returns length of instructions (in bytes) greater than or equal to min_length
-fn GetHookLength(code_address: usize, min_length: usize) -> usize
+fn disassemble_length(code_address: usize, min_length: usize) -> usize
 ```
 
 This is done by disassembling the original instructions at `code_address`, incrementing a length for each

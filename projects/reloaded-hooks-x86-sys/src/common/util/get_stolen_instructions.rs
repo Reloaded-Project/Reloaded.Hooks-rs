@@ -79,3 +79,71 @@ pub(crate) fn get_stolen_instructions_from_decoder(
     debug_assert!(!orig_instructions.is_empty());
     Ok((orig_instructions, total_bytes))
 }
+
+/// Retrieves the length of 'stolen' instructions from the provided code region.
+/// The length represents the minimum amount of code that needs to be
+/// copied to place a jump to our hook function.
+///
+/// # Parameters
+/// `is_64bit`: Whether the code is 64bit or not.
+/// `min_bytes`: The minimum amount of bytes to copy.
+/// `code`: The code region to copy from.
+/// `ip`: The instruction pointer corresponding to the first instruction in 'code'.
+///
+/// # Returns
+/// Either a re-encode error or the length of the decoded instructions.
+pub(crate) fn get_stolen_instructions_length(
+    is_64bit: bool,
+    min_bytes: u8,
+    code: &[u8],
+    ip: usize,
+) -> Result<u32, CodeRewriterError> {
+    let mut decoder = Decoder::with_ip(
+        if is_64bit { 64 } else { 32 },
+        code,
+        ip as u64,
+        DecoderOptions::NONE,
+    );
+
+    get_stolen_instructions_length_from_decoder(&mut decoder, code, min_bytes)
+}
+
+/// Retrieves the length of 'stolen' instructions using the provided decoder.
+/// The length represents the minimum amount of code that needs to be
+/// copied to place a jump to our hook function.
+///
+/// # Parameters
+/// `decoder`: The decoder responsible for decoding operations.
+/// `code`: The code region to copy from.
+/// `min_bytes`: The minimum amount of bytes to copy.
+///
+/// # Returns
+/// Either a re-encode error or the length of the decoded instructions.
+pub(crate) fn get_stolen_instructions_length_from_decoder(
+    decoder: &mut Decoder,
+    code: &[u8],
+    min_bytes: u8,
+) -> Result<u32, CodeRewriterError> {
+    let required_bytes = min_bytes as u32;
+    let mut total_bytes: u32 = 0;
+
+    for instr in decoder {
+        if instr.is_invalid() {
+            return Err(CodeRewriterError::FailedToDisasm(
+                total_bytes.to_string(),
+                hex::encode(&code[total_bytes as usize..]),
+            ));
+        }
+
+        total_bytes += instr.len() as u32;
+        if total_bytes >= required_bytes {
+            break;
+        }
+    }
+
+    if total_bytes < required_bytes {
+        return Err(CodeRewriterError::InsufficientBytes);
+    }
+
+    Ok(total_bytes)
+}
