@@ -7,6 +7,7 @@ pub mod api {
 
     /// The errors that can occur when generating a wrapper.
     pub mod errors {
+        pub mod assembly_hook_error;
         pub mod wrapper_generation_error;
     }
 
@@ -19,7 +20,16 @@ pub mod api {
 
     /// Settings passed to other methodss
     pub mod settings {
+        pub mod assembly_hook_settings;
         pub mod proximity_target;
+    }
+
+    /// Settings passed to other methodss
+    pub mod hooks {
+        pub mod assembly {
+            pub mod assembly_hook;
+            pub(crate) mod assembly_hook_impl;
+        }
     }
 
     /// Platform and architecture specific integrations
@@ -73,7 +83,7 @@ pub mod api {
 }
 
 /// Code for all the graph algorithms.
-pub mod graphs {
+mod graphs {
     pub mod algorithms {
         pub mod move_graph_builder;
         pub mod move_optimizer;

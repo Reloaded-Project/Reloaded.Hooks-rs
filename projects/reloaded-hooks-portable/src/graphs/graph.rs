@@ -13,7 +13,7 @@ use super::node::Node;
 ///
 /// # Example
 ///
-/// ```
+/// ```ignore
 /// extern crate alloc;
 /// use reloaded_hooks_portable::graphs::node::Node;
 /// use reloaded_hooks_portable::graphs::graph::Graph;
@@ -52,7 +52,7 @@ where
     ///
     /// # Example
     ///
-    /// ```
+    /// ```ignore
     /// use reloaded_hooks_portable::graphs::graph::Graph;
     ///
     /// let graph = Graph::<i32>::new();
@@ -73,7 +73,7 @@ where
     ///
     /// # Example
     ///
-    /// ```
+    /// ```ignore
     /// extern crate alloc;
     /// use reloaded_hooks_portable::graphs::node::Node;
     /// use reloaded_hooks_portable::graphs::graph::Graph;
