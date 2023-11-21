@@ -32,7 +32,7 @@ where
     pub function_info: &'a T,
 
     /// Dynamically compiles the specified sequence of instructions
-    pub jit: TJit,
+    pub jit: &'a TJit,
 
     /// Marker to assure Rust that TRegister is logically part of the struct.
     _marker: PhantomData<TRegister>,
