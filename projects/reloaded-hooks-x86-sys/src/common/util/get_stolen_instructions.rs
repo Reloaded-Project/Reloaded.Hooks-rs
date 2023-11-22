@@ -18,10 +18,10 @@ use smallvec::{smallvec, SmallVec};
 ///
 /// # Returns
 /// Either a re-encode error, in which case the operation fails, or a
-/// list of decooded instructions and their combined length.
+/// list of decoded instructions and their combined length.
 pub(crate) fn get_stolen_instructions(
     is_64bit: bool,
-    min_bytes: u8,
+    min_bytes: usize,
     code: &[u8],
     ip: usize,
 ) -> Result<(SmallVec<[Instruction; 4]>, u32), CodeRewriterError> {
@@ -51,7 +51,7 @@ pub(crate) fn get_stolen_instructions(
 pub(crate) fn get_stolen_instructions_from_decoder(
     decoder: &mut Decoder,
     code: &[u8],
-    min_bytes: u8,
+    min_bytes: usize,
 ) -> Result<(SmallVec<[Instruction; 4]>, u32), CodeRewriterError> {
     let required_bytes = min_bytes as u32;
     let mut total_bytes: u32 = 0;

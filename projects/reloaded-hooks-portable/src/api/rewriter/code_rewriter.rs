@@ -1,10 +1,11 @@
 extern crate alloc;
 use alloc::string::String;
+use alloc::vec::Vec;
 use thiserror_no_std::Error;
 
 /// The trait for a Just In Time Compiler used for translating code
 /// from one address to another.
-pub trait CodeRewriter {
+pub trait CodeRewriter<TRegister> {
     /// Rewrites the code from one address to another.
     ///
     /// Given an original block of code starting at `old_address`, this function
@@ -20,6 +21,9 @@ pub trait CodeRewriter {
     /// * `old_address`: A pointer to the start of the original block of code.
     /// * `old_address_size`: Size/amount of bytes to encode for the new address.
     /// * `new_address`: The new address for the instructions.
+    /// * `scratch_register`
+    ///     - A scratch general purpose register that can be used for operations.
+    ///     - This scratch register may or may not be used depending on the code being rewritten.
     ///
     /// # Behaviour
     ///
@@ -29,14 +33,13 @@ pub trait CodeRewriter {
     ///
     /// # Returns
     ///
-    /// Either a re-encode error, in which case the operation fails, or a slice of bytes to be written.
-    /// If there is not sufficient space for the slice of bytes, the function will be called again
-    /// (with a larger space available at [`new_address`]).
-    fn rewrite_code<'a>(
+    /// Either a re-encode error, in which case the operation fails, or a vector to consume.
+    fn rewrite_code(
         old_address: *const u8,
         old_address_size: usize,
         new_address: *const u8,
-    ) -> Result<&'a [u8], CodeRewriterError>;
+        scratch_register: Option<TRegister>,
+    ) -> Result<Vec<u8>, CodeRewriterError>;
 }
 
 /// Errors that can occur during JIT compilation.

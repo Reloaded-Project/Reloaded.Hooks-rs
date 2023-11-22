@@ -33,7 +33,7 @@ pub(crate) fn relocate_code(
     is_64bit: bool,
     instructions: &SmallVec<[Instruction; 4]>,
     new_pc: usize,
-    scratch_gpr: AllRegisters,
+    scratch_gpr: Option<AllRegisters>,
 ) -> Result<Vec<u8>, CodeRewriterError> {
     let mut new_isns: SmallVec<[Instruction; 4]> = smallvec![];
     let mut current_new_pc = new_pc;
@@ -374,8 +374,8 @@ mod tests {
         // Remove spaces and convert the string to a vector of bytes
         let hex_bytes: Vec<u8> = str_to_vec(instructions);
         let instructions =
-            get_stolen_instructions(true, hex_bytes.len() as u8, &hex_bytes, old_address).unwrap();
-        let result = relocate_code(true, &instructions.0, new_address, AllRegisters::rax);
+            get_stolen_instructions(true, hex_bytes.len(), &hex_bytes, old_address).unwrap();
+        let result = relocate_code(true, &instructions.0, new_address, Some(AllRegisters::rax));
 
         assert_eq!(hex::encode(result.unwrap()), expected);
     }

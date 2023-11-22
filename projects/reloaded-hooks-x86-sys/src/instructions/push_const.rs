@@ -13,7 +13,7 @@ pub(crate) fn encode_push_constant(
     if a.bitness() == 32 {
         a.push(x.value as i32).map_err(convert_error)
     } else if a.bitness() == 64 {
-        a.push(((x.value >> 32) & 0xFFFFFFFF) as i32)
+        a.push(((x.value as u64 >> 32) & 0xFFFFFFFF) as i32)
             .map_err(convert_error)?;
         a.push((x.value & 0xFFFFFFFF) as i32).map_err(convert_error)
     } else {
