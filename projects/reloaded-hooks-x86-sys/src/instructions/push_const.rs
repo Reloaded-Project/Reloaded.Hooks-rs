@@ -10,9 +10,9 @@ pub(crate) fn encode_push_constant(
     a: &mut CodeAssembler,
     x: &PushConst<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
-    if a.bitness() == 32 {
+    if a.bitness() == 32 && cfg!(feature = "x86") {
         a.push(x.value as i32).map_err(convert_error)
-    } else if a.bitness() == 64 {
+    } else if a.bitness() == 64 && cfg!(feature = "x64") {
         a.push(((x.value as u64 >> 32) & 0xFFFFFFFF) as i32)
             .map_err(convert_error)?;
         a.push((x.value & 0xFFFFFFFF) as i32).map_err(convert_error)

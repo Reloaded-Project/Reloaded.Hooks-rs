@@ -9,10 +9,12 @@ use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::P
 macro_rules! multi_pop_item {
     ($a:expr, $reg:expr, $offset:expr, $convert_method:ident, $op:ident) => {
         match $a.bitness() {
+            #[cfg(feature = "x86")]
             32 => {
                 $a.$op($reg.$convert_method()?, dword_ptr(iced_regs::esp) + $offset)
                     .map_err(convert_error)?;
             }
+            #[cfg(feature = "x64")]
             64 => {
                 $a.$op($reg.$convert_method()?, qword_ptr(iced_regs::rsp) + $offset)
                     .map_err(convert_error)?;
@@ -37,7 +39,8 @@ pub(crate) fn encode_multi_pop(
     for x in ops {
         if x.register.is_32() {
             multi_pop_item!(a, x.register, current_offset, as_iced_32, mov);
-        } else if x.register.is_64() {
+        } else if x.register.is_64() && cfg!(feature = "x64") {
+            #[cfg(feature = "x64")]
             multi_pop_item!(a, x.register, current_offset, as_iced_64, mov);
         } else if x.register.is_xmm() {
             multi_pop_item!(a, x.register, current_offset, as_iced_xmm, movdqu);

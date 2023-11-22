@@ -6,6 +6,7 @@ use alloc::string::ToString;
 use iced_x86::code_asm::{qword_ptr, CodeAssembler};
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::CallIpRel};
 
+#[cfg(feature = "x64")]
 pub(crate) fn encode_call_ip_relative(
     a: &mut CodeAssembler,
     x: &CallIpRel<AllRegisters>,

@@ -31,6 +31,7 @@ pub(crate) fn encode_push_stack(
     push: &PushStack<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
     match a.bitness() {
+        #[cfg(feature = "x86")]
         32 => {
             // This could be faster for 32-bit; using SSE registers to re-push 4 params at once
             // Only problem is, there is no common callee saved register for SSE on 32-bit,
@@ -38,6 +39,7 @@ pub(crate) fn encode_push_stack(
                 "Stack parameter must be a multiple of 4 if not a single register size.";
             encode_push_stack_impl!(a, push, iced_x86::Register::ESP, 4, dword_ptr, error_msg);
         }
+        #[cfg(feature = "x64")]
         64 => {
             let error_msg =
                 "Stack parameter must be a multiple of 8 if not a single register size.";

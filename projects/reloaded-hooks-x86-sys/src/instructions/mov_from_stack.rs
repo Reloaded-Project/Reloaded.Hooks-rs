@@ -10,16 +10,27 @@ pub(crate) fn encode_mov_from_stack(
     a: &mut CodeAssembler,
     x: &MovFromStack<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
-    let base_ptr = if a.bitness() == 64 {
+    let base_ptr = if a.bitness() == 64 && cfg!(feature = "x64") {
         qword_ptr(iced_x86::Register::RSP) + x.stack_offset
-    } else {
+    } else if cfg!(feature = "x86") {
         dword_ptr(iced_x86::Register::ESP) + x.stack_offset
+    } else {
+        return Err(JitError::ThirdPartyAssemblerError(
+            "Please use 'x86' or 'x64' library feature".to_string(),
+        ));
     };
 
     if x.target.is_32() {
         a.mov(x.target.as_iced_32()?, base_ptr)
-    } else if x.target.is_64() {
-        a.mov(x.target.as_iced_64()?, base_ptr)
+    } else if x.target.is_64() && cfg!(feature = "x64") {
+        #[cfg(feature = "x64")]
+        {
+            a.mov(x.target.as_iced_64()?, base_ptr)
+        }
+        #[cfg(not(feature = "x64"))]
+        {
+            Ok(())
+        }
     } else if x.target.is_xmm() {
         a.movups(x.target.as_iced_xmm()?, base_ptr)
     } else if x.target.is_ymm() {

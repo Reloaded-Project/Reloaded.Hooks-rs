@@ -7,6 +7,8 @@ use iced_x86::{BlockEncoder, BlockEncoderOptions, InstructionBlock};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use smallvec::{smallvec, SmallVec};
 
+// Patches only needed for 64-bit.
+#[cfg(feature = "x64")]
 use super::patches::{
     patch_jcx, patch_jump_conditional, patch_loop, patch_relative_branch,
     patch_rip_relative_operand,
@@ -40,6 +42,7 @@ pub(crate) fn relocate_code(
 
     // This code will be eliminated in a x86/x64 only build, because only 1 call will be made here
     // and the compiler will eliminate out the constant branch.
+    #[cfg(feature = "x64")]
     if is_64bit {
         // Note: These translations can only happen in x64, because in x86, branches will always be reachable.
         // Otherwise we need to translate the jmp/call to an absolute address.
@@ -96,7 +99,13 @@ pub(crate) fn relocate_code(
 
     let block = InstructionBlock::new(&new_isns, new_pc as u64);
     let result = match BlockEncoder::encode(
-        if is_64bit { 64 } else { 32 },
+        if is_64bit & cfg!(feature = "x64") {
+            64
+        } else if cfg!(feature = "x86") {
+            32
+        } else {
+            0
+        },
         block,
         BlockEncoderOptions::NONE,
     ) {
@@ -105,7 +114,6 @@ pub(crate) fn relocate_code(
     };
 
     let new_code = result.code_buffer;
-
     Ok(new_code)
 }
 

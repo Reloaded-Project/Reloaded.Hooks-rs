@@ -7,6 +7,7 @@ use iced_x86::code_asm::{qword_ptr, CodeAssembler};
 use reloaded_hooks_portable::api::jit::compiler::JitError;
 use reloaded_hooks_portable::api::jit::operation_aliases::JumpIpRel;
 
+#[cfg(feature = "x64")]
 pub(crate) fn encode_jump_ip_relative(
     a: &mut CodeAssembler,
     x: &JumpIpRel<AllRegisters>,

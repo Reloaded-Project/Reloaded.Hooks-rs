@@ -10,6 +10,11 @@ include = ["src/**/*"]
 [lib]
 crate-type = ["dylib"]
 
+[features]
+default = ["x86", "x64"]
+x86 = []
+x64 = []
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 libc = "0.2.147"

@@ -3,15 +3,20 @@ extern crate alloc;
 use crate::all_registers::AllRegisters;
 use crate::common::jit_common::alloc::string::ToString;
 use crate::instructions::{
-    call_absolute::encode_call_absolute, call_ip_relative::encode_call_ip_relative,
-    call_relative::encode_call_relative, jump_absolute::encode_jump_absolute,
-    jump_absolute_indirect::encode_jump_absolute_indirect,
-    jump_ip_relative::encode_jump_ip_relative, jump_relative::encode_jump_relative,
-    mov::encode_mov, mov_from_stack::encode_mov_from_stack, multi_pop::encode_multi_pop,
-    multi_push::encode_multi_push, pop::encode_pop, push::encode_push,
+    call_absolute::encode_call_absolute, call_relative::encode_call_relative,
+    jump_absolute::encode_jump_absolute, jump_absolute_indirect::encode_jump_absolute_indirect,
+    jump_relative::encode_jump_relative, mov::encode_mov, mov_from_stack::encode_mov_from_stack,
+    multi_pop::encode_multi_pop, multi_push::encode_multi_push, pop::encode_pop, push::encode_push,
     push_const::encode_push_constant, push_stack::encode_push_stack, ret::encode_return,
     stack_alloc::encode_stack_alloc, xchg::encode_xchg,
 };
+
+#[cfg(feature = "x64")]
+use crate::instructions::jump_ip_relative::encode_jump_ip_relative;
+
+#[cfg(feature = "x64")]
+use crate::instructions::call_ip_relative::encode_call_ip_relative;
+
 use iced_x86::{code_asm::CodeAssembler, IcedError};
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation::Operation};
 
@@ -37,7 +42,9 @@ pub(crate) fn encode_instruction(
         Operation::JumpAbsoluteIndirect(x) => encode_jump_absolute_indirect(assembler, x),
 
         // x64 only
+        #[cfg(feature = "x64")]
         Operation::CallIpRelative(x) => encode_call_ip_relative(assembler, x, address),
+        #[cfg(feature = "x64")]
         Operation::JumpIpRelative(x) => encode_jump_ip_relative(assembler, x, address),
 
         // Optimised Functions
@@ -45,7 +52,7 @@ pub(crate) fn encode_instruction(
         Operation::MultiPop(x) => encode_multi_pop(assembler, x),
         Operation::PushConst(x) => encode_push_constant(assembler, x),
         Operation::Return(x) => encode_return(assembler, x),
-        Operation::None => todo!(),
+        _ => todo!(),
     }
 }
 

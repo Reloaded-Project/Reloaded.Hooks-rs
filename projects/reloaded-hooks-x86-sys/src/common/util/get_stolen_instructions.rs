@@ -26,7 +26,13 @@ pub(crate) fn get_stolen_instructions(
     ip: usize,
 ) -> Result<(SmallVec<[Instruction; 4]>, u32), CodeRewriterError> {
     let mut decoder = Decoder::with_ip(
-        if is_64bit { 64 } else { 32 },
+        if is_64bit & cfg!(feature = "x64") {
+            64
+        } else if cfg!(feature = "x86") {
+            32
+        } else {
+            0
+        },
         code,
         ip as u64,
         DecoderOptions::NONE,
@@ -99,7 +105,13 @@ pub(crate) fn get_stolen_instructions_length(
     ip: usize,
 ) -> Result<u32, CodeRewriterError> {
     let mut decoder = Decoder::with_ip(
-        if is_64bit { 64 } else { 32 },
+        if is_64bit & cfg!(feature = "x64") {
+            64
+        } else if cfg!(feature = "x86") {
+            32
+        } else {
+            0
+        },
         code,
         ip as u64,
         DecoderOptions::NONE,

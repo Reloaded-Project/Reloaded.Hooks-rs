@@ -12,9 +12,9 @@ pub(crate) fn encode_stack_alloc(
     a: &mut CodeAssembler,
     sub: &StackAlloc,
 ) -> Result<(), JitError<AllRegisters>> {
-    if a.bitness() == 32 {
+    if a.bitness() == 32 && cfg!(feature = "x86") {
         a.sub(iced_regs::esp, sub.operand).map_err(convert_error)?;
-    } else if a.bitness() == 64 {
+    } else if a.bitness() == 64 && cfg!(feature = "x64") {
         a.sub(iced_regs::rsp, sub.operand).map_err(convert_error)?;
     } else {
         return Err(JitError::ThirdPartyAssemblerError(

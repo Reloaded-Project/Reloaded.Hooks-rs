@@ -36,7 +36,8 @@ pub(crate) fn encode_xchg(
     if xchg.register1.is_32() && xchg.register2.is_32() {
         a.xchg(xchg.register1.as_iced_32()?, xchg.register2.as_iced_32()?)
             .map_err(convert_error)?
-    } else if xchg.register1.is_64() && xchg.register2.is_64() {
+    } else if xchg.register1.is_64() && xchg.register2.is_64() && cfg!(feature = "x64") {
+        #[cfg(feature = "x64")]
         a.xchg(xchg.register1.as_iced_64()?, xchg.register2.as_iced_64()?)
             .map_err(convert_error)?
     } else if xchg.register1.is_xmm() && xchg.register2.is_xmm() {

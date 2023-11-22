@@ -10,10 +10,12 @@ use reloaded_hooks_portable::api::jit::operation_aliases::Push;
 macro_rules! multi_push_item {
     ($a:expr, $reg:expr, $offset:expr, $convert_method:ident, $op:ident) => {
         match $a.bitness() {
+            #[cfg(feature = "x86")]
             32 => {
                 $a.$op(dword_ptr(iced_regs::esp) + $offset, $reg.$convert_method()?)
                     .map_err(convert_error)?;
             }
+            #[cfg(feature = "x64")]
             64 => {
                 $a.$op(qword_ptr(iced_regs::rsp) + $offset, $reg.$convert_method()?)
                     .map_err(convert_error)?;
@@ -48,7 +50,8 @@ pub(crate) fn encode_multi_push(
         // Loop through the operations in reverse
         if x.register.is_32() {
             multi_push_item!(a, x.register, current_offset, as_iced_32, mov);
-        } else if x.register.is_64() {
+        } else if x.register.is_64() && cfg!(feature = "x64") {
+            #[cfg(feature = "x64")]
             multi_push_item!(a, x.register, current_offset, as_iced_64, mov);
         } else if x.register.is_xmm() {
             multi_push_item!(a, x.register, current_offset, as_iced_xmm, movdqu);
