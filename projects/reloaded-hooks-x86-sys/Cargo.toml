@@ -13,7 +13,7 @@ crate-type = ["dylib"]
 [features]
 default = ["x86", "x64"]
 x86 = []
-x64 = []
+x64 = [ "iced-x86/instr_info" ]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
@@ -28,7 +28,7 @@ hex = "0.4.3"
 version = "1.20.0"
 default-features = false
 # See below for all features
-features = ["no_std", "code_asm", "decoder", "instr_info"]
+features = ["no_std", "code_asm", "decoder"]
 
 [dev-dependencies]
 criterion = "0.5.1"
