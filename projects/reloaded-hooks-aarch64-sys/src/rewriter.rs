@@ -1,46 +1,23 @@
 extern crate alloc;
 
+use crate::all_registers::AllRegisters;
 use alloc::vec::Vec;
-use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
+use reloaded_hooks_portable::api::rewriter::code_rewriter::{CodeRewriter, CodeRewriterError};
 
-/// Rewrites the code from one address to another.
-///
-/// Given an original block of code starting at `old_address`, this function
-/// will modify any relative addressing instructions to make them compatible
-/// with a new location starting at `new_address`.
-///
-/// This is useful, for example, when code is being moved or injected into a new
-/// location in memory and any relative jumps or calls within the code need to be
-/// adjusted to the new location.
-///
-/// # Parameters
-///
-/// * `old_address`: A pointer to the start of the original block of code.
-/// * `old_address_size`: Size/amount of bytes to encode for the new address.
-/// * `new_address`: The new address for the instructions.
-/// * `scratch_register`
-///     - A scratch general purpose register that can be used for operations.
-///     - This scratch register may or may not be used depending on the code being rewritten.
-///
-/// # Behaviour
-///
-/// The function will iterate over the block of code byte by byte, identifying any
-/// instructions that use relative addressing. When such an instruction is identified,
-/// its offset is adjusted to account for the difference between `old_address` and `new_address`.
-///
-/// # Returns
-///
-/// Either a re-encode error, in which case the operation fails, or a vector to consume.
-pub fn rewrite_code_aarch64(
-    old_address: *const u8,
-    old_address_size: usize,
-    new_address: *const u8,
-    scratch_register: Option<u8>,
-) -> Result<Vec<u8>, CodeRewriterError> {
-    crate::code_rewriter::aarch64_rewriter::rewrite_code_aarch64(
-        old_address,
-        old_address_size,
-        new_address,
-        scratch_register,
-    )
+struct CodeRewriterX64;
+
+impl CodeRewriter<AllRegisters> for CodeRewriterX64 {
+    fn rewrite_code(
+        old_address: *const u8,
+        old_address_size: usize,
+        new_address: *const u8,
+        scratch_register: Option<AllRegisters>,
+    ) -> Result<Vec<u8>, CodeRewriterError> {
+        crate::code_rewriter::aarch64_rewriter::rewrite_code_aarch64(
+            old_address,
+            old_address_size,
+            new_address,
+            scratch_register.map(|reg| reg.register_number() as u8),
+        )
+    }
 }
