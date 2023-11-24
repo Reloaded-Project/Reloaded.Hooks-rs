@@ -97,13 +97,13 @@ pub(crate) fn get_stolen_instructions_from_decoder(
 /// `ip`: The instruction pointer corresponding to the first instruction in 'code'.
 ///
 /// # Returns
-/// Either a re-encode error or the length of the decoded instructions.
-pub(crate) fn get_stolen_instructions_length(
+/// Either a tuple (ins_length_bytes, num_instructions) error or the length of the decoded instructions.
+pub(crate) fn get_stolen_instructions_lengths(
     is_64bit: bool,
     min_bytes: u8,
     code: &[u8],
     ip: usize,
-) -> Result<u32, CodeRewriterError> {
+) -> Result<(u32, u32), CodeRewriterError> {
     let mut decoder = Decoder::with_ip(
         if is_64bit & cfg!(feature = "x64") {
             64
@@ -130,14 +130,15 @@ pub(crate) fn get_stolen_instructions_length(
 /// `min_bytes`: The minimum amount of bytes to copy.
 ///
 /// # Returns
-/// Either a re-encode error or the length of the decoded instructions.
+/// Either a tuple (ins_length_bytes, num_instructions) error or the length of the decoded instructions.
 pub(crate) fn get_stolen_instructions_length_from_decoder(
     decoder: &mut Decoder,
     code: &[u8],
     min_bytes: u8,
-) -> Result<u32, CodeRewriterError> {
+) -> Result<(u32, u32), CodeRewriterError> {
     let required_bytes = min_bytes as u32;
     let mut total_bytes: u32 = 0;
+    let mut total_instructions: u32 = 0;
 
     for instr in decoder {
         if instr.is_invalid() {
@@ -148,6 +149,7 @@ pub(crate) fn get_stolen_instructions_length_from_decoder(
         }
 
         total_bytes += instr.len() as u32;
+        total_instructions += 1;
         if total_bytes >= required_bytes {
             break;
         }
@@ -157,5 +159,5 @@ pub(crate) fn get_stolen_instructions_length_from_decoder(
         return Err(CodeRewriterError::InsufficientBytes);
     }
 
-    Ok(total_bytes)
+    Ok((total_bytes, total_instructions))
 }

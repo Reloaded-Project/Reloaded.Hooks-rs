@@ -50,5 +50,9 @@ pub trait LengthDisassembler {
     /// # Safety
     ///
     /// [`code_address`] better point to a valid address, or you're screwed.
-    fn disassemble_length(code_address: usize, min_length: usize) -> usize;
+    ///
+    /// # Returns
+    ///
+    /// Tuple, with first element being length in bytes, and second being number of instructions.
+    fn disassemble_length(code_address: usize, min_length: usize) -> (usize, usize);
 }
