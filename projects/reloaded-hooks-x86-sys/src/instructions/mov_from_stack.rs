@@ -64,12 +64,11 @@ mod tests {
     #[case(x86::Register::ymm0, "c5fc10442404")]
     #[case(x86::Register::zmm0, "62f17c4810842404000000")]
     fn mov_from_stack_x86(#[case] target: x86::Register, #[case] expected_encoded: &str) {
-        let mut jit = JitX86 {};
         let operations = vec![Op::MovFromStack(MovFromStackOperation {
             stack_offset: 4,
             target,
         })];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -80,9 +79,8 @@ mod tests {
     #[case(x64::Register::ymm0, "c5fc10442404")]
     #[case(x64::Register::zmm0, "62f17c4810842404000000")]
     fn mov_from_stack_x64(#[case] target: x64::Register, #[case] expected_encoded: &str) {
-        let mut jit = JitX64 {};
         let operations = vec![Op::MovFromStack(MovFromStack::new(4, target))];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.as_ref().unwrap()));
     }

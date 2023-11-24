@@ -64,9 +64,8 @@ mod tests {
     #[case(x64::Register::ymm0, "4883ec20c5fe7f0424")]
     #[case(x64::Register::zmm0, "4883ec4062f17f487f0424")]
     fn push_x64(#[case] register: x64::Register, #[case] expected_encoded: &str) {
-        let mut jit = JitX64 {};
         let operations = vec![Op::Push(Push::new(register))];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -77,9 +76,8 @@ mod tests {
     #[case(x86::Register::ymm0, "83ec20c5fe7f0424")]
     #[case(x86::Register::zmm0, "83ec4062f17f487f0424")]
     fn push_x86(#[case] register: x86::Register, #[case] expected_encoded: &str) {
-        let mut jit = JitX86 {};
         let operations = vec![Op::Push(Push::new(register))];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }

@@ -27,7 +27,6 @@ pub enum JitCapabilities {
 pub trait Jit<TRegister: RegisterInfo> {
     /// Compiles the specified sequence of operations into a sequence of bytes.
     fn compile(
-        &mut self,
         address: usize,
         operations: &[Operation<TRegister>],
     ) -> Result<Rc<[u8]>, JitError<TRegister>>;
@@ -37,6 +36,9 @@ pub trait Jit<TRegister: RegisterInfo> {
     /// # Remarks
     /// This is usually 4 bytes on most architectures, and 16 bytes on x86.
     fn code_alignment() -> u32;
+
+    /// Maximum number of bytes required to perform a branch (i.e. an absolute branch).
+    fn max_branch_bytes() -> u32;
 
     /// Maximum distances of supported relative jump assembly instruction sequences.
     /// This affects wrapper generation, and parameters passed into JIT.

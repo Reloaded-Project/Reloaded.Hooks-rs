@@ -100,10 +100,9 @@ mod tests {
         #[case] scratch: Option<x86::Register>,
         #[case] expected_encoded: &str,
     ) {
-        let mut jit = JitX86 {};
         let xchg = XChg::new(register1, register2, scratch);
         let operations = vec![Op::Xchg(xchg)];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -134,10 +133,9 @@ mod tests {
         #[case] scratch: Option<x64::Register>,
         #[case] expected_encoded: &str,
     ) {
-        let mut jit = JitX64 {};
         let xchg = XChg::new(register1, register2, scratch);
         let operations = vec![Op::Xchg(xchg)];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }

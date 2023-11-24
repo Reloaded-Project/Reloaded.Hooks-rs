@@ -31,7 +31,6 @@ pub struct JitAarch64 {}
 
 impl Jit<AllRegisters> for JitAarch64 {
     fn compile(
-        &mut self,
         address: usize,
         operations: &[Operation<AllRegisters>],
     ) -> Result<Rc<[u8]>, JitError<AllRegisters>> {
@@ -75,6 +74,10 @@ impl Jit<AllRegisters> for JitAarch64 {
             JitCapabilities::CanEncodeIPRelativeCall,
             JitCapabilities::CanEncodeIPRelativeJump,
         ]
+    }
+
+    fn max_branch_bytes() -> u32 {
+        24 // MOVZ + MOVK + LDR + BR
     }
 }
 

@@ -65,9 +65,8 @@ mod tests {
     #[case(4, 8, "ff742404")]
     #[case(32, 16, "ff742420ff742430")]
     fn push_from_stack_x64(#[case] offset: i32, #[case] size: u32, #[case] expected_encoded: &str) {
-        let mut jit = JitX64 {};
         let operations = vec![Op::PushStack(PushStack::with_offset_and_size(offset, size))];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -76,9 +75,8 @@ mod tests {
     #[case(4, 4, "ff742404")]
     #[case(32, 16, "ff742420ff742428ff742430ff742438")]
     fn push_from_stack_x86(#[case] offset: i32, #[case] size: u32, #[case] expected_encoded: &str) {
-        let mut jit = JitX86 {};
         let operations = vec![Op::PushStack(PushStack::with_offset_and_size(offset, size))];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }

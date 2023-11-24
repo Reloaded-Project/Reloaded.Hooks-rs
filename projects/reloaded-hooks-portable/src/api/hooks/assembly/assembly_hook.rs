@@ -1,9 +1,12 @@
 use crate::api::{
-    errors::assembly_hook_error::AssemblyHookError,
-    settings::assembly_hook_settings::AssemblyHookSettings,
+    errors::assembly_hook_error::AssemblyHookError, jit::compiler::Jit,
+    length_disassembler::LengthDisassembler,
+    settings::assembly_hook_settings::AssemblyHookSettings, traits::register_info::RegisterInfo,
 };
 
-use super::assembly_hook_impl::create_assembly_hook;
+use super::{
+    assembly_hook_dependencies::AssemblyHookDependencies, assembly_hook_impl::create_assembly_hook,
+};
 
 /// Represents an assembly hook.
 pub struct AssemblyHook<'a> {
@@ -39,12 +42,12 @@ impl<'a> AssemblyHook<'a> {
     ///
     /// # Examples
     /// Basic usage involves creating an `AssemblyHookSettings` instance and passing it to this function.
-    /// ```no_run
+    /// ```compile_fail
     /// use reloaded_hooks_portable::api::hooks::assembly::assembly_hook::AssemblyHook;
     /// use reloaded_hooks_portable::api::settings::assembly_hook_settings::AssemblyHookSettings;
     ///
     /// let settings = AssemblyHookSettings::new_minimal(0x12345678, &[0x90, 0x90], 128);
-    /// AssemblyHook::new(&settings);
+    /// AssemblyHook::new(&settings, /* AssemblyHookDependencies */);
     /// ```
     ///
     /// # Hook Lengths
@@ -63,8 +66,16 @@ impl<'a> AssemblyHook<'a> {
     ///
     /// If you are on Windows/Linux/macOS, expect the relative length to be used basically every time
     /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.
-    pub fn new(settings: &AssemblyHookSettings) -> Result<AssemblyHook<'a>, AssemblyHookError> {
-        return create_assembly_hook(settings);
+    pub fn new<TJit, TRegister, TDisassembler>(
+        settings: &AssemblyHookSettings,
+        deps: &AssemblyHookDependencies<'a, TJit, TRegister, TDisassembler>,
+    ) -> Result<AssemblyHook<'a>, AssemblyHookError>
+    where
+        TJit: Jit<TRegister>,
+        TRegister: RegisterInfo,
+        TDisassembler: LengthDisassembler,
+    {
+        return create_assembly_hook(settings, deps);
     }
 
     /// Enables the hook.

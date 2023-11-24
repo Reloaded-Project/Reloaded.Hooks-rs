@@ -5,7 +5,7 @@ use core::marker::PhantomData;
 use alloc::boxed::Box;
 use alloc::vec::Vec;
 
-use crate::api::jit::operation::Operation;
+use crate::{api::jit::operation::Operation, helpers::allocate_with_proximity};
 
 use super::{
     buffers::buffer_abstractions::{Buffer, BufferFactory},
@@ -46,31 +46,10 @@ where
     TJit: Jit<TRegister>,
 {
     fn get_buffer_from_factory(&self) -> (bool, Box<dyn Buffer>) {
-        let buffer_factory: &mut Box<dyn BufferFactory> = get_factory();
-
-        // Try known relative jump ranges.
-        for &requested_proximity in TJit::max_relative_jump_distances() {
-            let proximity_target = ProximityTarget::with_address_and_requested_proximity(
-                self.target_address,
-                requested_proximity,
-            );
-
-            let buf_opt = buffer_factory.get_buffer(
-                proximity_target.item_size,
-                proximity_target.target_address,
-                proximity_target.requested_proximity,
-                <TJit as Jit<TRegister>>::code_alignment(),
-            );
-
-            if let Ok(buffer) = buf_opt {
-                return (true, buffer);
-            }
-        }
-
-        let buf_boxed = buffer_factory
-            .get_any_buffer(256, <TJit as Jit<TRegister>>::code_alignment())
-            .unwrap();
-        (false, buf_boxed)
+        allocate_with_proximity::get_buffer_from_factory::<TJit, TRegister>(
+            self.target_address,
+            128,
+        )
     }
 }
 

@@ -62,9 +62,8 @@ mod tests {
     #[case(x86::Register::ymm0, "c5fe6f042483c420")]
     #[case(x86::Register::zmm0, "62f17f486f042483c440")]
     fn pop_x86(#[case] register: x86::Register, #[case] expected_encoded: &str) {
-        let mut jit = JitX86 {};
         let operations = vec![Op::Pop(Pop::new(register))];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -74,9 +73,8 @@ mod tests {
     #[case(x64::Register::ymm0, "c5fe6f04244883c420")]
     #[case(x64::Register::zmm0, "62f17f486f04244883c440")]
     fn pop_x64(#[case] register: x64::Register, #[case] expected_encoded: &str) {
-        let mut jit = JitX64 {};
         let operations = vec![Op::Pop(Pop::new(register))];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }

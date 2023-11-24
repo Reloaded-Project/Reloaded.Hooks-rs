@@ -25,10 +25,8 @@ mod tests {
     #[case(0, "c3")]
     #[case(4, "c20400")]
     fn ret_x64(#[case] offset: usize, #[case] expected: &str) {
-        let mut jit = JitX64 {};
-
         let operations = vec![Op::Return(Return::new(offset))];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected, hex::encode(result.unwrap()));
     }
@@ -37,10 +35,8 @@ mod tests {
     #[case(0, "c3")]
     #[case(4, "c20400")]
     fn ret_x86(#[case] offset: usize, #[case] expected: &str) {
-        let mut jit = JitX86 {};
-
         let operations = vec![Op::Return(Return::new(offset))];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected, hex::encode(result.unwrap()));
     }

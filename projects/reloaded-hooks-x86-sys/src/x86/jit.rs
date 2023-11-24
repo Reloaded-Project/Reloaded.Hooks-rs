@@ -18,7 +18,6 @@ pub struct JitX86 {}
 /// Implementation of the x86 JIT.
 impl Jit<Register> for JitX86 {
     fn compile(
-        &mut self,
         address: usize,
         operations: &[Operation<Register>],
     ) -> Result<Rc<[u8]>, JitError<Register>> {
@@ -53,6 +52,10 @@ impl Jit<Register> for JitX86 {
             JitCapabilities::CanEncodeIPRelativeJump,
             JitCapabilities::CanMultiPush,
         ]
+    }
+
+    fn max_branch_bytes() -> u32 {
+        5 // jmp/call rel32
     }
 }
 

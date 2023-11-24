@@ -28,6 +28,7 @@ pub mod api {
     pub mod hooks {
         pub mod assembly {
             pub mod assembly_hook;
+            pub mod assembly_hook_dependencies;
             pub(crate) mod assembly_hook_impl;
         }
     }
@@ -86,7 +87,7 @@ pub mod api {
 }
 
 /// Code for all the graph algorithms.
-mod graphs {
+pub(crate) mod graphs {
     pub mod algorithms {
         pub mod move_graph_builder;
         pub mod move_optimizer;
@@ -97,8 +98,9 @@ mod graphs {
 }
 
 /// Helper functions for the library.
-pub mod helpers {
+pub(crate) mod helpers {
     pub mod alignment_space_finder;
+    pub mod allocate_with_proximity;
 
     // Benchmark and test only.
     #[doc(hidden)]
@@ -106,7 +108,7 @@ pub mod helpers {
 }
 
 /// Code optimization algorithms.
-pub mod optimize {
+pub(crate) mod optimize {
     pub mod combine_push_operations;
     pub mod eliminate_common_callee_saved_registers;
     pub mod merge_stackalloc_and_return;
@@ -115,6 +117,7 @@ pub mod optimize {
     pub mod reorder_mov_sequence;
 }
 
+// Utility Methods
 extern crate alloc;
 use alloc::boxed::Box;
 use api::{

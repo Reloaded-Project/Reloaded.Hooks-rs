@@ -36,11 +36,10 @@ mod tests {
         #[case] pointer_address: usize,
         #[case] expected_encoded: &str,
     ) {
-        let mut jit = JitX64 {};
         let jump_op = JumpAbsInd::new(pointer_address);
 
         let operations = vec![Op::JumpAbsoluteIndirect(jump_op)];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -51,11 +50,10 @@ mod tests {
         #[case] pointer_address: usize,
         #[case] expected_encoded: &str,
     ) {
-        let mut jit = JitX86 {};
         let jump_op = JumpAbsInd::new(pointer_address);
 
         let operations = vec![Op::JumpAbsoluteIndirect(jump_op)];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }

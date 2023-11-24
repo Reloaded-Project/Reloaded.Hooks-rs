@@ -4,7 +4,7 @@
 /// It helps guide memory allocations to be closer to a specific target address.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ProximityTarget {
-    /// Expected item size. Defaults to 256 for safety reasons.
+    /// Expected item size. Defaults to 128 for safety reasons.
     pub item_size: u32,
 
     /// Target address near which the allocation is intended.

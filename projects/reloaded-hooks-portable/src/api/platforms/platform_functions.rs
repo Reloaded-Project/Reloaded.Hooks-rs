@@ -12,6 +12,7 @@ use alloc::boxed::Box;
 
 use super::platform_functions_mmap_rs::{reprotect_memory_mmap_rs, unprotect_memory_mmap_rs};
 
+pub(crate) static MUTUAL_EXCLUSOR: Mutex<()> = Mutex::new(());
 pub(crate) static mut BUFFER_FACTORY: Option<Box<dyn BufferFactory>> = None;
 
 /// Getter function for the BUFFER_FACTORY

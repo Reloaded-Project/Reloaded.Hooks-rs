@@ -20,9 +20,8 @@ mod tests {
     #[rstest]
     #[case(0x7FFFFFFF, "e8faffff7f")]
     fn call_relative_x64(#[case] offset: usize, #[case] expected_encoded: &str) {
-        let mut jit = JitX64 {};
         let operations = vec![Op::CallRelative(CallRel::new(offset))];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -30,9 +29,8 @@ mod tests {
     #[rstest]
     #[case(0x7FFFFFFF, "e8faffff7f")]
     fn call_relative_x86(#[case] offset: usize, #[case] expected_encoded: &str) {
-        let mut jit = JitX86 {};
         let operations = vec![Op::CallRelative(CallRel::new(offset))];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }

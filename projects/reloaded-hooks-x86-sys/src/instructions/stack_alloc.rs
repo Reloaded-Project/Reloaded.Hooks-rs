@@ -34,9 +34,8 @@ mod tests {
     #[rstest]
     #[case(10, "4883ec0a")]
     fn stackalloc_x64(#[case] size: i32, #[case] expected_encoded: &str) {
-        let mut jit = JitX64 {};
         let operations = vec![Op::StackAlloc(StackAlloc::new(size))];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -44,9 +43,8 @@ mod tests {
     #[rstest]
     #[case(10, "83ec0a")]
     fn stackalloc_x86(#[case] size: i32, #[case] expected_encoded: &str) {
-        let mut jit = JitX86 {};
         let operations = vec![Op::StackAlloc(StackAlloc::new(size))];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }

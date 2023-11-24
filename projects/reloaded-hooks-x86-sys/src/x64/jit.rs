@@ -18,7 +18,6 @@ pub struct JitX64 {}
 /// Implementation of the x64 JIT.
 impl Jit<Register> for JitX64 {
     fn compile(
-        &mut self,
         address: usize,
         operations: &[Operation<Register>],
     ) -> Result<Rc<[u8]>, JitError<Register>> {
@@ -54,7 +53,12 @@ impl Jit<Register> for JitX64 {
             JitCapabilities::CanMultiPush,
         ]
     }
+
+    fn max_branch_bytes() -> u32 {
+        12 // mov <reg>, address + call .
+    }
 }
+
 fn encode_instruction_x64(
     assembler: &mut CodeAssembler,
     operation: &Operation<Register>,

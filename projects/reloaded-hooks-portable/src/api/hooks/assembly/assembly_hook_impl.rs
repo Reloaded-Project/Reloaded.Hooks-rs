@@ -1,9 +1,9 @@
+use super::{assembly_hook::AssemblyHook, assembly_hook_dependencies::AssemblyHookDependencies};
 use crate::api::{
-    errors::assembly_hook_error::AssemblyHookError,
-    settings::assembly_hook_settings::AssemblyHookSettings,
+    errors::assembly_hook_error::AssemblyHookError, jit::compiler::Jit,
+    length_disassembler::LengthDisassembler, platforms::platform_functions::MUTUAL_EXCLUSOR,
+    settings::assembly_hook_settings::AssemblyHookSettings, traits::register_info::RegisterInfo,
 };
-
-use super::assembly_hook::AssemblyHook;
 
 /// Creates an assembly hook at a specified location in memory.
 ///
@@ -34,10 +34,33 @@ use super::assembly_hook::AssemblyHook;
 /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 12 bytes     | 12 bytes        |
 /// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
 /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 24 bytes        |
-pub fn create_assembly_hook<'a>(
+pub fn create_assembly_hook<'a, TJit, TRegister, TDisassembler>(
     settings: &AssemblyHookSettings,
-) -> Result<AssemblyHook<'a>, AssemblyHookError> {
+    deps: &AssemblyHookDependencies<'a, TJit, TRegister, TDisassembler>,
+) -> Result<AssemblyHook<'a>, AssemblyHookError>
+where
+    TJit: Jit<TRegister>,
+    TRegister: RegisterInfo,
+    TDisassembler: LengthDisassembler,
+{
     // Documented in docs/dev/design/assembly-hooks/overview.md
+
+    // Lock native memory
+    let _guard = MUTUAL_EXCLUSOR.lock();
+
+    // Assumption: The memory is already readable, i.e. r-x or rwx
+    // Get Hook Length
+    let hook_length =
+        TDisassembler::disassemble_length(settings.hook_address, settings.max_permitted_bytes);
+
+    let a = 5;
+
+    /*
+
+       if hook_length > settings.max_permitted_bytes {
+           return Err(AssemblyHookError::TooManyBytes((), settings.max_permitted_bytes);
+       }
+    */
 
     todo!();
 }

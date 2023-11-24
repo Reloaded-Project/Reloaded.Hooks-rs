@@ -5,7 +5,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AssemblyHookSettings<'a> {
     /// Address of the function or mid function to be hooked.
-    pub hook_address: u32,
+    pub hook_address: usize,
 
     /// The assembly code to be emplaced at the hook address.
     pub asm_code: &'a [u8],
@@ -27,6 +27,9 @@ pub struct AssemblyHookSettings<'a> {
     /// Whether the hook should be activated automatically when it is created.
     /// This should be set to `true`, it is only ever set to 'false' for backwards compatibility
     /// purposes with original C# library.
+    ///
+    /// When this is set to `false`, the hook will still be 'activated' i.e. the original code will be
+    /// overwritten (for thread safety), but the hook will be activated in the disabled state.
     pub auto_activate: bool,
 }
 
@@ -38,7 +41,11 @@ impl<'a> AssemblyHookSettings<'a> {
     /// - `hook_address`: Address of the function or mid-function to be hooked.
     /// - `asm_code`: The assembly code to be emplaced at the hook address.
     /// - `max_permitted_bytes`: Maximum amount of bytes that a `jump` placed at the hook address can handle.
-    pub fn new_minimal(hook_address: u32, asm_code: &'a [u8], max_permitted_bytes: usize) -> Self {
+    pub fn new_minimal(
+        hook_address: usize,
+        asm_code: &'a [u8],
+        max_permitted_bytes: usize,
+    ) -> Self {
         AssemblyHookSettings {
             hook_address,
             asm_code,
@@ -57,7 +64,7 @@ impl<'a> AssemblyHookSettings<'a> {
     /// - `max_permitted_bytes`: Maximum amount of bytes that a `jump` placed at the hook address can handle.
     /// - `behaviour`: Defines when the assembly code will be executed in relation to the original code.
     pub fn new_with_behaviour(
-        hook_address: u32,
+        hook_address: usize,
         asm_code: &'a [u8],
         max_permitted_bytes: usize,
         behaviour: AsmHookBehaviour,
@@ -80,7 +87,7 @@ impl<'a> AssemblyHookSettings<'a> {
     /// - `asm_code_address`: Original address of the assembly code, if different from the hook address.
     /// - `max_permitted_bytes`: Maximum amount of bytes that a `jump` placed at the hook address can handle.
     pub fn new_with_asm_code_address(
-        hook_address: u32,
+        hook_address: usize,
         asm_code: &'a [u8],
         asm_code_address: usize,
         max_permitted_bytes: usize,
@@ -104,7 +111,7 @@ impl<'a> AssemblyHookSettings<'a> {
     /// - `max_permitted_bytes`: Maximum amount of bytes that a `jump` placed at the hook address can handle.
     /// - `behaviour`: Defines when the assembly code will be executed in relation to the original code.
     pub fn new(
-        hook_address: u32,
+        hook_address: usize,
         asm_code: &'a [u8],
         asm_code_address: usize,
         max_permitted_bytes: usize,

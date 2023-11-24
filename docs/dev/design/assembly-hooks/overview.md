@@ -129,7 +129,7 @@ The following table below shows common hook lengths, for:
 
 ^[1]^: x86 can reach any address from any address with relative branch due to integer overflow/wraparound.  
 ^[2]^: [`jmp [<Address>]`, with &lt;Address&gt; at &lt; 2GiB](../../arch/operations.md#jumpabsoluteindirect).  
-^[3]^: [mov <reg>, address + call <reg>](../../arch/operations.md#jumpabsolute).  
+^[3]^: [`mov <reg>, address` + `call <reg>`](../../arch/operations.md#jumpabsolute).  
 ^[4]^: macOS restricts access to `< 2GiB` memory locations, so absolute jump must be used.  
 ^[5]^: [MOVZ + MOVK + LDR + BR](../../arch/operations.md#jumpabsolute).  
 ^[6]^: [ADRP + ADD + BR](../../arch/operations.md#jumprelative).  

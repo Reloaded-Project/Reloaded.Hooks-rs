@@ -51,9 +51,8 @@ mod tests {
         #[case] target: x64::Register,
         #[case] expected_encoded: &str,
     ) {
-        let mut jit = JitX64 {};
         let operations = vec![Op::Mov(Mov { source, target })];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -68,9 +67,8 @@ mod tests {
         #[case] target: x86::Register,
         #[case] expected_encoded: &str,
     ) {
-        let mut jit = JitX86 {};
         let operations = vec![Op::Mov(Mov { source, target })];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
