@@ -98,7 +98,7 @@ pub(crate) mod graphs {
 }
 
 /// Helper functions for the library.
-pub(crate) mod helpers {
+pub mod helpers {
     pub mod alignment_space_finder;
     pub mod allocate_with_proximity;
 
@@ -122,7 +122,7 @@ extern crate alloc;
 use alloc::boxed::Box;
 use api::{
     buffers::{buffer_abstractions::BufferFactory, default_buffer_factory::DefaultBufferFactory},
-    platforms::platform_functions::BUFFER_FACTORY,
+    platforms::platform_functions::set_buf_factory,
 };
 
 /// Initializes the library, injecting the required internal components.
@@ -131,7 +131,5 @@ use api::{
 /// - `factory`: The 'buffer factory' to use. If `None`, then the default buffer factory is used.
 ///              Unless you have a good reason not to, please use reloaded-memory-buffers.
 pub fn init(factory: Option<Box<dyn BufferFactory>>) {
-    unsafe {
-        BUFFER_FACTORY = factory.or_else(|| Some(Box::new(DefaultBufferFactory::new())));
-    }
+    set_buf_factory(factory.or_else(|| Some(Box::new(DefaultBufferFactory::new()))));
 }

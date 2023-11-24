@@ -1,6 +1,6 @@
 use crate::api::{
     errors::assembly_hook_error::AssemblyHookError, jit::compiler::Jit,
-    length_disassembler::LengthDisassembler,
+    length_disassembler::LengthDisassembler, rewriter::code_rewriter::CodeRewriter,
     settings::assembly_hook_settings::AssemblyHookSettings, traits::register_info::RegisterInfo,
 };
 
@@ -66,14 +66,15 @@ impl<'a> AssemblyHook<'a> {
     ///
     /// If you are on Windows/Linux/macOS, expect the relative length to be used basically every time
     /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.
-    pub fn new<TJit, TRegister, TDisassembler>(
+    pub fn new<TJit, TRegister, TDisassembler, TRewriter>(
         settings: &AssemblyHookSettings,
-        deps: &AssemblyHookDependencies<'a, TJit, TRegister, TDisassembler>,
+        deps: &AssemblyHookDependencies<'a, TJit, TRegister, TDisassembler, TRewriter>,
     ) -> Result<AssemblyHook<'a>, AssemblyHookError>
     where
         TJit: Jit<TRegister>,
         TRegister: RegisterInfo,
         TDisassembler: LengthDisassembler,
+        TRewriter: CodeRewriter<TRegister>,
     {
         return create_assembly_hook(settings, deps);
     }

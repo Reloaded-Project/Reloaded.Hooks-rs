@@ -40,6 +40,9 @@ pub trait CodeRewriter<TRegister> {
         new_address: *const u8,
         scratch_register: Option<TRegister>,
     ) -> Result<Vec<u8>, CodeRewriterError>;
+
+    /// Returns the maximum number of bytes that a single instruction can increase in size
+    fn max_ins_size_increase() -> usize;
 }
 
 /// Errors that can occur during JIT compilation.

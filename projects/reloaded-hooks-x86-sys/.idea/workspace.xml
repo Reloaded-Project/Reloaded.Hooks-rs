@@ -8,17 +8,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="65a67985-6886-4465-9b2e-7519418cbd22" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/../../.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.reloaded-hooks-x86-sys.dir/.idea/projectSettingsUpdater.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/.idea.reloaded-hooks-x86-sys.dir/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/common/disasm.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../../docs/dev/arch/arm64/code_relocation.md" beforeDir="false" afterPath="$PROJECT_DIR$/../../docs/dev/arch/arm64/code_relocation.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/rewriter/code_rewriter.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/rewriter/code_rewriter.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/all_registers.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/all_registers.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/lib.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/lib.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/hooks/assembly/assembly_hook_impl.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/hooks/assembly/assembly_hook_impl.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -45,34 +35,34 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent">{
-  &quot;keyToString&quot;: {
-    &quot;Cargo.Build reloaded-hooks-x86-sys.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Test call_absolute::tests (1).executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Test call_absolute::tests.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Test common::disasm::tests::relocate_64b.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Test common::disasm::tests::relocate_beyond_2gib_64b.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Test disasm::tests (1).executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Test disasm::tests.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Test instructions::call_absolute::tests::call_absolute_x64.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.Test instructions::call_absolute::tests::call_absolute_x86.executor&quot;: &quot;Run&quot;,
-    &quot;Cargo.test.executor&quot;: &quot;Run&quot;,
-    &quot;RunOnceActivity.OpenProjectViewOnStart&quot;: &quot;true&quot;,
-    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
-    &quot;code.cleanup.on.save&quot;: &quot;true&quot;,
-    &quot;deletionFromPopupRequiresConfirmation&quot;: &quot;false&quot;,
-    &quot;git-widget-placeholder&quot;: &quot;code-rewriter-x86&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/mnt/BTRFSSharedData/Projects/Reloaded.Hooks-rs/projects/reloaded-hooks-x86-sys&quot;,
-    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
-    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
-    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
-    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
-    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
-    &quot;org.rust.cargo.project.model.PROJECT_DISCOVERY&quot;: &quot;true&quot;,
-    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
-    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Cargo.Build reloaded-hooks-x86-sys.executor": "Run",
+    "Cargo.Test call_absolute::tests (1).executor": "Run",
+    "Cargo.Test call_absolute::tests.executor": "Run",
+    "Cargo.Test common::disasm::tests::relocate_64b.executor": "Run",
+    "Cargo.Test common::disasm::tests::relocate_beyond_2gib_64b.executor": "Run",
+    "Cargo.Test disasm::tests (1).executor": "Run",
+    "Cargo.Test disasm::tests.executor": "Run",
+    "Cargo.Test instructions::call_absolute::tests::call_absolute_x64.executor": "Run",
+    "Cargo.Test instructions::call_absolute::tests::call_absolute_x86.executor": "Run",
+    "Cargo.test.executor": "Run",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "code.cleanup.on.save": "true",
+    "deletionFromPopupRequiresConfirmation": "false",
+    "git-widget-placeholder": "assembly-hooks",
+    "last_opened_file_path": "/mnt/BTRFSSharedData/Projects/Reloaded.Hooks-rs/projects/reloaded-hooks-portable/Cargo.toml",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
+    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "vue.rearranger.settings.migration": "true"
   }
-}</component>
+}]]></component>
   <component name="RsExternalLinterProjectSettings">
     <option name="runOnTheFly" value="true" />
   </component>
@@ -135,8 +125,8 @@
     </configuration>
     <list>
       <item itemvalue="Cargo.Test common::disasm::tests::relocate_64b" />
-      <item itemvalue="Cargo.test" />
       <item itemvalue="Cargo.Test disasm::tests" />
+      <item itemvalue="Cargo.test" />
     </list>
     <recent_temporary>
       <list>
@@ -173,6 +163,7 @@
       <workItem from="1699128130705" duration="2894000" />
       <workItem from="1699131630676" duration="3195000" />
       <workItem from="1699136308170" duration="53000" />
+      <workItem from="1700795521714" duration="11000" />
     </task>
     <servers />
   </component>

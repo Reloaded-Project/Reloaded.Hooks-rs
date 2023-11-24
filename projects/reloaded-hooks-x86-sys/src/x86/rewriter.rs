@@ -32,4 +32,8 @@ impl CodeRewriter<AllRegisters> for CodeRewriterX86 {
         )?;
         Ok(result)
     }
+
+    fn max_ins_size_increase() -> usize {
+        4 // jmp imm8 to jmp dword [ptr]
+    }
 }

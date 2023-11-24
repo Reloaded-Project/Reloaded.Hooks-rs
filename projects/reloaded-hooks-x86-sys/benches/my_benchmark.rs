@@ -17,7 +17,7 @@ fn benchmark_compile_only(c: &mut Criterion) {
     let mut jit = JitX64 {};
     let ops = create_operations_64();
     c.bench_function("assemble_x64_compile_only", |b| {
-        b.iter(|| black_box(compile_instructions_64(&mut jit, 0, &ops)))
+        b.iter(|| black_box(compile_instructions_64(0, &ops)))
     });
 }
 

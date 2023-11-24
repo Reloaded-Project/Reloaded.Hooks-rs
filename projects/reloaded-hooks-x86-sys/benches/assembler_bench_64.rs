@@ -12,9 +12,8 @@ use reloaded_hooks_x86_sys::x64::{self, jit::JitX64, Register};
 pub(crate) fn create_and_assemble_instructions_64(
     address: usize,
 ) -> Result<Rc<[u8]>, JitError<x64::Register>> {
-    let mut jit = JitX64 {};
     let operations = create_operations_64();
-    compile_instructions_64(&mut jit, address, &operations)
+    compile_instructions_64(address, &operations)
 }
 
 pub(crate) fn create_operations_64() -> Vec<Operation<Register>> {
@@ -37,9 +36,8 @@ pub(crate) fn create_operations_64() -> Vec<Operation<Register>> {
 }
 
 pub(crate) fn compile_instructions_64(
-    jit: &mut JitX64,
     address: usize,
     operations: &[Operation<Register>],
 ) -> Result<Rc<[u8]>, JitError<Register>> {
-    jit.compile(address, operations)
+    JitX64::compile(address, operations)
 }

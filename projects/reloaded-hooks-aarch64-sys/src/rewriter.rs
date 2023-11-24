@@ -20,4 +20,8 @@ impl CodeRewriter<AllRegisters> for CodeRewriterX64 {
             scratch_register.map(|reg| reg.register_number() as u8),
         )
     }
+
+    fn max_ins_size_increase() -> usize {
+        20 // b rel to MOVZ + MOVK + LDR + BR.
+    }
 }

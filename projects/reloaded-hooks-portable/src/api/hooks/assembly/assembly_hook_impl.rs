@@ -1,8 +1,12 @@
 use super::{assembly_hook::AssemblyHook, assembly_hook_dependencies::AssemblyHookDependencies};
 use crate::api::{
-    errors::assembly_hook_error::AssemblyHookError, jit::compiler::Jit,
-    length_disassembler::LengthDisassembler, platforms::platform_functions::MUTUAL_EXCLUSOR,
-    settings::assembly_hook_settings::AssemblyHookSettings, traits::register_info::RegisterInfo,
+    errors::assembly_hook_error::AssemblyHookError,
+    jit::compiler::Jit,
+    length_disassembler::LengthDisassembler,
+    platforms::platform_functions::MUTUAL_EXCLUSOR,
+    rewriter::code_rewriter::CodeRewriter,
+    settings::assembly_hook_settings::{AsmHookBehaviour, AssemblyHookSettings},
+    traits::register_info::RegisterInfo,
 };
 
 /// Creates an assembly hook at a specified location in memory.
@@ -34,26 +38,36 @@ use crate::api::{
 /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 12 bytes     | 12 bytes        |
 /// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
 /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 24 bytes        |
-pub fn create_assembly_hook<'a, TJit, TRegister, TDisassembler>(
+pub fn create_assembly_hook<'a, TJit, TRegister, TDisassembler, TRewriter>(
     settings: &AssemblyHookSettings,
-    deps: &AssemblyHookDependencies<'a, TJit, TRegister, TDisassembler>,
+    deps: &AssemblyHookDependencies<'a, TJit, TRegister, TDisassembler, TRewriter>,
 ) -> Result<AssemblyHook<'a>, AssemblyHookError>
 where
     TJit: Jit<TRegister>,
     TRegister: RegisterInfo,
     TDisassembler: LengthDisassembler,
+    TRewriter: CodeRewriter<TRegister>,
 {
     // Documented in docs/dev/design/assembly-hooks/overview.md
 
-    // Lock native memory
+    // Assumption: The memory at hook point is already readable, i.e. r-x or rwx
+
+    // Length of original code.
+    let orig_code_length = if settings.behaviour == AsmHookBehaviour::DoNotExecuteOriginal {
+        0
+    } else {
+        settings.max_permitted_bytes
+    };
+
+    let stub_hook_length = settings.asm_code.len() + TJit::max_branch_bytes() as usize;
+
+    // Get Hook Length
+
+    // Lock native function memory, to ensure we get accurate info.
     let _guard = MUTUAL_EXCLUSOR.lock();
 
-    // Assumption: The memory is already readable, i.e. r-x or rwx
-    // Get Hook Length
     let hook_length =
         TDisassembler::disassemble_length(settings.hook_address, settings.max_permitted_bytes);
-
-    let a = 5;
 
     /*
 

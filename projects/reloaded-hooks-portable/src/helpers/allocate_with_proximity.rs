@@ -3,13 +3,13 @@ extern crate alloc;
 use crate::api::{
     buffers::buffer_abstractions::{Buffer, BufferFactory},
     jit::compiler::Jit,
-    platforms::platform_functions::get_factory,
+    platforms::platform_functions::get_buf_factory,
     settings::proximity_target::ProximityTarget,
     traits::register_info::RegisterInfo,
 };
 use alloc::boxed::Box;
 
-pub(crate) fn get_buffer_from_factory<TJit, TRegister>(
+pub(crate) fn allocate_with_proximity<TJit, TRegister>(
     target_address: usize,
     target_size: u32,
 ) -> (bool, Box<dyn Buffer>)
@@ -17,7 +17,7 @@ where
     TJit: Jit<TRegister>,
     TRegister: RegisterInfo,
 {
-    let buffer_factory: &mut Box<dyn BufferFactory> = get_factory();
+    let buffer_factory: &mut Box<dyn BufferFactory> = get_buf_factory();
 
     // Try known relative jump ranges.
     for &requested_proximity in TJit::max_relative_jump_distances() {

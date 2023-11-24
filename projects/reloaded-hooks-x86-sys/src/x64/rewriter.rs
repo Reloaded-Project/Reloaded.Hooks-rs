@@ -32,4 +32,8 @@ impl CodeRewriter<AllRegisters> for CodeRewriterX64 {
         )?;
         Ok(result)
     }
+
+    fn max_ins_size_increase() -> usize {
+        14 // see: patches::patch_jcx
+    }
 }

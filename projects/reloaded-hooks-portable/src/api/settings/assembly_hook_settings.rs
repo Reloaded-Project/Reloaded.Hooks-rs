@@ -16,8 +16,9 @@ pub struct AssemblyHookSettings<'a> {
     /// before being written
     pub asm_code_address: usize,
 
-    /// Maximum amount of bytes that a `jump` placed at the hook address can handle.
-    /// Values larger than this will cause an error to be returned from the hook function.
+    /// Maximum amount of bytes that are allowed to be overwritten at [`AssemblyHookSettings::hook_address`].
+    ///
+    /// If the library tries to overwrite more bytes than this value, then an error will be returned.
     pub max_permitted_bytes: usize,
 
     /// Defines the behaviour of the assembly hook. This can be executing your code before original,

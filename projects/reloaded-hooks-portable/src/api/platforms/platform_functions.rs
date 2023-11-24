@@ -13,14 +13,21 @@ use alloc::boxed::Box;
 use super::platform_functions_mmap_rs::{reprotect_memory_mmap_rs, unprotect_memory_mmap_rs};
 
 pub(crate) static MUTUAL_EXCLUSOR: Mutex<()> = Mutex::new(());
-pub(crate) static mut BUFFER_FACTORY: Option<Box<dyn BufferFactory>> = None;
+static mut BUFFER_FACTORY: Option<Box<dyn BufferFactory>> = None;
 
 /// Getter function for the BUFFER_FACTORY
-pub(crate) fn get_factory() -> &'static mut Box<dyn BufferFactory> {
+pub(crate) fn get_buf_factory() -> &'static mut Box<dyn BufferFactory> {
     unsafe {
         BUFFER_FACTORY
             .as_mut()
             .expect("Buffer factory is not initialized")
+    }
+}
+
+/// Setter function for the BUFFER_FACTORY
+pub(crate) fn set_buf_factory(factory: Option<Box<dyn BufferFactory>>) {
+    unsafe {
+        BUFFER_FACTORY = factory;
     }
 }
 

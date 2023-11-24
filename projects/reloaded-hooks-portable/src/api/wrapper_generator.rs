@@ -8,13 +8,8 @@ use alloc::vec::Vec;
 use crate::{api::jit::operation::Operation, helpers::allocate_with_proximity};
 
 use super::{
-    buffers::buffer_abstractions::{Buffer, BufferFactory},
-    calling_convention_info::CallingConventionInfo,
-    function_info::FunctionInfo,
-    jit::compiler::Jit,
-    platforms::platform_functions::get_factory,
-    settings::proximity_target::ProximityTarget,
-    traits::register_info::RegisterInfo,
+    buffers::buffer_abstractions::Buffer, calling_convention_info::CallingConventionInfo,
+    function_info::FunctionInfo, jit::compiler::Jit, traits::register_info::RegisterInfo,
 };
 
 /// Options and additional context necessary for the wrapper generator.
@@ -46,7 +41,7 @@ where
     TJit: Jit<TRegister>,
 {
     fn get_buffer_from_factory(&self) -> (bool, Box<dyn Buffer>) {
-        allocate_with_proximity::get_buffer_from_factory::<TJit, TRegister>(
+        allocate_with_proximity::allocate_with_proximity::<TJit, TRegister>(
             self.target_address,
             128,
         )
