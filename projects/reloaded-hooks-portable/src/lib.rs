@@ -40,6 +40,9 @@ pub mod api {
         #[allow(warnings)]
         pub mod platform_functions;
 
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        pub mod platform_functions_apple;
+
         #[allow(warnings)]
         mod platform_functions_mmap_rs;
     }

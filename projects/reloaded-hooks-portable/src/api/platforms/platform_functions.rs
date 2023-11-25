@@ -10,7 +10,10 @@ use crate::api::buffers::{
 
 use alloc::boxed::Box;
 
-use super::platform_functions_mmap_rs::{reprotect_memory_mmap_rs, unprotect_memory_mmap_rs};
+use super::{
+    platform_functions_apple,
+    platform_functions_mmap_rs::{reprotect_memory_mmap_rs, unprotect_memory_mmap_rs},
+};
 
 pub(crate) static MUTUAL_EXCLUSOR: Mutex<()> = Mutex::new(());
 static mut BUFFER_FACTORY: Option<Box<dyn BufferFactory>> = None;
@@ -44,7 +47,7 @@ pub static mut DISABLE_WRITE_XOR_EXECUTE: fn(*const u8, usize) -> Result<Option<
     disable_write_xor_execute;
 
 /// See [`restore_write_xor_execute`].
-pub static mut RESTORE_WRITE_XOR_EXECUTE: fn(*const u8, usize) -> Result<(), String> =
+pub static mut RESTORE_WRITE_XOR_EXECUTE: fn(*const u8, usize, usize) -> Result<(), String> =
     restore_write_xor_execute;
 
 /// Removes protection from a memory region.
@@ -106,7 +109,10 @@ pub fn reprotect_memory(address: *const u8, size: usize, protection: usize) -> R
 /// The idea is that you use memory which is read_write_execute (MAP_JIT if mmap),
 /// then disable W^X for the current thread. Then we write the code, and re-enable W^X.
 pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Result<Option<usize>, String> {
-    Ok(Some(0))
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    platform_functions_apple::disable_write_xor_execute(address, size);
+
+    Ok(None)
 }
 
 /// Restores write XOR execute protection.
@@ -120,7 +126,13 @@ pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Result<Opti
 /// # Returns
 ///
 /// Success or error.
-pub fn restore_write_xor_execute(address: *const u8, size: usize) -> Result<(), String> {
-    // TODO: Implement for Apple M1
+pub fn restore_write_xor_execute(
+    address: *const u8,
+    size: usize,
+    protection: usize,
+) -> Result<(), String> {
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    platform_functions_apple::restore_write_xor_execute(address, size, protection);
+
     Ok(())
 }

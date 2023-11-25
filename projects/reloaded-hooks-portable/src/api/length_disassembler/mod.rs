@@ -34,8 +34,13 @@ pub trait LengthDisassembler {
     /// - `min_length`: The minimum total length in bytes of the instructions to be disassembled.
     ///
     /// # Returns
-    /// The method returns the total length (in bytes) of the disassembled instructions.
+    ///
+    /// This Method Returns a Tuple
+    ///
+    /// .0 The total length (in bytes) of the disassembled instructions.
     /// This length is guaranteed to be greater than or equal to `min_length`.
+    ///
+    /// .1 The number of instructions disassembled.
     ///
     /// # Example
     ///
@@ -50,9 +55,5 @@ pub trait LengthDisassembler {
     /// # Safety
     ///
     /// [`code_address`] better point to a valid address, or you're screwed.
-    ///
-    /// # Returns
-    ///
-    /// Tuple, with first element being length in bytes, and second being number of instructions.
     fn disassemble_length(code_address: usize, min_length: usize) -> (usize, usize);
 }

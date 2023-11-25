@@ -1,6 +1,6 @@
 extern crate alloc;
 use alloc::string::String;
-use mmap_rs::{MemoryArea, Mmap, MmapOptions};
+use mmap_rs_with_map_from_existing::{MemoryArea, Mmap, MmapOptions};
 
 /// Removes protection from a memory region.
 /// This makes it such that existing game code can be safely overwritten.
