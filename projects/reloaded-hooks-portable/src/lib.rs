@@ -28,7 +28,6 @@ pub mod api {
     pub mod hooks {
         pub mod assembly {
             pub mod assembly_hook;
-            pub mod assembly_hook_dependencies;
             pub(crate) mod assembly_hook_impl;
         }
     }
@@ -40,11 +39,20 @@ pub mod api {
         #[allow(warnings)]
         pub mod platform_functions;
 
+        // The easiest OS to work with tbh
+        #[cfg(target_os = "windows")]
+        pub mod platform_functions_windows;
+
+        // Good boys and girls that follow the unix standard go here
+        #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
+        pub mod platform_functions_unix;
+
+        // and apple goes here...
         #[cfg(any(target_os = "macos", target_os = "ios"))]
         pub mod platform_functions_apple;
 
-        #[allow(warnings)]
-        mod platform_functions_mmap_rs;
+        #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+        pub(crate) mod platform_functions_mmap_rs;
     }
 
     /// Public API related to Just In Time Compilation
@@ -104,6 +112,7 @@ pub(crate) mod graphs {
 pub mod helpers {
     pub mod alignment_space_finder;
     pub mod allocate_with_proximity;
+    pub mod icache_clear;
 
     // Benchmark and test only.
     #[doc(hidden)]

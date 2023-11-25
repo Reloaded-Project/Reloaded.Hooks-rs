@@ -46,13 +46,21 @@ pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Result<Opti
             &mut object_name,
         );
 
-        mach_vm_protect(
+        if result != KERN_SUCCESS {
+            panic!("Failed to retrieve VM region info");
+        }
+
+        let protect_result = mach_vm_protect(
             mach_task_self(),
             address as u64,
             size as mach_vm_size_t,
             0,
             VM_PROT_READ | VM_PROT_WRITE,
         );
+
+        if protect_result != KERN_SUCCESS {
+            panic!("Failed to switch to read/write protection");
+        }
 
         Ok(Some(region_info.protection as usize))
     }
@@ -75,13 +83,46 @@ pub fn restore_write_xor_execute(
     protection: usize,
 ) -> Result<(), String> {
     unsafe {
-        mach_vm_protect(
+        let result = mach_vm_protect(
             mach_task_self(),
             address as u64,
             size as mach_vm_size_t,
             0,
             protection as i32,
         );
+
+        if result != KERN_SUCCESS {
+            panic!("Failed to switch to original protection");
+        }
+    }
+
+    Ok(())
+}
+
+/// Removes protection from a memory region.
+/// This makes it such that existing game code can be safely overwritten.
+///
+/// # Parameters
+///
+/// - `address`: The address of the memory to disable write XOR execute protection for.
+/// - `size`: The size of the memory to disable write XOR execute protection for.
+///
+/// # Returns
+///
+/// Success or error.
+pub fn unprotect_memory(address: *const u8, size: usize) -> Result<(), String> {
+    unsafe {
+        let result = mach_vm_protect(
+            mach_task_self(),
+            address as u64,
+            size as mach_vm_size_t,
+            0,
+            VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE,
+        );
+
+        if result != KERN_SUCCESS {
+            panic!("Failed to unprotect memory");
+        }
     }
 
     Ok(())

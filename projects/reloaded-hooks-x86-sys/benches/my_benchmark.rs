@@ -6,7 +6,6 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 #[cfg(not(target_os = "windows"))]
 use pprof::criterion::{Output, PProfProfiler};
-use reloaded_hooks_x86_sys::x64::jit::JitX64;
 
 fn criterion_benchmark(c: &mut Criterion) {
     benchmark_assemble_x64_total(c);
@@ -14,7 +13,6 @@ fn criterion_benchmark(c: &mut Criterion) {
 }
 
 fn benchmark_compile_only(c: &mut Criterion) {
-    let mut jit = JitX64 {};
     let ops = create_operations_64();
     c.bench_function("assemble_x64_compile_only", |b| {
         b.iter(|| black_box(compile_instructions_64(0, &ops)))

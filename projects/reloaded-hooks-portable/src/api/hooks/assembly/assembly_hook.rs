@@ -1,11 +1,8 @@
+use super::assembly_hook_impl::create_assembly_hook;
 use crate::api::{
     errors::assembly_hook_error::AssemblyHookError, jit::compiler::Jit,
     length_disassembler::LengthDisassembler, rewriter::code_rewriter::CodeRewriter,
     settings::assembly_hook_settings::AssemblyHookSettings, traits::register_info::RegisterInfo,
-};
-
-use super::{
-    assembly_hook_dependencies::AssemblyHookDependencies, assembly_hook_impl::create_assembly_hook,
 };
 
 /// Represents an assembly hook.
@@ -68,7 +65,6 @@ impl<'a> AssemblyHook<'a> {
     /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.
     pub fn new<TJit, TRegister, TDisassembler, TRewriter>(
         settings: &AssemblyHookSettings,
-        deps: &AssemblyHookDependencies<'a, TJit, TRegister, TDisassembler, TRewriter>,
     ) -> Result<AssemblyHook<'a>, AssemblyHookError>
     where
         TJit: Jit<TRegister>,
@@ -76,7 +72,7 @@ impl<'a> AssemblyHook<'a> {
         TDisassembler: LengthDisassembler,
         TRewriter: CodeRewriter<TRegister>,
     {
-        return create_assembly_hook(settings, deps);
+        return create_assembly_hook::<TJit, TRegister, TDisassembler, TRewriter>(settings);
     }
 
     /// Enables the hook.

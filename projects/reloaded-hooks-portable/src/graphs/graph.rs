@@ -100,6 +100,7 @@ where
     }
 
     /// Returns true if the graph is empty.
+    #[allow(dead_code)]
     pub fn is_empty(&self) -> bool {
         self.values.len() == 0
     }

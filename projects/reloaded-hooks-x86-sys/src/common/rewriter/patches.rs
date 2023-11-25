@@ -8,7 +8,7 @@ use crate::common::util::iced_extensions::is_immediate;
 use crate::common::util::invert_branch_condition::invert_branch_condition;
 use crate::{all_registers::AllRegisters, common::util::get_instruction_length};
 use alloc::string::ToString;
-use iced_x86::{Code, Instruction, MemoryOperand, OpKind, Register};
+use iced_x86::{Code, Instruction, MemoryOperand, OpKind};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use smallvec::SmallVec;
 

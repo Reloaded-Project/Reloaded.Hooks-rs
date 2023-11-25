@@ -11,19 +11,20 @@
 | Feature                                                               | Windows | Linux | macOS |
 | --------------------------------------------------------------------- | ------- | ----- | ----- |
 | [Permission Change](#required-permission-change)                      | ✅       | ✅     | ✅     |
-| [W^X Disable/Restore](#required-wx-disablerestore)                    | N/A       | ✅ [1]     | ❌ [2]     |
+| [W^X Disable/Restore](#required-wx-disablerestore)                    | N/A       | N/A [1]     | ⚠️ [2]     |
 | [Targeted Memory Allocation](#recommended-targeted-memory-allocation) | ✅       | ✅     | ✅     |
 
 [1] May be present depending on kernel configuration. Have not done adequate research.  
-[2] Needed for Apple Silicon only? [Open Issue](https://github.com/Reloaded-Project/Reloaded.Hooks-rs/issues/1)
+[2] Needed for [Apple Silicon only](https://github.com/Reloaded-Project/Reloaded.Hooks-rs/issues/1).
 
 ## How to Implement
 
 !!! tip "The library provides a `platform_functions.rs` file which contains all the platform specific functions."
 
-It's recommended you submit a PR to add support for your platform. If your platform is very 
-custom/esoteric, you may alternatively replace the pointers in `platform_functions.rs` with your 
-own implementation, that will work too.
+It's recommended you submit a PR to add support for your platform. 
+
+If your platform is very custom/esoteric, you may alternatively replace the pointers in 
+`platform_functions.rs` with your own implementation, that will work too.
 
 ## (Required) Permission Change
 
@@ -32,9 +33,9 @@ own implementation, that will work too.
 Notably for the use cases of this library, the `.text` section is usually non-writeable, which 
 prevents hooking app functions out of the box.  
 
-To work around this, the library will call the `unprotect` function in `platform_functions.rs` before applying
-a function and `protect` function to restore protection. For non-common OSes, you must replace these functions
-with your own implementation(s).
+To work around this, the library will call the `unprotect` function in `platform_functions.rs` before 
+making code changes in memory. It will then (for performance reasons) leave the memory unprotected 
+for the lifetime of the process (assuming it remains unprotected).
 
 For the common operating systems; the `protect`/`unprotect` functions map to the following API calls:  
 
@@ -43,7 +44,7 @@ For the common operating systems; the `protect`/`unprotect` functions map to the
 
 ## (Required) W^X Disable/Restore
 
-!!! note "Only affects some platforms."
+!!! note "Only required on Apple, opt in on Linux/Windows but haven't used in a game software in the wild."
 
 !!! info 
 
@@ -52,7 +53,8 @@ For the common operating systems; the `protect`/`unprotect` functions map to the
 
 - [Relevant Issue for macOS M1](https://github.com/Reloaded-Project/Reloaded.Hooks-rs/issues/1)
 
-To work around this, the library will call the `disable_write_xor_execute` function in `platform_functions.rs` before making changes and call `restore_write_xor_execute` after.
+To work around this, the library will call the `disable_write_xor_execute` function in `platform_functions.rs` 
+ahead of every function call. It will then call `restore_write_xor_execute` after.
 
 ## (Recommended) Targeted Memory Allocation
 

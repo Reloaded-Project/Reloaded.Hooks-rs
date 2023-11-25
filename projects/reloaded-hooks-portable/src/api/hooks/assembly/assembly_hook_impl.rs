@@ -1,6 +1,6 @@
 use core::cmp::max;
 
-use super::{assembly_hook::AssemblyHook, assembly_hook_dependencies::AssemblyHookDependencies};
+use super::assembly_hook::AssemblyHook;
 use crate::api::{
     errors::assembly_hook_error::AssemblyHookError,
     jit::compiler::Jit,
@@ -42,7 +42,6 @@ use crate::api::{
 /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 24 bytes        |
 pub fn create_assembly_hook<'a, TJit, TRegister, TDisassembler, TRewriter>(
     settings: &AssemblyHookSettings,
-    deps: &AssemblyHookDependencies<'a, TJit, TRegister, TDisassembler, TRewriter>,
 ) -> Result<AssemblyHook<'a>, AssemblyHookError>
 where
     TJit: Jit<TRegister>,
@@ -56,7 +55,7 @@ where
     // Lock native function memory, to ensure we get accurate info.
     let _guard = MUTUAL_EXCLUSOR.lock();
 
-    let orig_code_length = get_relocated_code_length::<TDisassembler, TRewriter, TRegister, TJit>(
+    let orig_code_length = get_relocated_code_length::<TDisassembler, TRewriter, TRegister>(
         settings.hook_address,
         settings.max_permitted_bytes,
     );
@@ -104,7 +103,7 @@ where
     TJit: Jit<TRegister>,
 {
     // New code length + extra max possible length + jmp back to original code
-    let hook_code_length = get_relocated_code_length::<TDisassembler, TRewriter, TRegister, TJit>(
+    let hook_code_length = get_relocated_code_length::<TDisassembler, TRewriter, TRegister>(
         settings.asm_code.as_ptr() as usize,
         settings.asm_code.len(),
     );
@@ -118,7 +117,7 @@ where
 }
 
 /// Retrieves the max possible ASM length for the given code once relocated to the 'Hook Function'.
-fn get_relocated_code_length<TDisassembler, TRewriter, TRegister, TJit>(
+fn get_relocated_code_length<TDisassembler, TRewriter, TRegister>(
     code_address: usize,
     min_length: usize,
 ) -> usize
@@ -126,7 +125,6 @@ where
     TRegister: RegisterInfo,
     TDisassembler: LengthDisassembler,
     TRewriter: CodeRewriter<TRegister>,
-    TJit: Jit<TRegister>,
 {
     let len = TDisassembler::disassemble_length(code_address, min_length);
     let extra_length = len.1 * TRewriter::max_ins_size_increase();
