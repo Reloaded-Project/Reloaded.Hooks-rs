@@ -61,6 +61,6 @@ ahead of every function call. It will then call `restore_write_xor_execute` afte
 !!! info
 
     The process of [code relocation](../arch/overview.md#code-relocation) might require that new location of the code
-    is within a certain region of the old code, usually 2GB or 4GB (depending on platform).
+    is within a certain region of the old code, usually 128MiB, 2GiB or 4GiB (depending on platform).
 
 In this case, you must walk over the memory pages of a process; and find a suitable place to allocate 😉
