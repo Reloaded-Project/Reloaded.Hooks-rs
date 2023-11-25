@@ -9,5 +9,5 @@ pub enum AssemblyHookError {
     #[error(
         "Too many bytes were required {0:?} to encode the instruction. Maximum permitted: {1:?}"
     )]
-    TooManyBytes(isize, isize),
+    TooManyBytes(usize, usize),
 }

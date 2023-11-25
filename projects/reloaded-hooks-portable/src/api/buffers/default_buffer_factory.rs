@@ -6,8 +6,10 @@ use alloc::string::String;
 use alloc::string::ToString;
 use alloc::vec::Vec;
 use core::cell::RefCell;
+use core::mem;
 use core::ptr::NonNull;
 use core::sync::atomic::{AtomicBool, Ordering};
+use mmap_rs_with_map_from_existing::UnsafeMmapFlags;
 use spin::RwLock;
 
 use super::buffer_abstractions::{Buffer, BufferFactory};
@@ -82,26 +84,29 @@ impl BufferFactory for DefaultBufferFactory {
 
         // If no buffer was found, create a new one
         let mut write_lock = self.buffers.write();
-        let layout = Layout::from_size_align(size as usize, alignment as usize)
-            .map_err(|x| x.to_string())
-            .unwrap();
-        let ptr = unsafe { alloc(layout) };
-        if ptr.is_null() {
-            unreachable!("(M)alloc failure should panic.")
-        } else {
-            let buffer = Rc::new(AllocatedBuffer {
-                ptr: NonNull::new(ptr).unwrap(),
-                write_offset: RefCell::new(0),
-                size,
-                layout,
-                locked: AtomicBool::new(true),
-            });
+        let mut map = unsafe {
+            mmap_rs_with_map_from_existing::MmapOptions::new(size as usize)
+                .unwrap()
+                .with_unsafe_flags(UnsafeMmapFlags::JIT)
+                .map_exec_mut()
+                .unwrap()
+        };
 
-            write_lock.push(buffer.clone());
-            Ok(Box::new(LockedBuffer {
-                buffer: buffer.clone(),
-            }))
-        }
+        // Don't drop the map!
+        let ptr = map.as_mut_ptr();
+        mem::forget(map);
+
+        let buffer = Rc::new(AllocatedBuffer {
+            ptr: NonNull::new(ptr).unwrap(),
+            write_offset: RefCell::new(0),
+            size,
+            locked: AtomicBool::new(true),
+        });
+
+        write_lock.push(buffer.clone());
+        Ok(Box::new(LockedBuffer {
+            buffer: buffer.clone(),
+        }))
     }
 }
 

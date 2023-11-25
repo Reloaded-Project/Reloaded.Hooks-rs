@@ -1,5 +1,4 @@
 extern crate alloc;
-use alloc::alloc::{dealloc, Layout};
 use alloc::rc::Rc;
 use core::cell::RefCell;
 use core::ptr::NonNull;
@@ -11,7 +10,6 @@ pub struct AllocatedBuffer {
     pub(crate) ptr: NonNull<u8>,
     pub(crate) write_offset: RefCell<u32>,
     pub(crate) size: u32,
-    pub(crate) layout: Layout,
     pub(crate) locked: AtomicBool,
 }
 
@@ -28,7 +26,6 @@ impl Clone for AllocatedBuffer {
             ptr: self.ptr,
             write_offset: self.write_offset.clone(),
             size: self.size,
-            layout: self.layout,
             locked: AtomicBool::new(self.locked.load(Ordering::Relaxed)),
         }
     }
@@ -75,6 +72,6 @@ impl Drop for LockedBuffer {
 
 impl Drop for AllocatedBuffer {
     fn drop(&mut self) {
-        unsafe { dealloc(self.ptr.as_ptr(), self.layout) }
+        // These buffers are supposed to last the lifetime of the process.
     }
 }

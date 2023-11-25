@@ -9,6 +9,20 @@ use crate::api::{
 };
 use alloc::boxed::Box;
 
+/// Allocates a buffer with a specified proximity to a target address.
+/// Returns a tuple of (is_proximity, buffer).
+///
+/// # Arguments
+///
+/// * `target_address` - The target address to allocate a buffer for.
+/// * `target_size` - The size of the target address.
+///
+/// # Returns
+///
+/// Returns a tuple of (is_proximity, buffer).
+/// * `is_proximity` - Whether the buffer was allocated with any JIT specified proximity.
+///                    If false, it was allocated in random place in RAM.
+/// * `buffer` - The allocated buffer.
 pub(crate) fn allocate_with_proximity<TJit, TRegister>(
     target_address: usize,
     target_size: u32,

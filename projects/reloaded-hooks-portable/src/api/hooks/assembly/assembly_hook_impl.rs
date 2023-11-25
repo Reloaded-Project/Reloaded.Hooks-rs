@@ -1,14 +1,17 @@
 use core::cmp::max;
 
 use super::assembly_hook::AssemblyHook;
-use crate::api::{
-    errors::assembly_hook_error::AssemblyHookError,
-    jit::compiler::Jit,
-    length_disassembler::LengthDisassembler,
-    platforms::platform_functions::MUTUAL_EXCLUSOR,
-    rewriter::code_rewriter::CodeRewriter,
-    settings::assembly_hook_settings::{AsmHookBehaviour, AssemblyHookSettings},
-    traits::register_info::RegisterInfo,
+use crate::{
+    api::{
+        errors::assembly_hook_error::AssemblyHookError,
+        jit::compiler::Jit,
+        length_disassembler::LengthDisassembler,
+        platforms::platform_functions::MUTUAL_EXCLUSOR,
+        rewriter::code_rewriter::CodeRewriter,
+        settings::assembly_hook_settings::{AsmHookBehaviour, AssemblyHookSettings},
+        traits::register_info::RegisterInfo,
+    },
+    helpers::allocate_with_proximity::allocate_with_proximity,
 };
 
 /// Creates an assembly hook at a specified location in memory.
@@ -53,14 +56,25 @@ where
 
     // Assumption: The memory at hook point is already readable, i.e. r-x or rwx
     // Lock native function memory, to ensure we get accurate info.
+    // This should make hooking operation thread safe provided no presence of 3rd party
+    // library instances, which is a-ok for Reloaded3.
     let _guard = MUTUAL_EXCLUSOR.lock();
 
+    // Length of the originanl code at the insertion address
     let orig_code_length = get_relocated_code_length::<TDisassembler, TRewriter, TRegister>(
         settings.hook_address,
         settings.max_permitted_bytes,
     );
 
-    // Max possible lengths of custom (hook) code and original code when emplaced onto 'Hook Function' address.
+    if orig_code_length > settings.max_permitted_bytes {
+        return Err(AssemblyHookError::TooManyBytes(
+            orig_code_length,
+            settings.max_permitted_bytes,
+        ));
+    }
+
+    // When emplaced onto 'Hook Function' address.
+    // Max possible lengths of custom (hook) code and original code
     let hook_code_length = get_hookfunction_hook_length::<TDisassembler, TRewriter, TRegister, TJit>(
         settings,
         orig_code_length,
@@ -70,16 +84,14 @@ where
     // The requires length of buffer for our custom code.
     let required_buf_length = max(hook_code_length, hook_orig_length);
 
-    // Get Hook Length
-    let hook_length =
-        TDisassembler::disassemble_length(settings.hook_address, settings.max_permitted_bytes);
+    // Allocate that buffer
+    let mut buf = allocate_with_proximity::<TJit, TRegister>(
+        settings.hook_address,
+        required_buf_length as u32,
+    )
+    .1;
 
-    /*
-
-       if hook_length > settings.max_permitted_bytes {
-           return Err(AssemblyHookError::TooManyBytes((), settings.max_permitted_bytes);
-       }
-    */
+    //buf.write(buffer);
 
     todo!();
 }

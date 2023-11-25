@@ -24,6 +24,7 @@ pub trait BufferFactory: Sync + Send {
     /// # Returns
     ///
     /// A buffer which satisfies the given constraints, or None if no such buffer exists.
+    /// This buffer should not cross any page boundary, such that permission changes .
     ///
     /// # Thread Safety
     ///
@@ -36,7 +37,7 @@ pub trait BufferFactory: Sync + Send {
         alignment: u32,
     ) -> Result<Box<dyn Buffer>, String>;
 
-    /// Returns any available buffer.
+    /// Returns any available buffer (RWX)
     ///
     /// # Parameters
     ///
