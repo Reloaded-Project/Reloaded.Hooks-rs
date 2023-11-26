@@ -18,8 +18,9 @@ pub trait CodeRewriter<TRegister> {
     ///
     /// # Parameters
     ///
-    /// * `old_address`: A pointer to the start of the original block of code.
-    /// * `old_address_size`: Size/amount of bytes to encode for the new address.
+    /// * `old_code`: A pointer to the start of the original block of code.
+    /// * `old_code_size`: Amount of bytes to rewrite.
+    /// * `old_address`: The address to assume as the source location of the old code.
     /// * `new_address`: The new address for the instructions.
     /// * `scratch_register`
     ///     - A scratch general purpose register that can be used for operations.
@@ -35,9 +36,10 @@ pub trait CodeRewriter<TRegister> {
     ///
     /// Either a re-encode error, in which case the operation fails, or a vector to consume.
     fn rewrite_code(
-        old_address: *const u8,
+        old_code: *const u8,
         old_address_size: usize,
-        new_address: *const u8,
+        old_address: usize,
+        new_address: usize,
         scratch_register: Option<TRegister>,
     ) -> Result<Vec<u8>, CodeRewriterError>;
 

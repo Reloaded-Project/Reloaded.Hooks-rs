@@ -25,8 +25,9 @@ use super::{
 ///
 /// # Parameters
 ///
-/// * `old_address`: A pointer to the start of the original block of code.
-/// * `old_address_size`: Size/amount of bytes to encode for the new address.
+/// * `old_code`: A pointer to the start of the original block of code.
+/// * `old_code_size`: Amount of bytes to rewrite.
+/// * `old_address`: The address to assume as the source location of the old code.
 /// * `new_address`: The new address for the instructions.
 /// * `scratch_register`
 ///     - A scratch general purpose register that can be used for operations.
@@ -42,26 +43,28 @@ use super::{
 ///
 /// Either a re-encode error, in which case the operation fails, or a vector to consume.
 pub(crate) fn rewrite_code_aarch64(
-    old_address: *const u8,
-    old_address_size: usize,
-    new_address: *const u8,
+    old_code: *const u8,
+    old_code_size: usize,
+    old_address: usize,
+    new_address: usize,
     scratch_register: Option<u8>,
 ) -> Result<Vec<u8>, CodeRewriterError> {
     // Note: Not covered by unit tests (because we read from old_address), careful when modifying.
 
-    let mut vec = Vec::<u32>::with_capacity(old_address_size * 2 / size_of::<u32>());
-    let mut old_ptr = old_address as *mut u32;
-    let old_end_ptr = (old_address.wrapping_add(old_address_size)) as *mut u32;
+    let mut vec = Vec::<u32>::with_capacity(old_code_size * 2 / size_of::<u32>());
+    let mut old_addr_ptr = old_address as *mut u32;
+    let mut old_ins_ptr = old_code as *mut u32;
+    let old_ins_end_ptr = (old_code.wrapping_add(old_code_size)) as *mut u32;
     let mut current_new_address = new_address;
 
-    while old_ptr < old_end_ptr {
-        let instruction = unsafe { *old_ptr };
+    while old_ins_ptr < old_ins_end_ptr {
+        let instruction = unsafe { *old_ins_ptr };
 
         // Rewrite instruction.
         let result = rewrite_instruction(
             instruction.to_le(),
-            current_new_address as usize,
-            old_ptr as usize,
+            current_new_address,
+            old_addr_ptr as usize,
             scratch_register,
         );
 
@@ -70,7 +73,8 @@ pub(crate) fn rewrite_code_aarch64(
                 x.append_to_buffer(&mut vec);
 
                 // Advance pointers
-                old_ptr = old_ptr.wrapping_add(1);
+                old_ins_ptr = old_ins_ptr.wrapping_add(1);
+                old_addr_ptr = old_addr_ptr.wrapping_add(1);
                 current_new_address = current_new_address.wrapping_add(x.size_bytes());
             }
             Err(x) => return Err(x),

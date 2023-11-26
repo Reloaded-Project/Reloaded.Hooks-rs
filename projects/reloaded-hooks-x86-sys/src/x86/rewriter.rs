@@ -15,12 +15,13 @@ struct CodeRewriterX86;
 
 impl CodeRewriter<AllRegisters> for CodeRewriterX86 {
     fn rewrite_code(
-        old_address: *const u8,
+        old_code: *const u8,
         old_address_size: usize,
-        new_address: *const u8,
+        old_address: usize,
+        new_address: usize,
         scratch_register: Option<AllRegisters>,
     ) -> Result<Vec<u8>, CodeRewriterError> {
-        let ins_slice = unsafe { slice::from_raw_parts(old_address, old_address_size) };
+        let ins_slice = unsafe { slice::from_raw_parts(old_code, old_address_size) };
         let instructions =
             get_stolen_instructions(false, old_address_size, ins_slice, old_address as usize)
                 .unwrap();

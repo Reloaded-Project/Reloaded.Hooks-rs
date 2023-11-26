@@ -1,4 +1,4 @@
-use core::cmp::max;
+use core::{cmp::max, slice};
 
 use super::assembly_hook::AssemblyHook;
 use crate::{
@@ -84,15 +84,27 @@ where
     // The requires length of buffer for our custom code.
     let required_buf_length = max(hook_code_length, hook_orig_length);
 
-    // Allocate that buffer
+    // Allocate that buffer, and write our custom code to it.
     let mut buf = allocate_with_proximity::<TJit, TRegister>(
         settings.hook_address,
         required_buf_length as u32,
     )
     .1;
 
-    //buf.write(buffer);
+    // Rewrite that code to new buffer address.
 
+    /*
+        let new_orig_code = TRewriter::rewrite_code()
+
+        // write the initial code
+        let code_to_write = if settings.auto_activate {
+            slice::from_raw_parts(null, hook_code_length)
+        } else {
+            slice::from_raw_parts(null, hook_code_length)
+        };
+        buf.write(code_to_write);
+
+    */
     todo!();
 }
 
