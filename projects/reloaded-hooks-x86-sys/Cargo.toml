@@ -7,9 +7,6 @@ repository = "https://github.com/Reloaded-Project/reloaded-hooks"
 license-file = "LICENSE"
 include = ["src/**/*"]
 
-[lib]
-crate-type = ["dylib"]
-
 [features]
 default = ["x86", "x64"]
 x86 = []
@@ -32,7 +29,7 @@ features = ["no_std", "code_asm", "decoder"]
 
 [dev-dependencies]
 criterion = "0.5.1"
-reloaded-memory-buffers = "3.1.3"
+reloaded-memory-buffers = "3.3.0"
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.12", features = ["flamegraph", "criterion"] }

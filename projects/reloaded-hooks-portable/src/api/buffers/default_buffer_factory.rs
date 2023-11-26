@@ -84,12 +84,24 @@ impl BufferFactory for DefaultBufferFactory {
 
         // If no buffer was found, create a new one
         let mut write_lock = self.buffers.write();
-        let mut map = unsafe {
+        let layout = Layout::from_size_align(size as usize, alignment as usize)
+            .map_err(|x| x.to_string())
+            .unwrap();
+
+        // TODO: 'W^X' mode which creates as RW, and toggles between RW and RX.
+        let mut map = if create_page_as_rwx() {
             mmap_rs_with_map_from_existing::MmapOptions::new(size as usize)
                 .unwrap()
-                .with_unsafe_flags(UnsafeMmapFlags::JIT)
-                .map_exec_mut()
+                .map_mut()
                 .unwrap()
+        } else {
+            unsafe {
+                mmap_rs_with_map_from_existing::MmapOptions::new(size as usize)
+                    .unwrap()
+                    .with_unsafe_flags(UnsafeMmapFlags::JIT)
+                    .map_exec_mut()
+                    .unwrap()
+            }
         };
 
         // Don't drop the map!
@@ -113,6 +125,12 @@ impl BufferFactory for DefaultBufferFactory {
 /// Returns the required number of bytes to align 'address' to 'alignment'.
 fn align_offset(address: usize, alignment: usize) -> usize {
     (alignment - (address % alignment)) % alignment
+}
+
+/// Returns true if the platform should crate memory pages as R^X instead of RWX.
+/// Use this when platform enforces strict W^X policy. This is intended to be used when testing new platforms.
+fn create_page_as_rwx() -> bool {
+    true
 }
 
 #[cfg(test)]

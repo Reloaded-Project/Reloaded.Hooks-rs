@@ -17,14 +17,38 @@
 [1] May be present depending on kernel configuration. Have not done adequate research.  
 [2] Needed for [Apple Silicon only](https://github.com/Reloaded-Project/Reloaded.Hooks-rs/issues/1).
 
-## How to Implement
+## How to Implement Support
 
-!!! tip "The library provides a `platform_functions.rs` file which contains all the platform specific functions."
+!!! note "Once you're done, submit a PR to add support for your platform."
 
-It's recommended you submit a PR to add support for your platform. 
+### Platform Functions
 
-If your platform is very custom/esoteric, you may alternatively replace the pointers in 
-`platform_functions.rs` with your own implementation, that will work too.
+!!! info "The library provides a `platform_functions.rs` file which contains all the platform specific functions."
+
+Implement the functions in this file for your platform. Generally you'll only need `unprotect_memory`, 
+though on some platforms, you may need to implement `disable_write_xor_execute` and `restore_write_xor_execute` 
+as well, depending on the platform's security policy.
+
+### (Recommended) Buffers Implementation
+
+!!! tip "For optimal performance, you should add support for your platform to [reloaded-memory-buffers](https://github.com/Reloaded-Project/Reloaded.Memory.Buffers/tree/master/src-rust)."
+
+It's recommended to use `reloaded-hooks-rs` alongside `reloaded-memory-buffers`. The concept of the buffers
+library is to perform allocations as close to original code as possible, allowing for more efficient code.
+
+This requires walking memory pages. If your OS does not have a way to do this, you can in the meantime use
+the built-in `DefaultBufferFactory`. 
+
+!!! warning "For `DefaultBufferFactory`, you might need to replace `mmap_rs` in `get_any_buffer` to use your platform specific page allocation function."
+
+### Testing Your Implementation
+
+Platform specific functionality is not unit tested as it relies on OS/system state. Instead, integration 
+tests are used to test the functionality.
+
+Find the tests for a given hook type (recommend: `assembly_hook` tests) and run them on your platform.  
+
+If you can't run tests on your platform, copy them to one of your programs manually.  
 
 ## (Required) Permission Change
 

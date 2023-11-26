@@ -14,6 +14,9 @@ pub trait BufferFactory: Sync + Send {
     /// Returns a buffer which satisfies the given constraints.
     /// If no such buffer exists, returns None.
     ///
+    /// Returned buffer must be suitable for writing executable code to.
+    /// Calls to 'write' on the returned buffer must write executable code.
+    ///
     /// # Parameters
     ///
     /// - `size`: The number of bytes buffer must have free.
@@ -37,7 +40,8 @@ pub trait BufferFactory: Sync + Send {
         alignment: u32,
     ) -> Result<Box<dyn Buffer>, String>;
 
-    /// Returns any available buffer (RWX)
+    /// Returns any available buffer. This buffer must be suitable for writing executable code to.
+    /// Calls to 'write' on the returned buffer must write executable code.
     ///
     /// # Parameters
     ///
@@ -60,8 +64,30 @@ pub trait Buffer {
     fn get_address(&self) -> *const u8;
 
     /// Writes the specified data to the buffer; advancing the buffer pointer.
+    ///
     /// # Returns.
     ///
     /// The new write address. Same as you would get calling [`self::get_address`].
+    ///
+    /// # Remarks
+    ///
+    /// Note to implementers: The buffer may be executable code. Care must be taken to ensure that the
+    /// data written may be executed and read.
     fn write(&mut self, buffer: &[u8]) -> *const u8;
+
+    /// Overwrites data written to a buffer created by this trait at a given address.
+    /// Use this method to safely overwrite data written to a buffer.
+    ///
+    /// # Remarks
+    ///
+    /// This method works around the complicated tidbits of writing to buffer, such as instruction
+    /// cache invalidation and permission changes on W^X systems where applicable.
+    ///
+    /// # Parameters
+    ///
+    /// - `address`: The address to overwrite.
+    /// - `buffer`: The buffer to overwrite with.
+    fn overwrite(address: usize, buffer: &[u8])
+    where
+        Self: Sized;
 }

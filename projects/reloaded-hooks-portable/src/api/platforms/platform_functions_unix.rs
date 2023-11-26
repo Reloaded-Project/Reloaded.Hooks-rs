@@ -1,5 +1,4 @@
 extern crate alloc;
-use alloc::string::String;
 use libc::c_void;
 
 /// Removes protection from a memory region.
@@ -13,7 +12,7 @@ use libc::c_void;
 /// # Returns
 ///
 /// Success or error.
-pub fn unprotect_memory(address: *const u8, size: usize) -> Result<(), String> {
+pub fn unprotect_memory(address: *const u8, size: usize) {
     unsafe {
         let result = libc::mprotect(
             address as *mut c_void,
@@ -25,6 +24,4 @@ pub fn unprotect_memory(address: *const u8, size: usize) -> Result<(), String> {
             panic!("Failed to unprotect memory");
         }
     }
-
-    Ok(())
 }

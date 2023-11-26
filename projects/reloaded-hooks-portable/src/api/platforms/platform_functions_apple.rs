@@ -29,7 +29,7 @@ use mach::vm_types::*;
 ///
 /// The idea is that you use memory which is read_write_execute (MAP_JIT if mmap),
 /// then disable W^X for the current thread. Then we write the code, and re-enable W^X.
-pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Result<Option<usize>, String> {
+pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Option<usize> {
     unsafe {
         let mut region_address = address as mach_vm_address_t;
         let mut region_size = size as mach_vm_size_t;
@@ -62,7 +62,7 @@ pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Result<Opti
             panic!("Failed to switch to read/write protection");
         }
 
-        Ok(Some(region_info.protection as usize))
+        Some(region_info.protection as usize)
     }
 }
 
@@ -77,11 +77,7 @@ pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Result<Opti
 /// # Returns
 ///
 /// Success or error.
-pub fn restore_write_xor_execute(
-    address: *const u8,
-    size: usize,
-    protection: usize,
-) -> Result<(), String> {
+pub fn restore_write_xor_execute(address: *const u8, size: usize, protection: usize) {
     unsafe {
         let result = mach_vm_protect(
             mach_task_self(),
@@ -95,8 +91,6 @@ pub fn restore_write_xor_execute(
             panic!("Failed to switch to original protection");
         }
     }
-
-    Ok(())
 }
 
 /// Removes protection from a memory region.
@@ -110,7 +104,7 @@ pub fn restore_write_xor_execute(
 /// # Returns
 ///
 /// Success or error.
-pub fn unprotect_memory(address: *const u8, size: usize) -> Result<(), String> {
+pub fn unprotect_memory(address: *const u8, size: usize) {
     unsafe {
         let result = mach_vm_protect(
             mach_task_self(),
@@ -124,6 +118,4 @@ pub fn unprotect_memory(address: *const u8, size: usize) -> Result<(), String> {
             panic!("Failed to unprotect memory");
         }
     }
-
-    Ok(())
 }
