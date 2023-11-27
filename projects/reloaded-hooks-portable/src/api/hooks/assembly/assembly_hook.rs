@@ -1,8 +1,12 @@
 use super::assembly_hook_impl::create_assembly_hook;
 use crate::api::{
-    errors::assembly_hook_error::AssemblyHookError, jit::compiler::Jit,
-    length_disassembler::LengthDisassembler, rewriter::code_rewriter::CodeRewriter,
-    settings::assembly_hook_settings::AssemblyHookSettings, traits::register_info::RegisterInfo,
+    buffers::buffer_abstractions::{Buffer, BufferFactory},
+    errors::assembly_hook_error::AssemblyHookError,
+    jit::compiler::Jit,
+    length_disassembler::LengthDisassembler,
+    rewriter::code_rewriter::CodeRewriter,
+    settings::assembly_hook_settings::AssemblyHookSettings,
+    traits::register_info::RegisterInfo,
 };
 
 /// Represents an assembly hook.
@@ -63,7 +67,7 @@ impl<'a> AssemblyHook<'a> {
     ///
     /// If you are on Windows/Linux/macOS, expect the relative length to be used basically every time
     /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.
-    pub fn new<TJit, TRegister: Clone, TDisassembler, TRewriter>(
+    pub fn new<TJit, TRegister: Clone, TDisassembler, TRewriter, TBufferFactory, TBuffer>(
         settings: &AssemblyHookSettings<TRegister>,
     ) -> Result<AssemblyHook<'a>, AssemblyHookError>
     where
@@ -71,8 +75,17 @@ impl<'a> AssemblyHook<'a> {
         TRegister: RegisterInfo,
         TDisassembler: LengthDisassembler,
         TRewriter: CodeRewriter<TRegister>,
+        TBufferFactory: BufferFactory<TBuffer>,
+        TBuffer: Buffer,
     {
-        return create_assembly_hook::<TJit, TRegister, TDisassembler, TRewriter>(settings);
+        return create_assembly_hook::<
+            TJit,
+            TRegister,
+            TDisassembler,
+            TRewriter,
+            TBuffer,
+            TBufferFactory,
+        >(settings);
     }
 
     /// Enables the hook.

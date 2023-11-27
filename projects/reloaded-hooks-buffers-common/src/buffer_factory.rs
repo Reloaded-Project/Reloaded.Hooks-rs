@@ -8,14 +8,13 @@ use reloaded_memory_buffers::{buffers::Buffers, structs::params::BufferSearchSet
 
 struct BuffersFactory {}
 
-impl BufferFactory for BuffersFactory {
+impl BufferFactory<StaticLinkedBuffer> for BuffersFactory {
     fn get_buffer(
-        &mut self,
         size: u32,
         target: usize,
         proximity: usize,
         alignment: u32,
-    ) -> Result<Box<dyn Buffer>, String> {
+    ) -> Result<Box<StaticLinkedBuffer>, String> {
         let buf = Buffers::get_buffer_aligned(
             &BufferSearchSettings::from_proximity(proximity, target, size as usize),
             alignment,
@@ -25,7 +24,7 @@ impl BufferFactory for BuffersFactory {
         Ok(Box::new(StaticLinkedBuffer::new(buf)))
     }
 
-    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Result<Box<dyn Buffer>, String> {
+    fn get_any_buffer(size: u32, alignment: u32) -> Result<Box<StaticLinkedBuffer>, String> {
         let buf = Buffers::get_buffer_aligned(
             &BufferSearchSettings {
                 min_address: 0,
@@ -48,32 +47,29 @@ mod tests {
 
     #[test]
     fn acquire_and_release_buffer() {
-        let mut factory = BuffersFactory {};
         let item: *mut LocatorItem;
 
         // Acquire a buffer and ensure it's locked.
         {
-            let buffer = factory.get_any_buffer(10, 4).unwrap();
-            let concrete = *unsafe {
-                Box::<StaticLinkedBuffer>::from_raw(Box::into_raw(buffer) as *mut StaticLinkedBuffer)
-            };
-
+            let buffer = BuffersFactory::get_any_buffer(10, 4).unwrap();
             unsafe {
-                item = concrete.buf.item.get();
+                item = buffer.buf.item.get();
                 assert!((*item).is_taken());
             }
         } // _buffer is dropped here, so the buffer should be unlocked
 
         // Ensure the buffer is unlocked after being dropped.
+        // Disabled because buffer becomes available for other tests, and this assert can't be done in a thread safe way.
+        /*
         unsafe {
             assert!(!(*item).is_taken());
         }
+        */
     }
 
     #[test]
     fn write_to_buffer() {
-        let mut factory = BuffersFactory {};
-        let mut buffer = factory.get_any_buffer(10, 4).unwrap();
+        let mut buffer = BuffersFactory::get_any_buffer(10, 4).unwrap();
         let data = vec![1u8, 2u8, 3u8];
 
         buffer.write(&data);
@@ -88,8 +84,7 @@ mod tests {
 
     #[test]
     fn advance_buffer() {
-        let mut factory = BuffersFactory {};
-        let mut buffer = factory.get_any_buffer(10, 4).unwrap();
+        let mut buffer = BuffersFactory::get_any_buffer(10, 4).unwrap();
 
         let old_position = buffer.get_address();
         let new_position = buffer.advance(2);
@@ -101,8 +96,7 @@ mod tests {
 
     #[test]
     fn buffer_address_check() {
-        let mut factory = BuffersFactory {};
-        let buffer = factory.get_any_buffer(10, 4).unwrap();
+        let buffer = BuffersFactory::get_any_buffer(10, 4).unwrap();
 
         assert!(!buffer.get_address().is_null());
     }

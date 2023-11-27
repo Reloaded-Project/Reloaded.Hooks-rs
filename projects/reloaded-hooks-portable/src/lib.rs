@@ -128,20 +128,3 @@ pub(crate) mod optimize {
     pub mod optimize_push_pop_parameters;
     pub mod reorder_mov_sequence;
 }
-
-// Utility Methods
-extern crate alloc;
-use alloc::boxed::Box;
-use api::{
-    buffers::{buffer_abstractions::BufferFactory, default_buffer_factory::DefaultBufferFactory},
-    platforms::platform_functions::set_buf_factory,
-};
-
-/// Initializes the library, injecting the required internal components.
-///
-/// # Parameters
-/// - `factory`: The 'buffer factory' to use. If `None`, then the default buffer factory is used.
-///              Unless you have a good reason not to, please use reloaded-memory-buffers.
-pub fn init(factory: Option<Box<dyn BufferFactory>>) {
-    set_buf_factory(factory.or_else(|| Some(Box::new(DefaultBufferFactory::new()))));
-}

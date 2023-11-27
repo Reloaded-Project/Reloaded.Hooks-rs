@@ -82,7 +82,7 @@ impl Buffer for LockedBuffer {
         result
     }
 
-    fn overwrite(&self, address: usize, buffer: &[u8]) {
+    fn overwrite(address: usize, buffer: &[u8]) {
         let orig = disable_write_xor_execute(address as *const u8, buffer.len());
         unsafe {
             copy_nonoverlapping(buffer.as_ptr(), address as *mut u8, buffer.len());

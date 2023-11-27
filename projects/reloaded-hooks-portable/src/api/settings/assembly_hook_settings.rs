@@ -1,5 +1,3 @@
-use crate::api::traits::register_info::RegisterInfo;
-
 /// Represents a target address within memory for allocation nearness.
 ///
 /// This is used for the allocation of wrappers and other native/interop components.

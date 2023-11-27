@@ -1,8 +1,6 @@
 extern crate alloc;
 
-use crate::api::buffers::{
-    buffer_abstractions::BufferFactory, default_buffer_factory::DefaultBufferFactory,
-};
+use crate::api::buffers::buffer_abstractions::BufferFactory;
 use alloc::boxed::Box;
 use alloc::string::String;
 use lazy_static::lazy_static;
@@ -21,23 +19,6 @@ use crate::api::platforms::platform_functions_windows;
 use super::platform_functions_mmap_rs::unprotect_memory_mmap_rs;
 
 pub(crate) static MUTUAL_EXCLUSOR: Mutex<()> = Mutex::new(());
-static mut BUFFER_FACTORY: Option<Box<dyn BufferFactory>> = None;
-
-/// Getter function for the BUFFER_FACTORY
-pub(crate) fn get_buf_factory() -> &'static mut Box<dyn BufferFactory> {
-    unsafe {
-        BUFFER_FACTORY
-            .as_mut()
-            .expect("Buffer factory is not initialized")
-    }
-}
-
-/// Setter function for the BUFFER_FACTORY
-pub(crate) fn set_buf_factory(factory: Option<Box<dyn BufferFactory>>) {
-    unsafe {
-        BUFFER_FACTORY = factory;
-    }
-}
 
 /// Removes protection from a memory region.
 /// This makes it such that existing game code can be safely overwritten.

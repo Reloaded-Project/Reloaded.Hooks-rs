@@ -10,7 +10,7 @@ use alloc::string::String;
 /// # Remarks
 ///
 /// The factory should be thread safe.
-pub trait BufferFactory: Sync + Send {
+pub trait BufferFactory<TBuffer: Buffer>: Sync + Send {
     /// Returns a buffer which satisfies the given constraints.
     /// If no such buffer exists, returns None.
     ///
@@ -33,12 +33,11 @@ pub trait BufferFactory: Sync + Send {
     ///
     /// Returned buffers must be locked and not returned to the pool until they are dropped.
     fn get_buffer(
-        &mut self,
         size: u32,
         target: usize,
         proximity: usize,
         alignment: u32,
-    ) -> Result<Box<dyn Buffer>, String>;
+    ) -> Result<Box<TBuffer>, String>;
 
     /// Returns any available buffer. This buffer must be suitable for writing executable code to.
     /// Calls to 'write' on the returned buffer must write executable code.
@@ -55,7 +54,7 @@ pub trait BufferFactory: Sync + Send {
     /// # Thread Safety
     ///
     /// Returned buffers must be locked and not returned to the pool until they are dropped.
-    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Result<Box<dyn Buffer>, String>;
+    fn get_any_buffer(size: u32, alignment: u32) -> Result<Box<TBuffer>, String>;
 }
 
 pub trait Buffer {
@@ -95,7 +94,7 @@ pub trait Buffer {
     ///
     /// - `address`: The address to overwrite.
     /// - `buffer`: The buffer to overwrite with.
-    fn overwrite(&self, address: usize, buffer: &[u8])
+    fn overwrite(address: usize, buffer: &[u8])
     where
         Self: Sized;
 }

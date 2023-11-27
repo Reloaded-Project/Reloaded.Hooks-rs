@@ -1,24 +1,26 @@
 extern crate alloc;
 
-use core::marker::PhantomData;
-
+use super::{
+    buffers::buffer_abstractions::{Buffer, BufferFactory},
+    calling_convention_info::CallingConventionInfo,
+    function_info::FunctionInfo,
+    jit::compiler::Jit,
+    traits::register_info::RegisterInfo,
+};
+use crate::{api::jit::operation::Operation, helpers::allocate_with_proximity};
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-
-use crate::{api::jit::operation::Operation, helpers::allocate_with_proximity};
-
-use super::{
-    buffers::buffer_abstractions::Buffer, calling_convention_info::CallingConventionInfo,
-    function_info::FunctionInfo, jit::compiler::Jit, traits::register_info::RegisterInfo,
-};
+use core::marker::PhantomData;
 
 /// Options and additional context necessary for the wrapper generator.
 #[derive(Clone, Copy)]
-pub struct WrapperGenerationOptions<'a, T, TRegister, TJit>
+pub struct WrapperGenerationOptions<'a, T, TRegister, TJit, TBufferFactory, TBuffer>
 where
     TRegister: RegisterInfo,
     T: FunctionInfo,
     TJit: Jit<TRegister>,
+    TBufferFactory: BufferFactory<TBuffer>,
+    TBuffer: Buffer,
 {
     /// Address of the function to be called.
     pub target_address: usize,
@@ -26,22 +28,24 @@ where
     /// Information about the function for which the wrapper needs to be generated.
     pub function_info: &'a T,
 
-    /// Dynamically compiles the specified sequence of instructions
-    pub jit: &'a TJit,
-
-    /// Marker to assure Rust that TRegister is logically part of the struct.
-    _marker: PhantomData<TRegister>,
+    // Markers to prevent Rust from coimplaining
+    _marker_tj: TJit,
+    _marker_tr: PhantomData<TRegister>,
+    _marker_tbf: PhantomData<TBufferFactory>,
+    _marker_v: PhantomData<TBuffer>,
 }
 
-impl<'a, TFunctionInfo, TRegister, TJit>
-    WrapperGenerationOptions<'a, TFunctionInfo, TRegister, TJit>
+impl<'a, TFunctionInfo, TRegister, TJit, TBufferFactory, TBuffer>
+    WrapperGenerationOptions<'a, TFunctionInfo, TRegister, TJit, TBufferFactory, TBuffer>
 where
     TRegister: RegisterInfo,
     TFunctionInfo: FunctionInfo,
     TJit: Jit<TRegister>,
+    TBufferFactory: BufferFactory<TBuffer>,
+    TBuffer: Buffer,
 {
-    fn get_buffer_from_factory(&self) -> (bool, Box<dyn Buffer>) {
-        allocate_with_proximity::allocate_with_proximity::<TJit, TRegister>(
+    fn get_buffer_from_factory(&self) -> (bool, Box<TBuffer>) {
+        allocate_with_proximity::allocate_with_proximity::<TJit, TRegister, TBufferFactory, TBuffer>(
             self.target_address,
             128,
         )
@@ -62,10 +66,12 @@ pub fn generate_wrapper<
     TConventionInfo: CallingConventionInfo<TRegister>,
     TJit: Jit<TRegister>,
     TFunctionInfo: FunctionInfo,
+    TBufferFactory: BufferFactory<TBuffer>,
+    TBuffer: Buffer,
 >(
     from_convention: TConventionInfo,
     to_convention: TConventionInfo,
-    options: WrapperGenerationOptions<TFunctionInfo, TRegister, TJit>,
+    options: WrapperGenerationOptions<TFunctionInfo, TRegister, TJit, TBufferFactory, TBuffer>,
 ) -> *const u8 {
     let (has_buf_in_range, buf_boxed) = options.get_buffer_from_factory();
 

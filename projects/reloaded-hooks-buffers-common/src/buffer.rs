@@ -30,7 +30,7 @@ impl Buffer for StaticLinkedBuffer {
         unsafe { self.buf.append_bytes(buffer) as *const u8 }
     }
 
-    fn overwrite(&self, address: usize, buffer: &[u8])
+    fn overwrite(address: usize, buffer: &[u8])
     where
         Self: Sized,
     {

@@ -3,6 +3,7 @@ use core::{cmp::max, slice};
 use super::assembly_hook::AssemblyHook;
 use crate::{
     api::{
+        buffers::buffer_abstractions::{Buffer, BufferFactory},
         errors::assembly_hook_error::{
             AssemblyHookError, RewriteErrorDetails,
             RewriteErrorSource::{self, *},
@@ -46,7 +47,15 @@ use crate::{
 /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 12 bytes     | 12 bytes        |
 /// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
 /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 24 bytes        |
-pub fn create_assembly_hook<'a, TJit, TRegister: Clone, TDisassembler, TRewriter>(
+pub fn create_assembly_hook<
+    'a,
+    TJit,
+    TRegister: Clone,
+    TDisassembler,
+    TRewriter,
+    TBuffer: Buffer,
+    TBufferFactory: BufferFactory<TBuffer>,
+>(
     settings: &AssemblyHookSettings<TRegister>,
 ) -> Result<AssemblyHook<'a>, AssemblyHookError>
 where
@@ -88,7 +97,7 @@ where
     let max_possible_buf_length = max(hook_code_length, hook_orig_length);
 
     // Allocate that buffer, and write our custom code to it.
-    let mut buf = allocate_with_proximity::<TJit, TRegister>(
+    let mut buf = allocate_with_proximity::<TJit, TRegister, TBufferFactory, TBuffer>(
         settings.hook_address,
         max_possible_buf_length as u32,
     )

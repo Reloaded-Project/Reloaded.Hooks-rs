@@ -13,23 +13,22 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use mmap_rs_with_map_from_existing::UnsafeMmapFlags;
 use spin::RwLock;
 
-pub struct DefaultBufferFactory {
-    buffers: RwLock<Vec<Rc<AllocatedBuffer>>>,
+pub(crate) static BUFFERS: BuffersWrapper = BuffersWrapper {
+    buffers: RwLock::new(Vec::new()),
+};
+
+pub struct BuffersWrapper {
+    pub buffers: RwLock<Vec<Rc<AllocatedBuffer>>>,
 }
 
-impl DefaultBufferFactory {
-    pub fn new() -> Self {
-        DefaultBufferFactory {
-            buffers: RwLock::new(Vec::new()),
-        }
-    }
-}
+// Safety: DefaultBufferFactory is thread safe.
+// RwLock on buffers ensures that only one thread can update the vector at a given time.
+// The buffers use `compare_exchange` for availability, ensuring thread safety in grabbing them.
+// The Rc is irrelevant because the buffer can only be held by 1 thread due to `compare_exchange`.
+unsafe impl Send for BuffersWrapper {}
+unsafe impl Sync for BuffersWrapper {}
 
-impl Default for DefaultBufferFactory {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+pub struct DefaultBufferFactory {}
 
 // Safety: DefaultBufferFactory is thread safe.
 // RwLock on buffers ensures that only one thread can update the vector at a given time.
@@ -38,19 +37,18 @@ impl Default for DefaultBufferFactory {
 unsafe impl Send for DefaultBufferFactory {}
 unsafe impl Sync for DefaultBufferFactory {}
 
-impl BufferFactory for DefaultBufferFactory {
+impl BufferFactory<LockedBuffer> for DefaultBufferFactory {
     fn get_buffer(
-        &mut self,
         _size: u32,
         _target: usize,
         _proximity: usize,
         _alignment: u32,
-    ) -> Result<Box<dyn Buffer>, String> {
+    ) -> Result<Box<LockedBuffer>, String> {
         Err("Not Supported".to_string())
     }
 
-    fn get_any_buffer(&mut self, size: u32, alignment: u32) -> Result<Box<dyn Buffer>, String> {
-        let read_lock = self.buffers.read();
+    fn get_any_buffer(size: u32, alignment: u32) -> Result<Box<LockedBuffer>, String> {
+        let read_lock = BUFFERS.buffers.read();
         for buffer in read_lock.iter() {
             // Try to lock the buffer temporarily, to ensure thread safety.
             if buffer
@@ -81,7 +79,7 @@ impl BufferFactory for DefaultBufferFactory {
         drop(read_lock);
 
         // If no buffer was found, create a new one
-        let mut write_lock = self.buffers.write();
+        let mut write_lock = BUFFERS.buffers.write();
 
         // TODO: 'W^X' mode which creates as RW, and toggles between RW and RX.
         let mut map = if create_page_as_rwx() {
@@ -134,33 +132,22 @@ mod tests {
     use alloc::vec;
 
     #[test]
-    fn create_factory() {
-        let factory = DefaultBufferFactory::new();
-        assert_eq!(factory.buffers.read().len(), 0);
-    }
-
-    #[test]
     fn acquire_and_release_buffer() {
-        let mut factory = DefaultBufferFactory::new();
-
         // Acquire a buffer and ensure it's locked.
         {
-            let buffer = factory.get_any_buffer(10, 4).unwrap();
-            let concrete = unsafe {
-                Box::<LockedBuffer>::from_raw(Box::into_raw(buffer) as *mut LockedBuffer)
-            };
-
-            assert!(concrete.buffer.locked.load(Ordering::Acquire));
+            let locked = DefaultBufferFactory::get_any_buffer(10, 4).unwrap();
+            assert!(locked.buffer.locked.load(Ordering::Acquire));
         } // _buffer is dropped here, so the buffer should be unlocked
 
         // Ensure the buffer is unlocked after being dropped.
-        assert!(!factory.buffers.read()[0].locked.load(Ordering::Acquire));
+
+        // Disabled because buffer becomes available for other tests, and this assert can't be done in a thread safe way.
+        // assert!(!BUFFERS.buffers.read()[0].locked.load(Ordering::Acquire));
     }
 
     #[test]
     fn write_to_buffer() {
-        let mut factory = DefaultBufferFactory::new();
-        let mut buffer = factory.get_any_buffer(10, 4).unwrap();
+        let mut buffer = DefaultBufferFactory::get_any_buffer(10, 4).unwrap();
         let data = vec![1u8, 2u8, 3u8];
 
         buffer.write(&data);
@@ -175,8 +162,7 @@ mod tests {
 
     #[test]
     fn advance_default_buffer() {
-        let mut factory = DefaultBufferFactory::new();
-        let mut buffer = factory.get_any_buffer(10, 4).unwrap();
+        let mut buffer = DefaultBufferFactory::get_any_buffer(10, 4).unwrap();
 
         let old_position = buffer.get_address();
         let new_position = buffer.advance(2);
@@ -188,8 +174,7 @@ mod tests {
 
     #[test]
     fn buffer_address_check() {
-        let mut factory = DefaultBufferFactory::new();
-        let buffer = factory.get_any_buffer(10, 4).unwrap();
+        let buffer = DefaultBufferFactory::get_any_buffer(10, 4).unwrap();
 
         assert!(!buffer.get_address().is_null());
     }
@@ -198,8 +183,7 @@ mod tests {
     #[cfg(debug_assertions)]
     #[should_panic(expected = "Buffer overflow")]
     fn buffer_overflow() {
-        let mut factory = DefaultBufferFactory::new();
-        let mut buffer = factory.get_any_buffer(10, 4).unwrap();
+        let mut buffer = DefaultBufferFactory::get_any_buffer(10, 4).unwrap();
         let data = vec![1u8; 11]; // One byte larger than buffer size
 
         buffer.write(&data);
