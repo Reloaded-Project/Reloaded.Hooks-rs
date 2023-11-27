@@ -75,6 +75,14 @@ pub trait Buffer {
     /// data written may be executed and read.
     fn write(&mut self, buffer: &[u8]) -> *const u8;
 
+    /// Advances the buffer by a specified number of bytes.
+    /// Effectively, this is a write operation, but without any data being written to the buffer.
+    ///
+    /// # Returns.
+    ///
+    /// The new write address. Same as you would get calling [`self::get_address`].
+    fn advance(&mut self, num_bytes: usize) -> *const u8;
+
     /// Overwrites data written to a buffer created by this trait at a given address.
     /// Use this method to safely overwrite data written to a buffer.
     ///
@@ -87,7 +95,7 @@ pub trait Buffer {
     ///
     /// - `address`: The address to overwrite.
     /// - `buffer`: The buffer to overwrite with.
-    fn overwrite(address: usize, buffer: &[u8])
+    fn overwrite(&self, address: usize, buffer: &[u8])
     where
         Self: Sized;
 }

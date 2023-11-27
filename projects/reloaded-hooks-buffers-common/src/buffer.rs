@@ -1,9 +1,5 @@
-use core::ptr::copy_nonoverlapping;
-
 use reloaded_hooks_portable::api::buffers::buffer_abstractions::Buffer;
-use reloaded_memory_buffers::{
-    buffers::Buffers, c::buffers_c_buffers::overwrite_allocated_code, structs::SafeLocatorItem,
-};
+use reloaded_memory_buffers::{buffers::Buffers, structs::SafeLocatorItem};
 
 pub(crate) struct StaticLinkedBuffer {
     pub(crate) buf: SafeLocatorItem,
@@ -34,12 +30,21 @@ impl Buffer for StaticLinkedBuffer {
         unsafe { self.buf.append_bytes(buffer) as *const u8 }
     }
 
-    fn overwrite(address: usize, buffer: &[u8])
+    fn overwrite(&self, address: usize, buffer: &[u8])
     where
         Self: Sized,
     {
         unsafe {
             Buffers::overwrite_allocated_code(buffer.as_ptr(), address as *mut u8, buffer.len())
+        }
+    }
+
+    fn advance(&mut self, num_bytes: usize) -> *const u8 {
+        let locator_item = self.buf.item.get();
+        let current_offset = unsafe { (*locator_item).position };
+        unsafe {
+            (*locator_item).position = current_offset + num_bytes as u32;
+            ((*locator_item).base_address.value as *const u8).add((*locator_item).position as usize)
         }
     }
 }

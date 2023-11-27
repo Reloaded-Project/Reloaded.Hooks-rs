@@ -3,11 +3,14 @@ use core::{cmp::max, slice};
 use super::assembly_hook::AssemblyHook;
 use crate::{
     api::{
-        errors::assembly_hook_error::AssemblyHookError,
+        errors::assembly_hook_error::{
+            AssemblyHookError, RewriteErrorDetails,
+            RewriteErrorSource::{self, *},
+        },
         jit::compiler::Jit,
         length_disassembler::LengthDisassembler,
         platforms::platform_functions::MUTUAL_EXCLUSOR,
-        rewriter::code_rewriter::CodeRewriter,
+        rewriter::code_rewriter::{CodeRewriter, CodeRewriterError},
         settings::assembly_hook_settings::{AsmHookBehaviour, AssemblyHookSettings},
         traits::register_info::RegisterInfo,
     },
@@ -43,8 +46,8 @@ use crate::{
 /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 12 bytes     | 12 bytes        |
 /// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
 /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 24 bytes        |
-pub fn create_assembly_hook<'a, TJit, TRegister, TDisassembler, TRewriter>(
-    settings: &AssemblyHookSettings,
+pub fn create_assembly_hook<'a, TJit, TRegister: Clone, TDisassembler, TRewriter>(
+    settings: &AssemblyHookSettings<TRegister>,
 ) -> Result<AssemblyHook<'a>, AssemblyHookError>
 where
     TJit: Jit<TRegister>,
@@ -82,30 +85,61 @@ where
     let hook_orig_length = orig_code_length + TJit::max_branch_bytes() as usize;
 
     // The requires length of buffer for our custom code.
-    let required_buf_length = max(hook_code_length, hook_orig_length);
+    let max_possible_buf_length = max(hook_code_length, hook_orig_length);
 
     // Allocate that buffer, and write our custom code to it.
     let mut buf = allocate_with_proximity::<TJit, TRegister>(
         settings.hook_address,
-        required_buf_length as u32,
+        max_possible_buf_length as u32,
     )
     .1;
 
     // Rewrite that code to new buffer address.
+    let buf_addr = buf.get_address() as usize;
+    let new_orig_code = TRewriter::rewrite_code(
+        settings.hook_address as *const u8,
+        orig_code_length,
+        settings.hook_address,
+        buf_addr,
+        settings.scratch_register.clone(),
+    )
+    .map_err(|e| new_rewrite_error(OriginalCode, settings.hook_address, buf_addr, e))?;
 
-    /*
-        let new_orig_code = TRewriter::rewrite_code()
+    let new_hook_code = TRewriter::rewrite_code(
+        settings.asm_code.as_ptr(),
+        settings.asm_code.len(),
+        settings.asm_code_address,
+        buf_addr,
+        settings.scratch_register.clone(),
+    )
+    .map_err(|e| new_rewrite_error(CustomCode, settings.asm_code_address, buf_addr, e))?;
 
-        // write the initial code
-        let code_to_write = if settings.auto_activate {
-            slice::from_raw_parts(null, hook_code_length)
+    // Reserve the code needed
+    let max_buf_length = max(new_hook_code.len(), new_orig_code.len());
+    buf.advance(max_buf_length);
+
+    let code_to_write = unsafe {
+        if settings.auto_activate {
+            slice::from_raw_parts(&new_hook_code, new_hook_code.len())
         } else {
-            slice::from_raw_parts(null, hook_code_length)
-        };
-        buf.write(code_to_write);
+            slice::from_raw_parts(&new_orig_code, new_orig_code.len())
+        }
+    };
 
-    */
+    // buf.overwrite(buf_addr, &code_to_write);
     todo!();
+}
+
+fn new_rewrite_error(
+    source: RewriteErrorSource,
+    old_location: usize,
+    new_location: usize,
+    e: CodeRewriterError,
+) -> AssemblyHookError {
+    AssemblyHookError::RewriteError(
+        RewriteErrorDetails::new(source, old_location, new_location),
+        e,
+    )
 }
 
 /// Retrieves the max possible ASM length for the hook code (i.e. 'hook enabled')
@@ -116,8 +150,8 @@ where
 /// # Parameters
 /// - `settings`: The settings for the assembly hook.
 /// - `max_orig_code_length`: The maximum possible length of the original code.
-fn get_hookfunction_hook_length<TDisassembler, TRewriter, TRegister, TJit>(
-    settings: &AssemblyHookSettings<'_>,
+fn get_hookfunction_hook_length<TDisassembler, TRewriter, TRegister: Clone, TJit>(
+    settings: &AssemblyHookSettings<TRegister>,
     max_orig_code_length: usize,
 ) -> usize
 where

@@ -82,7 +82,7 @@ impl Buffer for LockedBuffer {
         result
     }
 
-    fn overwrite(address: usize, buffer: &[u8]) {
+    fn overwrite(&self, address: usize, buffer: &[u8]) {
         let orig = disable_write_xor_execute(address as *const u8, buffer.len());
         unsafe {
             copy_nonoverlapping(buffer.as_ptr(), address as *mut u8, buffer.len());
@@ -93,6 +93,13 @@ impl Buffer for LockedBuffer {
         }
 
         clear_instruction_cache(address as *const u8, (address + buffer.len()) as *const u8);
+    }
+
+    fn advance(&mut self, num_bytes: usize) -> *const u8 {
+        let current_offset = *self.buffer.write_offset.borrow();
+        let new_offset = current_offset + num_bytes as u32;
+        *self.buffer.write_offset.borrow_mut() = new_offset;
+        self.buffer.ptr.as_ptr().wrapping_add(new_offset as usize)
     }
 }
 

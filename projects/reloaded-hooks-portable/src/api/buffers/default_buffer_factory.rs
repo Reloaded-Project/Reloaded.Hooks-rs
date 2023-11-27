@@ -1,5 +1,6 @@
 extern crate alloc;
-use alloc::alloc::{alloc, Layout};
+use super::buffer_abstractions::{Buffer, BufferFactory};
+use super::default_buffer::{AllocatedBuffer, LockedBuffer};
 use alloc::boxed::Box;
 use alloc::rc::Rc;
 use alloc::string::String;
@@ -11,9 +12,6 @@ use core::ptr::NonNull;
 use core::sync::atomic::{AtomicBool, Ordering};
 use mmap_rs_with_map_from_existing::UnsafeMmapFlags;
 use spin::RwLock;
-
-use super::buffer_abstractions::{Buffer, BufferFactory};
-use super::default_buffer::{AllocatedBuffer, LockedBuffer};
 
 pub struct DefaultBufferFactory {
     buffers: RwLock<Vec<Rc<AllocatedBuffer>>>,
@@ -84,9 +82,6 @@ impl BufferFactory for DefaultBufferFactory {
 
         // If no buffer was found, create a new one
         let mut write_lock = self.buffers.write();
-        let layout = Layout::from_size_align(size as usize, alignment as usize)
-            .map_err(|x| x.to_string())
-            .unwrap();
 
         // TODO: 'W^X' mode which creates as RW, and toggles between RW and RX.
         let mut map = if create_page_as_rwx() {
@@ -176,6 +171,19 @@ mod tests {
             assert_eq!(*buffer.get_address().sub(2), 2u8);
             assert_eq!(*buffer.get_address().sub(1), 3u8);
         }
+    }
+
+    #[test]
+    fn advance_default_buffer() {
+        let mut factory = DefaultBufferFactory::new();
+        let mut buffer = factory.get_any_buffer(10, 4).unwrap();
+
+        let old_position = buffer.get_address();
+        let new_position = buffer.advance(2);
+
+        // Ensure position is advanced correctly.
+        assert_eq!(buffer.get_address(), new_position);
+        assert_eq!(buffer.get_address(), old_position.wrapping_add(2));
     }
 
     #[test]

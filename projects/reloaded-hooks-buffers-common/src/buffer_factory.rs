@@ -87,6 +87,19 @@ mod tests {
     }
 
     #[test]
+    fn advance_buffer() {
+        let mut factory = BuffersFactory {};
+        let mut buffer = factory.get_any_buffer(10, 4).unwrap();
+
+        let old_position = buffer.get_address();
+        let new_position = buffer.advance(2);
+
+        // Ensure position is advanced correctly.
+        assert_eq!(buffer.get_address(), new_position);
+        assert_eq!(buffer.get_address(), old_position.wrapping_add(2));
+    }
+
+    #[test]
     fn buffer_address_check() {
         let mut factory = BuffersFactory {};
         let buffer = factory.get_any_buffer(10, 4).unwrap();

@@ -63,8 +63,8 @@ impl<'a> AssemblyHook<'a> {
     ///
     /// If you are on Windows/Linux/macOS, expect the relative length to be used basically every time
     /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.
-    pub fn new<TJit, TRegister, TDisassembler, TRewriter>(
-        settings: &AssemblyHookSettings,
+    pub fn new<TJit, TRegister: Clone, TDisassembler, TRewriter>(
+        settings: &AssemblyHookSettings<TRegister>,
     ) -> Result<AssemblyHook<'a>, AssemblyHookError>
     where
         TJit: Jit<TRegister>,

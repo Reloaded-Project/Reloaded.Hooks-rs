@@ -1,9 +1,14 @@
+use crate::api::traits::register_info::RegisterInfo;
+
 /// Represents a target address within memory for allocation nearness.
 ///
 /// This is used for the allocation of wrappers and other native/interop components.
 /// It helps guide memory allocations to be closer to a specific target address.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AssemblyHookSettings<'a> {
+pub struct AssemblyHookSettings<'a, TRegister>
+where
+    TRegister: Clone,
+{
     /// Address of the function or mid function to be hooked.
     pub hook_address: usize,
 
@@ -32,9 +37,19 @@ pub struct AssemblyHookSettings<'a> {
     /// When this is set to `false`, the hook will still be 'activated' i.e. the original code will be
     /// overwritten (for thread safety), but the hook will be activated in the disabled state.
     pub auto_activate: bool,
+
+    /// An optional 'scratch register' that can be used to re-encode the original code to a new location.
+    /// This is not required for x86, others require it.
+    ///
+    /// This is only required if platform does not support 'Targeted Memory Allocation', i.e. more
+    /// esoteric platforms.
+    pub scratch_register: Option<TRegister>,
 }
 
-impl<'a> AssemblyHookSettings<'a> {
+impl<'a, TRegister> AssemblyHookSettings<'a, TRegister>
+where
+    TRegister: Clone,
+{
     /// Creates a new `AssemblyHookSettings` instance with the basic parameters.
     /// The assembly code will be executed before the original code at the hook address.
     ///
@@ -54,6 +69,7 @@ impl<'a> AssemblyHookSettings<'a> {
             max_permitted_bytes,
             behaviour: AsmHookBehaviour::ExecuteFirst,
             auto_activate: true,
+            scratch_register: None,
         }
     }
 
@@ -77,6 +93,7 @@ impl<'a> AssemblyHookSettings<'a> {
             max_permitted_bytes,
             behaviour,
             auto_activate: true,
+            scratch_register: None,
         }
     }
 
@@ -100,6 +117,7 @@ impl<'a> AssemblyHookSettings<'a> {
             max_permitted_bytes,
             behaviour: AsmHookBehaviour::ExecuteFirst,
             auto_activate: true,
+            scratch_register: None,
         }
     }
 
@@ -125,6 +143,7 @@ impl<'a> AssemblyHookSettings<'a> {
             max_permitted_bytes,
             behaviour,
             auto_activate: true,
+            scratch_register: None,
         }
     }
 }
