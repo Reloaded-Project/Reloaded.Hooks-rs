@@ -1,5 +1,3 @@
-use core::{cmp::max, slice};
-
 use super::assembly_hook::AssemblyHook;
 use crate::{
     api::{
@@ -16,6 +14,10 @@ use crate::{
         traits::register_info::RegisterInfo,
     },
     helpers::allocate_with_proximity::allocate_with_proximity,
+};
+use core::{
+    cmp::max,
+    slice::{self},
 };
 
 /// Creates an assembly hook at a specified location in memory.
@@ -70,6 +72,7 @@ where
     // Lock native function memory, to ensure we get accurate info.
     // This should make hooking operation thread safe provided no presence of 3rd party
     // library instances, which is a-ok for Reloaded3.
+
     let _guard = MUTUAL_EXCLUSOR.lock();
 
     // Length of the originanl code at the insertion address
@@ -127,15 +130,17 @@ where
     let max_buf_length = max(new_hook_code.len(), new_orig_code.len());
     buf.advance(max_buf_length);
 
+    // Write the default code.
     let code_to_write = unsafe {
         if settings.auto_activate {
-            slice::from_raw_parts(&new_hook_code, new_hook_code.len())
+            slice::from_raw_parts(new_hook_code.as_ptr(), new_hook_code.len())
         } else {
-            slice::from_raw_parts(&new_orig_code, new_orig_code.len())
+            slice::from_raw_parts(new_orig_code.as_ptr(), new_orig_code.len())
         }
     };
 
-    // buf.overwrite(buf_addr, &code_to_write);
+    TBuffer::overwrite(buf_addr, code_to_write);
+
     todo!();
 }
 

@@ -17,9 +17,11 @@ thiserror-no-std = "2.0.2"
 alloca = "0.4.0"
 derive-enum-all-values = "0.1.0"
 smallvec = { version = "1.11.0", features = ["const_new"] }
-lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 derive_more = { version = "0.99.17", default-features = false, features = ["from", "add", "iterator"] }
-derive-new = { version = "0.5.9", default-features = false }
+derive-new = { version = "0.6.0", default-features = false }
+
+# Tests only!
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 
 [dev-dependencies]
 criterion = "0.5.1"

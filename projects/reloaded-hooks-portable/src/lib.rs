@@ -114,7 +114,7 @@ pub mod helpers {
     pub mod allocate_with_proximity;
     pub mod icache_clear;
 
-    // Benchmark and test only.
+    /// For Benchmarks and tests only. Do not use in production code.
     #[doc(hidden)]
     pub mod test_helpers;
 }

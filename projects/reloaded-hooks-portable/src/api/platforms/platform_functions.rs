@@ -3,7 +3,6 @@ extern crate alloc;
 use crate::api::buffers::buffer_abstractions::BufferFactory;
 use alloc::boxed::Box;
 use alloc::string::String;
-use lazy_static::lazy_static;
 use spin::Mutex;
 
 #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
