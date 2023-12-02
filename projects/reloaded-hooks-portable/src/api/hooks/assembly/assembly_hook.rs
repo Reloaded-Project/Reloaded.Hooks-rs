@@ -1,3 +1,5 @@
+use core::marker::PhantomData;
+
 use super::assembly_hook_impl::create_assembly_hook;
 use crate::api::{
     buffers::buffer_abstractions::{Buffer, BufferFactory},
@@ -8,9 +10,11 @@ use crate::api::{
     settings::assembly_hook_settings::AssemblyHookSettings,
     traits::register_info::RegisterInfo,
 };
+use derive_new::new;
 
 /// Represents an assembly hook.
-pub struct AssemblyHook<'a> {
+#[derive(new)]
+pub struct AssemblyHook<'a, TBuffer: Buffer> {
     /// True if this hook is currently disabled, else false.
     is_enabled: bool,
 
@@ -22,9 +26,15 @@ pub struct AssemblyHook<'a> {
 
     /// The address of the hook.
     hook_address: usize,
+
+    // Dummy type parameters to ensure
+    _buf: PhantomData<TBuffer>,
 }
 
-impl<'a> AssemblyHook<'a> {
+impl<'a, TBuffer> AssemblyHook<'a, TBuffer>
+where
+    TBuffer: Buffer,
+{
     /// Creates an assembly hook at a specified location in memory.
     ///
     /// # Overview
@@ -67,16 +77,15 @@ impl<'a> AssemblyHook<'a> {
     ///
     /// If you are on Windows/Linux/macOS, expect the relative length to be used basically every time
     /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.
-    pub fn new<TJit, TRegister: Clone, TDisassembler, TRewriter, TBufferFactory, TBuffer>(
+    pub fn create<TJit, TRegister: Clone, TDisassembler, TRewriter, TBufferFactory>(
         settings: &AssemblyHookSettings<TRegister>,
-    ) -> Result<AssemblyHook<'a>, AssemblyHookError>
+    ) -> Result<AssemblyHook<'a, TBuffer>, AssemblyHookError>
     where
         TJit: Jit<TRegister>,
         TRegister: RegisterInfo,
         TDisassembler: LengthDisassembler,
         TRewriter: CodeRewriter<TRegister>,
         TBufferFactory: BufferFactory<TBuffer>,
-        TBuffer: Buffer,
     {
         return create_assembly_hook::<
             TJit,
@@ -92,16 +101,16 @@ impl<'a> AssemblyHook<'a> {
     /// This will cause the hook to be written to memory.
     /// If the hook is already enabled, this function does nothing.
     /// If the hook is disabled, this function will write the hook to memory.
-    pub fn enable(&self) -> Result<(), AssemblyHookError> {
-        todo!();
+    pub fn enable(&self) {
+        TBuffer::overwrite(self.hook_address, self.enabled_code);
     }
 
     /// Disables the hook.
     /// This will cause the hook to be no-opped.
     /// If the hook is already disabled, this function does nothing.
     /// If the hook is enabled, this function will no-op the hook.
-    pub fn disable(&self) -> Result<(), AssemblyHookError> {
-        todo!();
+    pub fn disable(&self) {
+        TBuffer::overwrite(self.hook_address, self.disabled_code);
     }
 
     /// Returns true if the hook is enabled, else false.

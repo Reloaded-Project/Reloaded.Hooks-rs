@@ -1,5 +1,5 @@
 extern crate alloc;
-use super::buffer_abstractions::{Buffer, BufferFactory};
+use super::buffer_abstractions::BufferFactory;
 use super::default_buffer::{AllocatedBuffer, LockedBuffer};
 use alloc::boxed::Box;
 use alloc::rc::Rc;
@@ -129,6 +129,7 @@ fn create_page_as_rwx() -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::api::buffers::buffer_abstractions::Buffer;
     use alloc::vec;
 
     #[test]

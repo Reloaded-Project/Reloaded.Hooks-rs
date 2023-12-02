@@ -59,7 +59,7 @@ pub fn create_assembly_hook<
     TBufferFactory: BufferFactory<TBuffer>,
 >(
     settings: &AssemblyHookSettings<TRegister>,
-) -> Result<AssemblyHook<'a>, AssemblyHookError>
+) -> Result<AssemblyHook<'a, TBuffer>, AssemblyHookError>
 where
     TJit: Jit<TRegister>,
     TRegister: RegisterInfo,
@@ -72,32 +72,35 @@ where
     // Lock native function memory, to ensure we get accurate info.
     // This should make hooking operation thread safe provided no presence of 3rd party
     // library instances, which is a-ok for Reloaded3.
-
     let _guard = MUTUAL_EXCLUSOR.lock();
 
     // Length of the originanl code at the insertion address
-    let orig_code_length = get_relocated_code_length::<TDisassembler, TRewriter, TRegister>(
+    let orig_code_lengths = get_relocated_code_length::<TDisassembler, TRewriter, TRegister>(
         settings.hook_address,
         settings.max_permitted_bytes,
     );
 
-    if orig_code_length > settings.max_permitted_bytes {
+    let orig_code_length = orig_code_lengths.1;
+    let max_orig_code_length = orig_code_lengths.0;
+
+    if max_orig_code_length > settings.max_permitted_bytes {
         return Err(AssemblyHookError::TooManyBytes(
-            orig_code_length,
+            max_orig_code_length,
             settings.max_permitted_bytes,
         ));
     }
 
-    // When emplaced onto 'Hook Function' address.
     // Max possible lengths of custom (hook) code and original code
-    let hook_code_length = get_hookfunction_hook_length::<TDisassembler, TRewriter, TRegister, TJit>(
-        settings,
-        orig_code_length,
-    );
-    let hook_orig_length = orig_code_length + TJit::max_branch_bytes() as usize;
+    // When emplaced onto 'Hook Function' address.
+    let hook_code_max_length =
+        get_max_hookfunction_hook_length::<TDisassembler, TRewriter, TRegister, TJit>(
+            settings,
+            max_orig_code_length,
+        );
+    let hook_orig_max_length = max_orig_code_length + TJit::max_branch_bytes() as usize;
 
     // The requires length of buffer for our custom code.
-    let max_possible_buf_length = max(hook_code_length, hook_orig_length);
+    let max_possible_buf_length = max(hook_code_max_length, hook_orig_max_length);
 
     // Allocate that buffer, and write our custom code to it.
     let mut buf = allocate_with_proximity::<TJit, TRegister, TBufferFactory, TBuffer>(
@@ -131,17 +134,25 @@ where
     buf.advance(max_buf_length);
 
     // Write the default code.
-    let code_to_write = unsafe {
-        if settings.auto_activate {
-            slice::from_raw_parts(new_hook_code.as_ptr(), new_hook_code.len())
-        } else {
-            slice::from_raw_parts(new_orig_code.as_ptr(), new_orig_code.len())
-        }
+    let enabled_code =
+        unsafe { slice::from_raw_parts(new_hook_code.as_ptr(), new_hook_code.len()) };
+    let disabled_code =
+        unsafe { slice::from_raw_parts(new_orig_code.as_ptr(), new_orig_code.len()) };
+    let code_to_write = if settings.auto_activate {
+        enabled_code
+    } else {
+        disabled_code
     };
 
     TBuffer::overwrite(buf_addr, code_to_write);
 
-    todo!();
+    // Populate remaining fields
+    Ok(AssemblyHook::new(
+        settings.auto_activate,
+        enabled_code,
+        disabled_code,
+        settings.hook_address,
+    ))
 }
 
 fn new_rewrite_error(
@@ -163,10 +174,10 @@ fn new_rewrite_error(
 ///
 /// # Parameters
 /// - `settings`: The settings for the assembly hook.
-/// - `max_orig_code_length`: The maximum possible length of the original code.
-fn get_hookfunction_hook_length<TDisassembler, TRewriter, TRegister: Clone, TJit>(
+/// - `max_max_orig_code_length`: The maximum possible length of the original code.
+fn get_max_hookfunction_hook_length<TDisassembler, TRewriter, TRegister: Clone, TJit>(
     settings: &AssemblyHookSettings<TRegister>,
-    max_orig_code_length: usize,
+    max_max_orig_code_length: usize,
 ) -> usize
 where
     TRegister: RegisterInfo,
@@ -175,24 +186,29 @@ where
     TJit: Jit<TRegister>,
 {
     // New code length + extra max possible length + jmp back to original code
-    let hook_code_length = get_relocated_code_length::<TDisassembler, TRewriter, TRegister>(
+    let hook_code_max_length = get_relocated_code_length::<TDisassembler, TRewriter, TRegister>(
         settings.asm_code.as_ptr() as usize,
         settings.asm_code.len(),
-    );
+    )
+    .0;
 
-    let result = hook_code_length + TJit::max_branch_bytes() as usize;
+    let result = hook_code_max_length + TJit::max_branch_bytes() as usize;
     if settings.behaviour == AsmHookBehaviour::DoNotExecuteOriginal {
         result
     } else {
-        result + max_orig_code_length
+        result + max_max_orig_code_length
     }
 }
 
 /// Retrieves the max possible ASM length for the given code once relocated to the 'Hook Function'.
+///
+/// Returns
+///
+/// - `(max_length, length)`: The max possible length of code, and original length of code.
 fn get_relocated_code_length<TDisassembler, TRewriter, TRegister>(
     code_address: usize,
     min_length: usize,
-) -> usize
+) -> (usize, usize)
 where
     TRegister: RegisterInfo,
     TDisassembler: LengthDisassembler,
@@ -200,5 +216,5 @@ where
 {
     let len = TDisassembler::disassemble_length(code_address, min_length);
     let extra_length = len.1 * TRewriter::max_ins_size_increase();
-    len.0 + extra_length
+    (len.0 + extra_length, len.0)
 }
