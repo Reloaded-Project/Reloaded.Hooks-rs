@@ -53,6 +53,7 @@ use core::{
 /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 12 bytes     | 12 bytes        |
 /// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
 /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 24 bytes        |
+#[allow(clippy::type_complexity)]
 pub unsafe fn create_assembly_hook<
     'a,
     TJit,

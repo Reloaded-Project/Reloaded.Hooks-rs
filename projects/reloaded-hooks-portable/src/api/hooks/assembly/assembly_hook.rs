@@ -103,6 +103,7 @@ where
     ///
     /// This function is unsafe because it reads from raw memory. Make sure the passed pointers and
     /// lengths are correct.
+    #[allow(clippy::type_complexity)]
     pub unsafe fn create(
         settings: &AssemblyHookSettings<TRegister>,
     ) -> Result<
