@@ -35,7 +35,11 @@ pub trait CodeRewriter<TRegister> {
     /// # Returns
     ///
     /// Either a re-encode error, in which case the operation fails, or a vector to consume.
-    fn rewrite_code(
+    ///
+    /// # Safety
+    ///
+    /// Dereferences raw pointers, please ensure that the pointers are valid.
+    unsafe fn rewrite_code(
         old_code: *const u8,
         old_address_size: usize,
         old_address: usize,

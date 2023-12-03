@@ -1,10 +1,11 @@
-use crate::api::rewriter::code_rewriter::CodeRewriterError;
+extern crate alloc;
+use crate::api::{jit::compiler::JitError, rewriter::code_rewriter::CodeRewriterError};
 use derive_new::new;
 use thiserror_no_std::Error;
 
 /// Errors that can occur during assembly hook creation.
-#[derive(Debug, Error, Clone, PartialEq, Eq)]
-pub enum AssemblyHookError {
+#[derive(Debug, Error)]
+pub enum AssemblyHookError<TRegister> {
     /// Instruction cannot be re-encoded at this range.
     /// Note: This error should be unreachable for x86 and ARM64, which can re-encode any address.
     /// Parameters: (actual_bytes, max_bytes)
@@ -19,6 +20,9 @@ pub enum AssemblyHookError {
     /// Parameters: (actual_bytes, max_bytes)
     #[error("Failed to rewrite code. Source: {0:?}, Error: {1:?}")]
     RewriteError(RewriteErrorDetails, CodeRewriterError),
+
+    #[error("Error in JIT: {0:?}")]
+    JitError(JitError<TRegister>),
 }
 
 /// Errors that can occur during JIT compilation.

@@ -1,20 +1,30 @@
 use core::marker::PhantomData;
 
-use super::assembly_hook_impl::create_assembly_hook;
-use crate::api::{
-    buffers::buffer_abstractions::{Buffer, BufferFactory},
-    errors::assembly_hook_error::AssemblyHookError,
-    jit::compiler::Jit,
-    length_disassembler::LengthDisassembler,
-    rewriter::code_rewriter::CodeRewriter,
-    settings::assembly_hook_settings::AssemblyHookSettings,
-    traits::register_info::RegisterInfo,
+use crate::{
+    api::{
+        buffers::buffer_abstractions::{Buffer, BufferFactory},
+        errors::assembly_hook_error::AssemblyHookError,
+        jit::compiler::Jit,
+        length_disassembler::LengthDisassembler,
+        rewriter::code_rewriter::CodeRewriter,
+        settings::assembly_hook_settings::AssemblyHookSettings,
+        traits::register_info::RegisterInfo,
+    },
+    internal::assembly_hook::create_assembly_hook,
 };
 use derive_new::new;
 
 /// Represents an assembly hook.
 #[derive(new)]
-pub struct AssemblyHook<'a, TBuffer: Buffer> {
+pub struct AssemblyHook<'a, TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
+where
+    TBuffer: Buffer,
+    TJit: Jit<TRegister>,
+    TRegister: RegisterInfo + Clone + Default,
+    TDisassembler: LengthDisassembler,
+    TRewriter: CodeRewriter<TRegister>,
+    TBufferFactory: BufferFactory<TBuffer>,
+{
     /// True if this hook is currently disabled, else false.
     is_enabled: bool,
 
@@ -27,13 +37,24 @@ pub struct AssemblyHook<'a, TBuffer: Buffer> {
     /// The address of the hook.
     hook_address: usize,
 
-    // Dummy type parameters to ensure
-    _buf: PhantomData<TBuffer>,
+    // Dummy type parameters for Rust compiler to comply.
+    _unused_buf: PhantomData<TBuffer>,
+    _unused_tj: PhantomData<TJit>,
+    _unused_tr: PhantomData<TRegister>,
+    _unused_td: PhantomData<TDisassembler>,
+    _unused_rwr: PhantomData<TRewriter>,
+    _unused_fac: PhantomData<TBufferFactory>,
 }
 
-impl<'a, TBuffer> AssemblyHook<'a, TBuffer>
+impl<'a, TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
+    AssemblyHook<'a, TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
 where
     TBuffer: Buffer,
+    TJit: Jit<TRegister>,
+    TRegister: RegisterInfo + Clone + Default,
+    TDisassembler: LengthDisassembler,
+    TRewriter: CodeRewriter<TRegister>,
+    TBufferFactory: BufferFactory<TBuffer>,
 {
     /// Creates an assembly hook at a specified location in memory.
     ///
@@ -77,16 +98,17 @@ where
     ///
     /// If you are on Windows/Linux/macOS, expect the relative length to be used basically every time
     /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.
-    pub fn create<TJit, TRegister: Clone, TDisassembler, TRewriter, TBufferFactory>(
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it reads from raw memory. Make sure the passed pointers and
+    /// lengths are correct.
+    pub unsafe fn create(
         settings: &AssemblyHookSettings<TRegister>,
-    ) -> Result<AssemblyHook<'a, TBuffer>, AssemblyHookError>
-    where
-        TJit: Jit<TRegister>,
-        TRegister: RegisterInfo,
-        TDisassembler: LengthDisassembler,
-        TRewriter: CodeRewriter<TRegister>,
-        TBufferFactory: BufferFactory<TBuffer>,
-    {
+    ) -> Result<
+        AssemblyHook<'a, TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>,
+        AssemblyHookError<TRegister>,
+    > {
         return create_assembly_hook::<
             TJit,
             TRegister,

@@ -7,7 +7,7 @@ use reloaded_hooks_portable::api::rewriter::code_rewriter::{CodeRewriter, CodeRe
 struct CodeRewriterX64;
 
 impl CodeRewriter<AllRegisters> for CodeRewriterX64 {
-    fn rewrite_code(
+    unsafe fn rewrite_code(
         old_code: *const u8,
         old_code_size: usize,
         old_address: usize,

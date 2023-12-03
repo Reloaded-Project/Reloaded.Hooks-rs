@@ -72,10 +72,10 @@ pub fn unprotect_memory(address: *const u8, size: usize) {
 /// then disable W^X for the current thread. Then we write the code, and re-enable W^X.
 pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Option<usize> {
     // I don't trust Apple to keep mmap working, so I'm doing manual implementation with mach_ APIs.
-    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     return platform_functions_apple::disable_write_xor_execute(address, size);
 
-    #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
     None
 }
 
@@ -92,6 +92,6 @@ pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Option<usiz
 /// Success or panic.
 pub fn restore_write_xor_execute(address: *const u8, size: usize, protection: usize) {
     // I don't trust Apple to keep mmap working, so I'm doing manual implementation with mach_ APIs.
-    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     platform_functions_apple::restore_write_xor_execute(address, size, protection);
 }

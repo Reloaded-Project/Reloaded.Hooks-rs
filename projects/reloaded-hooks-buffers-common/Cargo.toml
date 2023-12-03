@@ -12,7 +12,6 @@ include = ["src/**/*"]
 smallvec = { version = "1.11.0", features = ["const_new"] }
 reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portable" }
 reloaded-memory-buffers = "3.3.0"
-thiserror-no-std = "2.0.2"
 
 [dev-dependencies]
 criterion = "0.5.1"

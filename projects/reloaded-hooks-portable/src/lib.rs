@@ -28,7 +28,6 @@ pub mod api {
     pub mod hooks {
         pub mod assembly {
             pub mod assembly_hook;
-            pub(crate) mod assembly_hook_impl;
         }
     }
 
@@ -97,6 +96,10 @@ pub mod api {
     pub mod wrapper_instruction_generator;
 }
 
+pub(crate) mod internal {
+    pub(crate) mod assembly_hook;
+}
+
 /// Code for all the graph algorithms.
 pub(crate) mod graphs {
     pub mod algorithms {
@@ -113,6 +116,8 @@ pub mod helpers {
     pub mod alignment_space_finder;
     pub mod allocate_with_proximity;
     pub mod icache_clear;
+    pub mod jit_jump_operation;
+    pub mod overwrite_code;
 
     /// For Benchmarks and tests only. Do not use in production code.
     #[doc(hidden)]
