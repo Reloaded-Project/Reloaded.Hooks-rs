@@ -42,7 +42,7 @@ where
 
     /// Returns the functionalities supported by this JIT.
     /// These functionalities affect code generation performed by this library.
-    pub jit_capabilities: &'a [JitCapabilities],
+    pub jit_capabilities: JitCapabilities,
 
     /// Address of the function to be called.
     pub target_address: usize,
@@ -286,7 +286,7 @@ pub fn generate_wrapper_instructions<
 
         if options
             .jit_capabilities
-            .contains(&JitCapabilities::CanMultiPush)
+            .contains(JitCapabilities::CAN_MULTI_PUSH)
         {
             optimized = merge_push_operations(optimized); // perf hit
             optimized = merge_pop_operations(optimized);
@@ -388,12 +388,10 @@ pub mod tests {
     use super::*;
     use smallvec::smallvec;
 
-    fn get_x86_jit_capabilities() -> Vec<JitCapabilities> {
-        vec![
-            JitCapabilities::CanEncodeIPRelativeCall,
-            JitCapabilities::CanEncodeIPRelativeJump,
-            JitCapabilities::CanMultiPush,
-        ]
+    fn get_x86_jit_capabilities() -> JitCapabilities {
+        JitCapabilities::CAN_ENCODE_IP_RELATIVE_CALL
+            | JitCapabilities::CAN_ENCODE_IP_RELATIVE_JUMP
+            | JitCapabilities::CAN_MULTI_PUSH
     }
 
     // EXTRA TESTS //
@@ -612,23 +610,23 @@ pub mod tests {
             target_address,
             target_address < 0x7FFFFFFF,
             &mock_function,
-            &capabiltiies,
+            capabiltiies,
         );
         generate_wrapper_instructions(conv_called, conv_current, options)
     }
 
-    fn get_common_options<'a>(
+    fn get_common_options(
         optimized: bool,
         target_address: usize,
         can_generate_relative: bool,
-        mock_function: &'a MockFunction,
-        capabilties: &'a [JitCapabilities],
-    ) -> WrapperInstructionGeneratorOptions<'a, MockFunction> {
+        mock_function: &MockFunction,
+        capabilties: JitCapabilities,
+    ) -> WrapperInstructionGeneratorOptions<MockFunction> {
         WrapperInstructionGeneratorOptions {
             stack_entry_alignment: size_of::<isize>(), // no_alignment
             target_address,                            // some arbitrary address
             function_info: mock_function,
-            injected_parameter: None, // some arbitrary value
+            injected_parameter: None,
             jit_capabilities: capabilties,
             can_generate_relative_jumps: can_generate_relative,
             enable_optimizations: optimized,

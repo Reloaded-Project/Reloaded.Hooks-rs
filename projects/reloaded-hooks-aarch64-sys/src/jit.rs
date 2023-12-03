@@ -68,12 +68,10 @@ impl Jit<AllRegisters> for JitAarch64 {
         ]
     }
 
-    fn get_jit_capabilities() -> &'static [JitCapabilities] {
-        &[
-            JitCapabilities::CanMultiPush,
-            JitCapabilities::CanEncodeIPRelativeCall,
-            JitCapabilities::CanEncodeIPRelativeJump,
-        ]
+    fn get_jit_capabilities() -> JitCapabilities {
+        JitCapabilities::CAN_MULTI_PUSH
+            | JitCapabilities::CAN_ENCODE_IP_RELATIVE_CALL
+            | JitCapabilities::CAN_ENCODE_IP_RELATIVE_JUMP
     }
 
     fn max_branch_bytes() -> u32 {

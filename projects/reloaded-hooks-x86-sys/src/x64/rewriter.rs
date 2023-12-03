@@ -1,13 +1,9 @@
 extern crate alloc;
 
 use super::Register;
-use crate::{
-    all_registers::AllRegisters,
-    common::{
-        jit_conversions_common::map_register_x64_to_allregisters,
-        rewriter::code_rewriter::relocate_code,
-        util::get_stolen_instructions::get_stolen_instructions,
-    },
+use crate::common::{
+    jit_conversions_common::map_register_x64_to_allregisters,
+    rewriter::code_rewriter::relocate_code, util::get_stolen_instructions::get_stolen_instructions,
 };
 use alloc::vec::Vec;
 use core::slice;

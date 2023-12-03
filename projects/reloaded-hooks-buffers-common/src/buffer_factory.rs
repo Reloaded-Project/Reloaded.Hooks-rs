@@ -3,6 +3,7 @@ extern crate alloc;
 use crate::buffer::StaticLinkedBuffer;
 use alloc::boxed::Box;
 use alloc::string::String;
+#[allow(unused_imports)]
 use reloaded_hooks_portable::api::buffers::buffer_abstractions::{Buffer, BufferFactory};
 use reloaded_memory_buffers::{buffers::Buffers, structs::params::BufferSearchSettings};
 

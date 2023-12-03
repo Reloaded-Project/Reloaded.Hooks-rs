@@ -3,23 +3,27 @@ extern crate alloc;
 use super::operation::Operation;
 use crate::api::traits::register_info::RegisterInfo;
 use alloc::{rc::Rc, string::String};
+use bitflags::bitflags;
 use core::fmt::Debug;
 use thiserror_no_std::Error;
 
-/// Lists the supported features of the JIT
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum JitCapabilities {
-    /// Can encode call that is relative to the instruction pointer.
-    /// This controls whether [CallIpRelativeOperation](super::call_rip_relative_operation::CallIpRelativeOperation) is emitted.
-    CanEncodeIPRelativeCall,
+bitflags! {
+    /// Lists the supported features of the JIT.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct JitCapabilities: u32 {
+        /// Can encode call that is relative to the instruction pointer.
+        /// This controls whether `CallIpRelativeOperation` (super::call_rip_relative_operation::CallIpRelativeOperation) is emitted.
+        const CAN_ENCODE_IP_RELATIVE_CALL = 1 << 0;
 
-    /// Can encode jump that is relative to the instruction pointer.
-    /// This controls whether [JumpIpRelativeOperation](super::jump_rip_relative_operation::JumpIpRelativeOperation) is emitted.
-    CanEncodeIPRelativeJump,
+        /// Can encode jump that is relative to the instruction pointer.
+        /// This controls whether `JumpIpRelativeOperation` (super::jump_rip_relative_operation::JumpIpRelativeOperation) is emitted.
+        const CAN_ENCODE_IP_RELATIVE_JUMP = 1 << 1;
 
-    /// Can encode multiple push/pop operations at once.
-    /// This controls whetehr [MultiPush](super::push_operation::PushOperation) and [MultiPop](super::pop_operation::PopOperation) are emitted.
-    CanMultiPush,
+        /// Can encode multiple push/pop operations at once.
+        /// This controls whether `MultiPush` (super::push_operation::PushOperation) and
+        /// `MultiPop` (super::pop_operation::PopOperation) are emitted.
+        const CAN_MULTI_PUSH = 1 << 2;
+    }
 }
 
 /// The trait for a Just In Time Compiler used for emitting
@@ -46,7 +50,7 @@ pub trait Jit<TRegister: RegisterInfo> {
 
     /// Returns the functionalities supported by this JIT.
     /// These functionalities affect code generation performed by this library.
-    fn get_jit_capabilities() -> &'static [JitCapabilities];
+    fn get_jit_capabilities() -> JitCapabilities;
 }
 
 /// Errors that can occur during JIT compilation.
