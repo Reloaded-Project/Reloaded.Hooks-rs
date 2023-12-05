@@ -1,13 +1,17 @@
 extern crate alloc;
+use core::mem::size_of;
+
 use crate::api::{
+    buffers::buffer_abstractions::{Buffer, BufferFactory},
     jit::{
-        compiler::{Jit, JitError},
+        compiler::{Jit, JitCapabilities, JitError},
         operation::Operation,
-        operation_aliases::{JumpAbs, JumpRel},
+        operation_aliases::{JumpAbs, JumpAbsInd, JumpRel},
     },
     traits::register_info::RegisterInfo,
 };
 use alloc::rc::Rc;
+use alloc::string::ToString;
 
 /// Creates a jump operation for a given address.
 ///
@@ -15,7 +19,8 @@ use alloc::rc::Rc;
 /// - `mem_address` - The address of where the jump operation should be emplaced.
 /// - `can_relative_jump` - True if the jump should be relative, else false.
 /// - `target` - The address of the target to jump to.
-pub(crate) fn create_jump_operation<TRegister, TJit>(
+/// - `scratch_register` - The scratch register to use for the jump on platforms that require it.
+pub(crate) fn create_jump_operation<TRegister, TJit, TBufferFactory, TBuffer>(
     mem_address: usize,
     can_relative_jump: bool,
     target: usize,
@@ -23,16 +28,74 @@ pub(crate) fn create_jump_operation<TRegister, TJit>(
 ) -> Result<Rc<[u8]>, JitError<TRegister>>
 where
     TRegister: RegisterInfo + Clone + Default,
-    TJit: Jit<TRegister>, /* your trait bounds here, if needed */
+    TJit: Jit<TRegister>,
+    TBuffer: Buffer,
+    TBufferFactory: BufferFactory<TBuffer>,
 {
-    let ops: [Operation<TRegister>; 1] = if can_relative_jump {
-        [Operation::JumpRelative(JumpRel::new(target))]
-    } else {
-        [Operation::JumpAbsolute(JumpAbs {
-            target_address: target,
-            scratch_register: scratch_register.unwrap_or_default(),
-        })]
-    };
-
+    let ops: [Operation<TRegister>; 1] = create_jump_operation_ops::<
+        TRegister,
+        TJit,
+        TBufferFactory,
+        TBuffer,
+    >(can_relative_jump, target, scratch_register)?;
     TJit::compile(mem_address, &ops)
+}
+
+/// Creates a jump operation for a given address.
+///
+/// # Parameters
+/// - `can_relative_jump` - True if the jump should be relative, else false.
+/// - `target` - The address of the target to jump to.
+/// - `scratch_register` - The scratch register to use for the jump on platforms that require it.
+pub(crate) fn create_jump_operation_ops<TRegister, TJit, TBufferFactory, TBuffer>(
+    can_relative_jump: bool,
+    target: usize,
+    scratch_register: Option<TRegister>,
+) -> Result<[Operation<TRegister>; 1], JitError<TRegister>>
+where
+    TRegister: RegisterInfo + Clone + Default,
+    TJit: Jit<TRegister>,
+    TBuffer: Buffer,
+    TBufferFactory: BufferFactory<TBuffer>,
+{
+    if can_relative_jump {
+        return Ok([Operation::JumpRelative(JumpRel::new(target))]);
+    }
+
+    // Try to use absolute indirect jump
+    if TJit::get_jit_capabilities().contains(JitCapabilities::PROFITABLE_ABSOLUTE_INDIRECT_JUMP) {
+        for offset in TJit::max_indirect_offsets() {
+            let buf = TBufferFactory::get_buffer(
+                size_of::<usize>() as u32,
+                (offset / 2) as usize,
+                (offset / 2 - 1) as usize,
+                size_of::<usize>() as u32,
+            );
+
+            match buf {
+                Err(_err) => continue,
+                Ok(mut ok) => {
+                    let addr = ok.get_address();
+                    let bytes = target.to_ne_bytes();
+                    ok.write(&bytes);
+                    return Ok([Operation::JumpAbsoluteIndirect(JumpAbsInd {
+                        pointer_address: addr as usize,
+                        scratch_register,
+                    })]);
+                }
+            }
+        }
+    }
+
+    // Otherwise absolute jump with scratch
+    if scratch_register.is_none() {
+        return Err(JitError::NoScratchRegister(
+            "Needed for create_jump_operation_ops".to_string(),
+        ));
+    }
+
+    Ok([Operation::JumpAbsolute(JumpAbs {
+        target_address: target,
+        scratch_register: scratch_register.unwrap(),
+    })])
 }

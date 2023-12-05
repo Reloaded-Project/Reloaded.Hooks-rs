@@ -132,7 +132,7 @@ where
         Operation::None => Operation::None,
         Operation::JumpAbsoluteIndirect(inner_op) => {
             Operation::JumpAbsoluteIndirect(JumpAbsoluteIndirectOperation {
-                scratch_register: f(inner_op.scratch_register),
+                scratch_register: inner_op.scratch_register.map(f),
                 pointer_address: inner_op.pointer_address,
             })
         }

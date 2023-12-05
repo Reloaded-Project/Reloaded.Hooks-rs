@@ -50,10 +50,15 @@ impl Jit<Register> for JitX64 {
         JitCapabilities::CAN_ENCODE_IP_RELATIVE_CALL
             | JitCapabilities::CAN_ENCODE_IP_RELATIVE_JUMP
             | JitCapabilities::CAN_MULTI_PUSH
+            | JitCapabilities::PROFITABLE_ABSOLUTE_INDIRECT_JUMP
     }
 
     fn max_branch_bytes() -> u32 {
         12 // mov <reg>, address + call .
+    }
+
+    fn max_indirect_offsets() -> &'static [u32] {
+        &[0x7FFFFFFF, 0xFFFFFFFF]
     }
 }
 

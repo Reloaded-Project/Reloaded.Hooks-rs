@@ -94,7 +94,7 @@ where
     /// | x86_64         | 5 bytes (+- 2GiB)   | 6 bytes      | 12 bytes        |
     /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 12 bytes     | 12 bytes        |
     /// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
-    /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 24 bytes        |
+    /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
     ///
     /// If you are on Windows/Linux/macOS, expect the relative length to be used basically every time
     /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.

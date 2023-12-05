@@ -23,6 +23,11 @@ bitflags! {
         /// This controls whether `MultiPush` (super::push_operation::PushOperation) and
         /// `MultiPop` (super::pop_operation::PopOperation) are emitted.
         const CAN_MULTI_PUSH = 1 << 2;
+
+        /// Set this flag if Jit can produce an 'Absolute Indirect Jump' that uses less bytes
+        /// than an 'Absolute Jump'. This is used for Assembly Hooks to reduce number of bytes
+        /// used.
+        const PROFITABLE_ABSOLUTE_INDIRECT_JUMP = 1 << 3;
     }
 }
 
@@ -51,6 +56,14 @@ pub trait Jit<TRegister: RegisterInfo> {
     /// Returns the functionalities supported by this JIT.
     /// These functionalities affect code generation performed by this library.
     fn get_jit_capabilities() -> JitCapabilities;
+
+    /// Max Offset used for Absolute Indirect Jump.
+    /// a.k.a. [`reloaded_hooks_portable::api::jit::jump_absolute_indirect_operation::JumpAbsoluteIndirectOperation`]
+    ///
+    /// Override this if you set [`reloaded_hooks_portable::api::jit::compiler::JitCapabilities::PROFITABLE_ABSOLUTE_INDIRECT_JUMP`] in [`self::get_jit_capabilities`]
+    fn max_indirect_offsets() -> &'static [u32] {
+        &[]
+    }
 }
 
 /// Errors that can occur during JIT compilation.

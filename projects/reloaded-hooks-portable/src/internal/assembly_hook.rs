@@ -51,8 +51,8 @@ use core::{
 /// | x86            | 5 bytes (+- 2GiB)   | 5 bytes      | 5 bytes         |
 /// | x86_64         | 5 bytes (+- 2GiB)   | 6 bytes      | 12 bytes        |
 /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 12 bytes     | 12 bytes        |
-/// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
-/// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 24 bytes        |
+/// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 20 bytes        |
+/// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 20 bytes        |
 #[allow(clippy::type_complexity)]
 pub unsafe fn create_assembly_hook<
     'a,
@@ -112,7 +112,7 @@ where
     let buf_addr = buf.get_address() as usize;
 
     // Make jump to new buffer
-    let code = create_jump_operation::<TRegister, TJit>(
+    let code = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
         settings.hook_address,
         alloc_result.0,
         buf_addr,
