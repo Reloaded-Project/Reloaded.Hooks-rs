@@ -165,8 +165,6 @@ mod tests {
     use crate::common::util::test_utilities::str_to_vec;
     use rstest::rstest;
 
-    // TODO: Iced library is potentially borked with code in 4GiB addresses in 32bit.
-
     #[rstest]
     #[case::rip_relative_2gib("488b0508000000", 0x7FFFFFF7, 0, "488b05ffffff7f")] // mov rax, qword ptr [rip + 8] -> mov rax, qword ptr [rip + 0x7fffffff]
     #[case::simple_branch_pad("50eb02", 4096, 0, "50e9ff0f0000")] // push + jmp +2 -> push + jmp +4098

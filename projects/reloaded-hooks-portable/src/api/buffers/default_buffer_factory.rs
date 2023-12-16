@@ -81,7 +81,6 @@ impl BufferFactory<LockedBuffer> for DefaultBufferFactory {
         // If no buffer was found, create a new one
         let mut write_lock = BUFFERS.buffers.write();
 
-        // TODO: 'W^X' mode which creates as RW, and toggles between RW and RX.
         let mut map = if create_page_as_rwx() {
             mmap_rs_with_map_from_existing::MmapOptions::new(size as usize)
                 .unwrap()
