@@ -73,7 +73,7 @@ pub(crate) fn emit_mov_const_to_reg(destination: u8, value: usize) -> Instructio
 }
 
 /// Produces an `InstructionRewriteResult` which represents the best possible way to
-/// encode the provided value as an immediate move instruction for the given destination register.
+/// move the upper 48 bits of a constant to the given destination register.
 ///
 /// # Parameters
 ///
