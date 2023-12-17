@@ -1,4 +1,5 @@
 extern crate alloc;
+use super::inline_branch_error::InlineBranchError;
 use crate::api::{jit::compiler::JitError, rewriter::code_rewriter::CodeRewriterError};
 use derive_new::new;
 use thiserror_no_std::Error;
@@ -21,8 +22,15 @@ pub enum AssemblyHookError<TRegister> {
     #[error("Failed to rewrite code. Source: {0:?}, Error: {1:?}")]
     RewriteError(RewriteErrorDetails, CodeRewriterError),
 
+    /// JIT related error.
     #[error("Error in JIT: {0:?}")]
     JitError(JitError<TRegister>),
+
+    /// Array for branch was too short.
+    /// Normally this should never happen, but is here as a sanity test.
+    /// Used in debug configurations only.
+    #[error("Inline branch error. {0:?}. Kind: {1:?}.")]
+    InlineBranchError(InlineBranchError, ArrayTooShortKind),
 }
 
 /// Errors that can occur during JIT compilation.
@@ -33,6 +41,22 @@ pub enum RewriteErrorSource {
 
     /// Failed to re-encode new code
     CustomCode,
+
+    /// Failed to re-encode hook code @ 'hook' segment.
+    HookCodeAtHook,
+
+    /// Failed to re-encode original code @ 'orig' segment.
+    OrigCodeAtOrig,
+}
+
+/// Defines which array is too Short
+#[derive(Debug, Error, Clone, PartialEq, Eq)]
+pub enum ArrayTooShortKind {
+    /// Branch to hook failed.
+    ToHook,
+
+    /// Branch to original failed.
+    ToOrig,
 }
 
 #[derive(Debug, Error, Clone, PartialEq, Eq, new)]

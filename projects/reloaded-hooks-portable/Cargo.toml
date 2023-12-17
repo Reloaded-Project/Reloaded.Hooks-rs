@@ -20,6 +20,7 @@ smallvec = { version = "1.11.0", features = ["const_new"] }
 bitflags = "2.4.1"
 derive_more = { version = "0.99.17", default-features = false, features = ["from", "add", "iterator"] }
 derive-new = { version = "0.6.0", default-features = false }
+bitfield = "0.14.0"
 
 # Tests only!
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }

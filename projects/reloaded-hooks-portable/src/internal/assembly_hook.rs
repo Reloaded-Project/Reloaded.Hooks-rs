@@ -77,6 +77,7 @@ where
     // Documented in docs/dev/design/assembly-hooks/overview.md
 
     // Assumption: The memory at hook point is already readable, i.e. r-x or rwx
+
     // Lock native function memory, to ensure we get accurate info.
     // This should make hooking operation thread safe provided no presence of 3rd party
     // library instances, which is a-ok for Reloaded3.
@@ -100,8 +101,11 @@ where
         );
     let hook_orig_max_length = max_orig_code_length + TJit::max_branch_bytes() as usize;
 
-    // The required length of buffer for our custom code.
-    let max_possible_buf_length = max(hook_code_max_length, hook_orig_max_length);
+    // The required length of buffer for custom/stub code.
+    // See: Layout in documentation page.
+    let max_possible_buf_length = max(hook_code_max_length, hook_orig_max_length)
+        + hook_code_max_length
+        + hook_orig_max_length;
 
     // Allocate that buffer, and write our custom code to it.
     let alloc_result = allocate_with_proximity::<TJit, TRegister, TBufferFactory, TBuffer>(
@@ -128,8 +132,15 @@ where
         ));
     }
 
-    // Rewrite that code to new buffer address.
-    let new_orig_code = TRewriter::rewrite_code(
+    let jump_back_address = settings.hook_address + code.len();
+
+    // Stub Mem Layout (See Docs)
+    // - entry: [Hook Function / Original Code]
+    // - hook: Hook Function
+    // - orig: Original Code
+
+    // 'Original Code' @ entry
+    let mut new_orig_code = TRewriter::rewrite_code(
         settings.hook_address as *const u8,
         orig_code_length,
         settings.hook_address,
@@ -137,8 +148,17 @@ where
         settings.scratch_register.clone(),
     )
     .map_err(|e| new_rewrite_error(OriginalCode, settings.hook_address, buf_addr, e))?;
+    let jmp = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
+        buf_addr.wrapping_add(new_orig_code.len()),
+        alloc_result.0,
+        jump_back_address,
+        settings.scratch_register.clone(),
+    )
+    .map_err(|e| AssemblyHookError::JitError(e))?;
+    new_orig_code.extend_from_slice(&jmp);
 
-    let new_hook_code = TRewriter::rewrite_code(
+    // 'Hook Function' @ entry
+    let mut new_hook_code = TRewriter::rewrite_code(
         settings.asm_code.as_ptr(),
         settings.asm_code.len(),
         settings.asm_code_address,
@@ -146,12 +166,81 @@ where
         settings.scratch_register.clone(),
     )
     .map_err(|e| new_rewrite_error(CustomCode, settings.asm_code_address, buf_addr, e))?;
+    let jmp = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
+        buf_addr.wrapping_add(new_hook_code.len()),
+        alloc_result.0,
+        jump_back_address,
+        settings.scratch_register.clone(),
+    )
+    .map_err(|e| AssemblyHookError::JitError(e))?;
+    new_hook_code.extend_from_slice(&jmp);
 
-    // TODO: Code to 'jump back' to original code.
+    let entry_end_ptr = buf_addr + max(new_orig_code.len(), new_hook_code.len());
 
-    // Reserve the code needed
-    let max_buf_length = max(new_hook_code.len(), new_orig_code.len());
-    buf.advance(max_buf_length);
+    // 'Hook Function' @ hook
+    let mut hook_at_hook = TRewriter::rewrite_code(
+        settings.asm_code.as_ptr(),
+        settings.asm_code.len(),
+        settings.asm_code_address,
+        entry_end_ptr,
+        settings.scratch_register.clone(),
+    )
+    .map_err(|e| new_rewrite_error(HookCodeAtHook, settings.asm_code_address, entry_end_ptr, e))?;
+    let jmp = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
+        entry_end_ptr.wrapping_add(hook_at_hook.len()),
+        alloc_result.0,
+        jump_back_address,
+        settings.scratch_register.clone(),
+    )
+    .map_err(|e| AssemblyHookError::JitError(e))?;
+    hook_at_hook.extend_from_slice(&jmp);
+
+    let hook_at_hook_end = buf_addr + max(new_orig_code.len(), new_hook_code.len());
+
+    // 'Original Code' @ orig
+    let mut orig_at_orig = TRewriter::rewrite_code(
+        settings.hook_address as *const u8,
+        orig_code_length,
+        settings.hook_address,
+        hook_at_hook_end,
+        settings.scratch_register.clone(),
+    )
+    .map_err(|e| new_rewrite_error(OrigCodeAtOrig, settings.hook_address, hook_at_hook_end, e))?;
+    let jmp = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
+        hook_at_hook_end.wrapping_add(orig_at_orig.len()),
+        alloc_result.0,
+        jump_back_address,
+        settings.scratch_register.clone(),
+    )
+    .map_err(|e| AssemblyHookError::JitError(e))?;
+    orig_at_orig.extend_from_slice(&jmp);
+
+    // Branch `entry -> orig`
+    // Branch `entry -> hook`
+    let branch_to_hook = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
+        buf_addr,
+        true,
+        entry_end_ptr,
+        settings.scratch_register.clone(),
+    )
+    .map_err(|e| AssemblyHookError::JitError(e))?;
+
+    let branch_to_orig = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
+        buf_addr,
+        true,
+        hook_at_hook_end,
+        settings.scratch_register.clone(),
+    )
+    .map_err(|e| AssemblyHookError::JitError(e))?;
+
+    let hook_end = hook_at_hook_end + orig_at_orig.len();
+    buf.advance(hook_end);
+
+    // Write the code for
+    // 'Hook Function' @ hook
+    // 'Original Code' @ orig
+    TBuffer::overwrite(entry_end_ptr, &hook_at_hook);
+    TBuffer::overwrite(hook_at_hook_end, &orig_at_orig);
 
     // Write the default code.
     let enabled_code =
@@ -170,12 +259,14 @@ where
     overwrite_code(settings.hook_address, &code);
 
     // Populate remaining fields
-    Ok(AssemblyHook::new(
+    AssemblyHook::new(
         settings.auto_activate,
+        branch_to_orig,
+        branch_to_hook,
         enabled_code,
         disabled_code,
         settings.hook_address,
-    ))
+    )
 }
 
 fn new_rewrite_error<TRegister>(

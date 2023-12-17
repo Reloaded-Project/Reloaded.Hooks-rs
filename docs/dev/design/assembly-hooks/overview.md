@@ -134,6 +134,124 @@ The following table below shows common hook lengths, for:
 ^[5]^: [MOVZ + MOVK + LDR + BR](../../arch/operations.md#jumpabsolute).  
 ^[6]^: [ADRP + ADD + BR](../../arch/operations.md#jumprelative).  
 
+## Thread Safety & Memory Layout
+
+!!! note "[Reloaded3](https://reloaded-project.github.io/Reloaded-III/) allows mod load/unloads in real time, so this is a hard requirement."
+
+!!! warning "Therefore, assembly hooks should be thread safe."
+
+In order to support thread safety, while retaining maximum runtime performance, the buffers where the 
+original and hook code are contained have a very specific memory layout (shown below)
+
+```text
+- [Hook Function / Original Code]
+- Hook Function
+- Original Code
+```
+
+### Example
+
+If the *'Original Code'* was:
+
+```asm
+mov x0, x1
+add x0, x2
+```
+
+And the *'Hook Code'* was:
+
+```asm
+add x1, x1
+mov x0, x2
+```
+
+The memory would look like this when hooked.
+
+```asm
+entry: ; Currently Applied (Hook)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; Backup (Hook)
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+```
+
+### Switching State
+
+!!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `entry`, this allows us to manipulate the remaining code safely."
+
+```asm
+entry: ; Currently Applied (Hook)
+    b original ; Temp branch to original
+    mov x0, x2
+    b back_to_code
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; Backup (Hook)
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+```
+
+!!! note "Don't forget to clear instruction cache on non-x86 architectures which need it."
+
+This ensures we can safely overwrite the remaining code...
+
+Then we overwrite `entry` code with `hook` code, except the branch:
+
+```asm
+entry: ; Currently Applied (Hook)
+    b original     ; Branch to original
+    add x0, x2     ; overwritten with 'original' code.
+    b back_to_code ; overwritten with 'original' code.
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; Backup (Hook)
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+```
+
+And lastly, overwrite the branch. 
+
+To do this, read the original `sizeof(nint)` bytes at `entry`, replace branch bytes with original bytes 
+and do an atomic write. This way, the remaining instruction is safely replaced.
+
+```asm
+entry: ; Currently Applied (Hook)
+    add x1, x1     ; 'original' code.
+    add x0, x2     ; 'original' code.
+    b back_to_code ; 'original' code.
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; Backup (Hook)
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+```
+
+This way we achieve zero overhead CPU-wise, at expense of some memory.
+
 ## Legacy Compatibility Considerations
 
 !!! note "As `reloaded-hooks-rs` intends to replace `Reloaded.Hooks` is must provide certain functionality for backwards compatibility."
