@@ -3,9 +3,11 @@ extern crate alloc;
 use crate::api::platforms::platform_functions::{
     disable_write_xor_execute, restore_write_xor_execute,
 };
+use crate::helpers::atomic_write::atomic_write;
 use crate::helpers::icache_clear::clear_instruction_cache;
 use alloc::rc::Rc;
 use core::cell::RefCell;
+use core::mem::size_of;
 use core::ptr::{copy_nonoverlapping, NonNull};
 use core::sync::atomic::{AtomicBool, Ordering};
 
@@ -100,6 +102,30 @@ impl Buffer for LockedBuffer {
         let new_offset = current_offset + num_bytes as u32;
         *self.buffer.write_offset.borrow_mut() = new_offset;
         self.buffer.ptr.as_ptr().wrapping_add(new_offset as usize)
+    }
+
+    fn overwrite_atomic<TInteger>(address: usize, buffer: TInteger)
+    where
+        Self: Sized,
+    {
+        let orig = disable_write_xor_execute(address as *const u8, size_of::<TInteger>());
+
+        unsafe {
+            atomic_write(
+                &buffer as *const TInteger as *const u8,
+                address as *mut u8,
+                size_of::<TInteger>(),
+            );
+        }
+
+        if let Some(orig_val) = orig {
+            restore_write_xor_execute(address as *const u8, size_of::<TInteger>(), orig_val);
+        }
+
+        clear_instruction_cache(
+            address as *const u8,
+            (address + size_of::<TInteger>()) as *const u8,
+        );
     }
 }
 

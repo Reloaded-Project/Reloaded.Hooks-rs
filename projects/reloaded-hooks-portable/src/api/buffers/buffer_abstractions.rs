@@ -97,4 +97,23 @@ pub trait Buffer {
     fn overwrite(address: usize, buffer: &[u8])
     where
         Self: Sized;
+
+    /// Overwrites data written to a buffer created by this trait at a given address.
+    /// Using a native integer type, such that an atomic operation is performed.
+    ///
+    /// # Remarks
+    ///
+    /// This method works around the complicated tidbits of writing to buffer, such as instruction
+    /// cache invalidation and permission changes on W^X systems where applicable.
+    ///
+    /// `TInteger` must be a native integer type, such as `u8`, `u16`, `u32`, `u64`, which can be written
+    /// using a single instruction.
+    ///
+    /// # Parameters
+    ///
+    /// - `address`: The address to overwrite.
+    /// - `buffer`: The native integer type to write.
+    fn overwrite_atomic<TInteger>(address: usize, buffer: TInteger)
+    where
+        Self: Sized;
 }

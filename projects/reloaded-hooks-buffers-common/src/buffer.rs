@@ -1,4 +1,7 @@
-use reloaded_hooks_portable::api::buffers::buffer_abstractions::Buffer;
+use core::mem::size_of;
+use reloaded_hooks_portable::{
+    api::buffers::buffer_abstractions::Buffer, helpers::atomic_write::atomic_write,
+};
 use reloaded_memory_buffers::{buffers::Buffers, structs::SafeLocatorItem};
 
 pub(crate) struct StaticLinkedBuffer {
@@ -39,6 +42,18 @@ impl Buffer for StaticLinkedBuffer {
         }
     }
 
+    fn overwrite_atomic<TInteger>(address: usize, buffer: TInteger)
+    where
+        Self: Sized,
+    {
+        Buffers::overwrite_allocated_code_ex(
+            (&buffer) as *const TInteger as *const u8,
+            address as *mut u8,
+            size_of::<TInteger>(),
+            atom_write,
+        )
+    }
+
     fn advance(&mut self, num_bytes: usize) -> *const u8 {
         let locator_item = self.buf.item.get();
         let current_offset = unsafe { (*locator_item).position };
@@ -47,4 +62,8 @@ impl Buffer for StaticLinkedBuffer {
             ((*locator_item).base_address.value as *const u8).add((*locator_item).position as usize)
         }
     }
+}
+
+fn atom_write(src: *const u8, tgt: *mut u8, size: usize) {
+    unsafe { atomic_write(src, tgt, size) }
 }

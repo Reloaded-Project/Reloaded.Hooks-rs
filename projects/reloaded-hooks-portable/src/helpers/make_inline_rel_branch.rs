@@ -97,7 +97,3 @@ fn make_inline_branch_aarch64(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], Inli
 
     Err(InlineBranchError::UnexpectedArrayLength(rc.len()))
 }
-
-pub fn get_inline_opc(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], InlineBranchError> {
-    make_inline_branch(rc)
-}

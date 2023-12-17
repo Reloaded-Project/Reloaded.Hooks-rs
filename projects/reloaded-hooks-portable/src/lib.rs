@@ -116,6 +116,7 @@ pub(crate) mod graphs {
 pub mod helpers {
     pub mod alignment_space_finder;
     pub mod allocate_with_proximity;
+    pub mod atomic_write;
     pub mod icache_clear;
     pub mod jit_jump_operation;
     pub mod make_inline_rel_branch;
