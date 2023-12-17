@@ -9,7 +9,10 @@ use crate::{
         settings::assembly_hook_settings::AssemblyHookSettings,
         traits::register_info::RegisterInfo,
     },
-    helpers::make_inline_rel_branch::{make_inline_branch, INLINE_BRANCH_LEN},
+    helpers::{
+        atomic_write_masked::atomic_write_masked,
+        make_inline_rel_branch::{make_inline_branch, INLINE_BRANCH_LEN},
+    },
     internal::assembly_hook::create_assembly_hook,
 };
 use alloc::rc::Rc;
@@ -19,25 +22,27 @@ use core::marker::PhantomData;
 bitfield! {
     /// `AddImmediate` represents the bitfields of the ADD (immediate) instruction
     /// in AArch64 architecture.
-    pub struct AssemblyHookLengths(u8);
+    pub struct AssemblyHookPackedProps(u8);
     impl Debug;
 
-    // Note: Can shorten this to 3 bits if needed.
-
     /// Length of the 'branch to orig' inline array.
-    branch_to_orig_len, set_branch_to_orig_len: 8, 4;
+    branch_to_orig_len, set_branch_to_orig_len: 6, 4;
 
     /// Length of the 'branch to hook' inline array.
-    branch_to_hook_len, set_branch_to_hook_len: 4, 0;
+    branch_to_hook_len, set_branch_to_hook_len: 3, 1;
+
+    /// True if the hook is enabled, else false.
+    is_enabled, set_is_enabled: 0;
 }
 
-impl AssemblyHookLengths {
-    /// Creates a new `AssemblyHookLengths` with specified lengths.
-    pub fn new(branch_to_orig_len: u8, branch_to_hook_len: u8) -> Self {
-        let mut lengths = AssemblyHookLengths(0);
-        lengths.set_branch_to_orig_len(branch_to_orig_len);
-        lengths.set_branch_to_hook_len(branch_to_hook_len);
-        lengths
+impl AssemblyHookPackedProps {
+    /// Creates a new `AssemblyHookPackedProps` with specified properties.
+    pub fn new(is_enabled: bool, branch_to_orig_len: u8, branch_to_hook_len: u8) -> Self {
+        let mut props = AssemblyHookPackedProps(0);
+        props.set_is_enabled(is_enabled);
+        props.set_branch_to_orig_len(branch_to_orig_len);
+        props.set_branch_to_hook_len(branch_to_hook_len);
+        props
     }
 }
 
@@ -53,36 +58,23 @@ where
     TBufferFactory: BufferFactory<TBuffer>,
 {
     // docs/dev/design/assembly-hooks/overview.md
-
-    /*
-        The first 4 fields are set up to account for struct packing.
-        With the assumption that 5 bytes max is required for any current architecture for a short relative jump.
-        Jump is 2/5 bytes for x86 (depending on payload size) and 4 bytes for ARM64.
-
-        Right now 'is_enabled' is left unpadded for performance reasons, as there's free space. Once more
-        metadata is needed, I expect all fields to be left unpadded.
-    */
-    /// True if this hook is currently disabled, else false.
-    is_enabled: bool, // 0
-
-    /// Stores sizes of 'branch_to_orig_opcode' and 'branch_to_hook_opcode'.
-    lengths: AssemblyHookLengths, // 1
-
-    // 1 (is_enabled) + 1 (lengths) + 5 + 5 == 12 bytes
-    /// The code to branch to 'orig' segment in the buffer, when disabling the hook.
-    branch_to_orig_opcode: [u8; INLINE_BRANCH_LEN], // 2
-
-    /// The code to branch to 'hook' segment in the buffer, when enabling the hook.#
-    branch_to_hook_opcode: [u8; INLINE_BRANCH_LEN], // 7
-
     /// The code placed at the hook function when the hook is enabled.
-    enabled_code: &'a [u8], // 12/16
+    enabled_code: &'a [u8], // 0
 
     /// The code placed at the hook function when the hook is disabled.
-    disabled_code: &'a [u8], // 16/24
+    disabled_code: &'a [u8], // 4/8
 
-    /// The address of the hook.
-    hook_address: usize, // 20/32
+    /// The address of the stub containing custom code.
+    stub_address: usize, // 8/16
+
+    /// Stores sizes of 'branch_to_orig_opcode' and 'branch_to_hook_opcode'.
+    props: AssemblyHookPackedProps, // 12/24
+
+    /// The code to branch to 'orig' segment in the buffer, when disabling the hook.
+    branch_to_orig_opcode: [u8; INLINE_BRANCH_LEN], // 13/25
+
+    /// The code to branch to 'hook' segment in the buffer, when enabling the hook.
+    branch_to_hook_opcode: [u8; INLINE_BRANCH_LEN], // 18/30 (-1 on AArch64)
 
     // Dummy type parameters for Rust compiler to comply.
     _unused_buf: PhantomData<TBuffer>,
@@ -109,25 +101,25 @@ where
         branch_to_hook: Rc<[u8]>,
         enabled_code: &'a [u8],
         disabled_code: &'a [u8],
-        hook_address: usize,
+        stub_address: usize,
     ) -> Result<Self, AssemblyHookError<TRegister>> {
         let branch_to_orig_opcode =
             Self::inline_branch(&branch_to_orig, ArrayTooShortKind::ToOrig)?;
         let branch_to_hook_opcode =
             Self::inline_branch(&branch_to_hook, ArrayTooShortKind::ToHook)?;
-        let lengths = AssemblyHookLengths::new(
+        let props = AssemblyHookPackedProps::new(
+            is_enabled,
             branch_to_orig_opcode.len() as u8,
             branch_to_hook_opcode.len() as u8,
         );
 
         Ok(Self {
-            is_enabled,
-            lengths,
+            props,
             branch_to_orig_opcode,
             branch_to_hook_opcode,
             enabled_code,
             disabled_code,
-            hook_address,
+            stub_address,
             _unused_buf: PhantomData,
             _unused_tj: PhantomData,
             _unused_tr: PhantomData,
@@ -201,13 +193,25 @@ where
         >(settings);
     }
 
+    /// Writes the hook to memory, either enabling or disabling it based on the provided parameters.
+    fn write_hook(&self, branch_opcode: &[u8], code: &[u8], num_bytes: usize) {
+        // Write the branch first, as per docs
+        TBuffer::overwrite(self.stub_address, branch_opcode);
+
+        // Now write the remaining code
+        TBuffer::overwrite(self.stub_address + num_bytes, &code[num_bytes..]);
+
+        // Now write the non-branch code
+        atomic_write_masked::<TBuffer>(self.stub_address, code, num_bytes);
+    }
+
     /// Enables the hook.
     /// This will cause the hook to be written to memory.
     /// If the hook is already enabled, this function does nothing.
     /// If the hook is disabled, this function will write the hook to memory.
     pub fn enable(&self) {
-        // TODO: Strategy from document.
-        TBuffer::overwrite(self.hook_address, self.enabled_code);
+        let num_bytes = self.props.branch_to_hook_len() as usize;
+        self.write_hook(&self.branch_to_hook_opcode, self.enabled_code, num_bytes);
     }
 
     /// Disables the hook.
@@ -215,13 +219,13 @@ where
     /// If the hook is already disabled, this function does nothing.
     /// If the hook is enabled, this function will no-op the hook.
     pub fn disable(&self) {
-        // TODO: Strategy from document.
-        TBuffer::overwrite(self.hook_address, self.disabled_code);
+        let num_bytes = self.props.branch_to_orig_len() as usize;
+        self.write_hook(&self.branch_to_orig_opcode, self.disabled_code, num_bytes);
     }
 
     /// Returns true if the hook is enabled, else false.
     pub fn get_is_enabled(&self) -> bool {
-        self.is_enabled
+        self.props.is_enabled()
     }
 
     fn inline_branch(

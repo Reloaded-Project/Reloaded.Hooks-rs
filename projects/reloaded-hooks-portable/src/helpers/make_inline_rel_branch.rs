@@ -1,13 +1,24 @@
 use crate::api::errors::inline_branch_error::InlineBranchError;
 use core::mem::{transmute, MaybeUninit};
 
+// x86 = 2/4/5 bytes
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 pub const INLINE_BRANCH_LEN: usize = 5;
+
+// ARM64 = 4 bytes
+// ARM = 4 bytes
+// MIPS = 4 bytes
+// PPC = 4 bytes
+// RISC-V = 4 bytes
+// SPARC = 4 bytes
+#[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+pub const INLINE_BRANCH_LEN: usize = 4;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 const X86_REL8_BRANCH: usize = 2;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-const X86_REL16_BRANCH: usize = 3;
+const X86_REL16_BRANCH: usize = 4; // with prefix
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 const X86_REL32_BRANCH: usize = 5;

@@ -265,7 +265,7 @@ where
         branch_to_hook,
         enabled_code,
         disabled_code,
-        settings.hook_address,
+        buf_addr,
     )
 }
 
