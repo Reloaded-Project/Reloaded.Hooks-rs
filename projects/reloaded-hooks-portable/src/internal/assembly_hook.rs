@@ -22,7 +22,7 @@ use crate::{
 use alloc::vec::Vec;
 use core::{
     cmp::max,
-    slice::{self},
+    ops::{Add, Sub},
 };
 
 /// Creates an assembly hook at a specified location in memory.
@@ -56,7 +56,6 @@ use core::{
 /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 20 bytes        |
 #[allow(clippy::type_complexity)]
 pub unsafe fn create_assembly_hook<
-    'a,
     TJit,
     TRegister: Clone + Default,
     TDisassembler,
@@ -113,7 +112,7 @@ where
         settings.hook_address,
         max_possible_buf_length as u32,
     );
-    let buf = alloc_result.1;
+    let mut buf = alloc_result.1;
     let buf_addr = buf.get_address() as usize;
 
     // Make jump to new buffer
@@ -242,6 +241,9 @@ where
 
     // Now JIT a jump to the original code.
     overwrite_code(settings.hook_address, &code);
+
+    // Advance the buffer to account for code written.
+    buf.advance(hook_at_hook_end.add(orig_at_orig.len()).sub(buf_addr));
 
     // Populate remaining fields
     AssemblyHook::new(
