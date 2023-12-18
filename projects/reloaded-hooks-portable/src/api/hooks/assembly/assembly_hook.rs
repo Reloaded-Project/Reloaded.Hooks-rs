@@ -203,7 +203,7 @@ where
         TBuffer::overwrite(self.stub_address + num_bytes, &code[num_bytes..]);
 
         // Now write the non-branch code
-        atomic_write_masked::<TBuffer>(self.stub_address, code, num_bytes);
+        atomic_write_masked::<TBuffer>(self.stub_address, &code[..num_bytes], num_bytes);
     }
 
     /// Enables the hook.

@@ -54,7 +54,7 @@ where
                 TWriter::atomic_write(address, combined_code);
             }
             5..=8 => {
-                let existing_code = *(address as *const u64);
+                let existing_code = read_unaligned(address as *const u64);
                 let mut temp_code: u64 = 0;
                 let mask: u64 = match num_bytes {
                     5 => 0x00_00_00_FF_FF_FF_FF_FF_u64.to_le(),
