@@ -144,6 +144,20 @@ where
             scratch_register: None,
         }
     }
+
+    /// Sets the scratch register for the hook settings and returns the modified instance.
+    ///
+    /// # Arguments
+    ///
+    /// * `register` - The scratch register to be used for re-encoding the original code.
+    ///
+    /// # Returns
+    ///
+    /// Returns the AssemblyHookSettings instance with the scratch register set, allowing for method chaining.
+    pub fn with_scratch_register(mut self, register: TRegister) -> Self {
+        self.scratch_register = Some(register);
+        self
+    }
 }
 
 /// Defines the behaviour used by the `AssemblyHook`.

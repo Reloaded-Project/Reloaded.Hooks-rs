@@ -37,7 +37,8 @@ It's recommended to use `reloaded-hooks-rs` alongside `reloaded-memory-buffers`.
 library is to perform allocations as close to original code as possible, allowing for more efficient code.
 
 This requires walking memory pages. If your OS does not have a way to do this, you can in the meantime use
-the built-in `DefaultBufferFactory`. 
+the built-in `DefaultBufferFactory`. On some platforms you'll also need to adjust `DefaultBufferFactory::create_page_as_rx`, 
+if your platform does not allow RWX allocations.
 
 !!! warning "For `DefaultBufferFactory`, you might need to replace `mmap_rs` in `get_any_buffer` to use your platform specific page allocation function."
 

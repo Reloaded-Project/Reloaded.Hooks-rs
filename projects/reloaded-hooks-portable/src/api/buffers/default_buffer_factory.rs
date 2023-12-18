@@ -81,7 +81,7 @@ impl BufferFactory<LockedBuffer> for DefaultBufferFactory {
         // If no buffer was found, create a new one
         let mut write_lock = BUFFERS.buffers.write();
 
-        let mut map = if create_page_as_rwx() {
+        let mut map = if create_page_as_rx() {
             mmap_rs_with_map_from_existing::MmapOptions::new(size as usize)
                 .unwrap()
                 .map_mut()
@@ -121,8 +121,16 @@ fn align_offset(address: usize, alignment: usize) -> usize {
 
 /// Returns true if the platform should crate memory pages as R^X instead of RWX.
 /// Use this when platform enforces strict W^X policy. This is intended to be used when testing new platforms.
-fn create_page_as_rwx() -> bool {
-    true
+fn create_page_as_rx() -> bool {
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    {
+        true
+    }
+
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    {
+        false
+    }
 }
 
 #[cfg(test)]

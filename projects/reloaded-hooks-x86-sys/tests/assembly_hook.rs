@@ -22,6 +22,13 @@ fn hook_calculator_add_asm_x64() {
 
     // Overwrite the first bytes with hook
     let _hook = unsafe {
+        let settings = AssemblyHookSettings::new_minimal(
+            add_addr,
+            &[0x48, 0xFF, 0xC1], // inc rcx
+            13,
+        )
+        .with_scratch_register(x64::Register::r8);
+
         AssemblyHook::<
             LockedBuffer,
             JitX64,
@@ -29,11 +36,8 @@ fn hook_calculator_add_asm_x64() {
             LengthDisassemblerX64,
             CodeRewriterX64,
             DefaultBufferFactory,
-        >::create(&AssemblyHookSettings::new_minimal(
-            add_addr,
-            &[0x48, 0xFF, 0xC1],
-            12,
-        ))
+        >::create(&settings)
+        .unwrap()
     };
 
     // Make the hook

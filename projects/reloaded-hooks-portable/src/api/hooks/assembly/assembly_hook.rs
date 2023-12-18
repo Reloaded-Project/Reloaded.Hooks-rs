@@ -15,6 +15,7 @@ use crate::{
     },
     internal::assembly_hook::create_assembly_hook,
 };
+use alloc::boxed::Box;
 use alloc::rc::Rc;
 use bitfield::bitfield;
 use core::marker::PhantomData;
@@ -47,8 +48,8 @@ impl AssemblyHookPackedProps {
 }
 
 /// Represents an assembly hook.
-#[repr(C, packed)] // Human packed, to sacrifice some size,
-pub struct AssemblyHook<'a, TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
+#[repr(C)] // Not 'packed' because this is not in array and malloc in practice will align this.
+pub struct AssemblyHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
 where
     TBuffer: Buffer,
     TJit: Jit<TRegister>,
@@ -59,10 +60,10 @@ where
 {
     // docs/dev/design/assembly-hooks/overview.md
     /// The code placed at the hook function when the hook is enabled.
-    enabled_code: &'a [u8], // 0
+    enabled_code: Box<[u8]>, // 0
 
     /// The code placed at the hook function when the hook is disabled.
-    disabled_code: &'a [u8], // 4/8
+    disabled_code: Box<[u8]>, // 4/8
 
     /// The address of the stub containing custom code.
     stub_address: usize, // 8/16
@@ -76,6 +77,9 @@ where
     /// The code to branch to 'hook' segment in the buffer, when enabling the hook.
     branch_to_hook_opcode: [u8; INLINE_BRANCH_LEN], // 18/30 (-1 on AArch64)
 
+    // End: 40 (AArch64) [no pad: 33]
+    // End: 24/40 (x86)  [no pad: 23/35]
+
     // Dummy type parameters for Rust compiler to comply.
     _unused_buf: PhantomData<TBuffer>,
     _unused_tj: PhantomData<TJit>,
@@ -85,8 +89,8 @@ where
     _unused_fac: PhantomData<TBufferFactory>,
 }
 
-impl<'a, TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
-    AssemblyHook<'a, TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
+impl<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
+    AssemblyHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
 where
     TBuffer: Buffer,
     TJit: Jit<TRegister>,
@@ -99,8 +103,8 @@ where
         is_enabled: bool,
         branch_to_orig: Rc<[u8]>,
         branch_to_hook: Rc<[u8]>,
-        enabled_code: &'a [u8],
-        disabled_code: &'a [u8],
+        enabled_code: Box<[u8]>,
+        disabled_code: Box<[u8]>,
         stub_address: usize,
     ) -> Result<Self, AssemblyHookError<TRegister>> {
         let branch_to_orig_opcode =
@@ -164,10 +168,12 @@ where
     /// | Architecture   | Relative            | TMA          | Worst Case      |
     /// |----------------|---------------------|--------------|-----------------|
     /// | x86            | 5 bytes (+- 2GiB)   | 5 bytes      | 5 bytes         |
-    /// | x86_64         | 5 bytes (+- 2GiB)   | 6 bytes      | 12 bytes        |
-    /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 12 bytes     | 12 bytes        |
+    /// | x86_64         | 5 bytes (+- 2GiB)   | 6 bytes      | 13 bytes        |
+    /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 13 bytes     | 13 bytes        |
     /// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
     /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
+    ///
+    /// Note: 12/13 bytes worst case on x86 depending on register number used.
     ///
     /// If you are on Windows/Linux/macOS, expect the relative length to be used basically every time
     /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.
@@ -180,17 +186,12 @@ where
     pub unsafe fn create(
         settings: &AssemblyHookSettings<TRegister>,
     ) -> Result<
-        AssemblyHook<'a, TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>,
+        AssemblyHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>,
         AssemblyHookError<TRegister>,
     > {
-        return create_assembly_hook::<
-            TJit,
-            TRegister,
-            TDisassembler,
-            TRewriter,
-            TBuffer,
-            TBufferFactory,
-        >(settings);
+        create_assembly_hook::<TJit, TRegister, TDisassembler, TRewriter, TBuffer, TBufferFactory>(
+            settings,
+        )
     }
 
     /// Writes the hook to memory, either enabling or disabling it based on the provided parameters.
@@ -211,7 +212,7 @@ where
     /// If the hook is disabled, this function will write the hook to memory.
     pub fn enable(&self) {
         let num_bytes = self.props.branch_to_hook_len() as usize;
-        self.write_hook(&self.branch_to_hook_opcode, self.enabled_code, num_bytes);
+        self.write_hook(&self.branch_to_hook_opcode, &self.enabled_code, num_bytes);
     }
 
     /// Disables the hook.
@@ -220,7 +221,7 @@ where
     /// If the hook is enabled, this function will no-op the hook.
     pub fn disable(&self) {
         let num_bytes = self.props.branch_to_orig_len() as usize;
-        self.write_hook(&self.branch_to_orig_opcode, self.disabled_code, num_bytes);
+        self.write_hook(&self.branch_to_orig_opcode, &self.disabled_code, num_bytes);
     }
 
     /// Returns true if the hook is enabled, else false.

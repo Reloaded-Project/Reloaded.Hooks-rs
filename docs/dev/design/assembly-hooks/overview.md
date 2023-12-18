@@ -122,15 +122,15 @@ The following table below shows common hook lengths, for:
 | Architecture   | Relative            | TMA          | Worst Case      |
 |----------------|---------------------|--------------|-----------------|
 | x86^[1]^       | 5 bytes (+- 2GiB)   | 5 bytes      | 5 bytes         |
-| x86_64         | 5 bytes (+- 2GiB)   | 6 bytes^[2]^ | 12 bytes^[3]^   |
-| x86_64 (macOS) | 5 bytes (+- 2GiB)   | 12 bytes^[4]^| 12 bytes^[3]^   |
+| x86_64         | 5 bytes (+- 2GiB)   | 6 bytes^[2]^ | 13 bytes^[3]^   |
+| x86_64 (macOS) | 5 bytes (+- 2GiB)   | 13 bytes^[4]^| 13 bytes^[3]^   |
 | ARM64          | 4 bytes (+- 128MiB) | 12 bytes^[6]^| 20 bytes^[5]^   |
 | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 12 bytes^[6]^| 20 bytes^[5]^   |
 
 ^[1]^: x86 can reach any address from any address with relative branch due to integer overflow/wraparound.  
 ^[2]^: [`jmp [<Address>]`, with &lt;Address&gt; at &lt; 2GiB](../../arch/operations.md#jumpabsoluteindirect).  
-^[3]^: [`mov <reg>, address` + `call <reg>`](../../arch/operations.md#jumpabsolute).  
-^[4]^: macOS restricts access to `< 2GiB` memory locations, so absolute jump must be used.  
+^[3]^: [`mov <reg>, address` + `call <reg>`](../../arch/operations.md#jumpabsolute). +1 if using an extended reg.  
+^[4]^: macOS restricts access to `< 2GiB` memory locations, so absolute jump must be used. +1 if using an extended reg.  
 ^[5]^: [MOVZ + MOVK + LDR + BR](../../arch/operations.md#jumpabsolute).  
 ^[6]^: [ADRP + ADD + BR](../../arch/operations.md#jumprelative).  
 
