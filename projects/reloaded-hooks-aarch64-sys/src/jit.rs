@@ -77,6 +77,15 @@ impl Jit<AllRegisters> for JitAarch64 {
     fn max_branch_bytes() -> u32 {
         24 // MOVZ + MOVK + LDR + BR
     }
+
+    fn fill_nops(arr: &mut [u8]) {
+        const NOP: [u8; 4] = [0xD5, 0x03, 0x20, 0x1F];
+
+        // Ensure the array length is a multiple of 4 (size of an ARM64 instruction)
+        for chunk in arr.chunks_mut(4) {
+            chunk.copy_from_slice(&NOP);
+        }
+    }
 }
 
 fn encode_instruction_aarch64(

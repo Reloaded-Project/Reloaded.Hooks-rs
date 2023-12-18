@@ -30,6 +30,7 @@ pub(crate) static MUTUAL_EXCLUSOR: Mutex<()> = Mutex::new(());
 /// # Returns
 ///
 /// This function is crucial to the operation of the library. On failure, we panic.
+#[inline]
 pub fn unprotect_memory(address: *const u8, size: usize) {
     // Implement your logic to unprotect the memory here.
     // Returning an example Result
@@ -70,6 +71,7 @@ pub fn unprotect_memory(address: *const u8, size: usize) {
 ///
 /// The idea is that you use memory which is read_write_execute (MAP_JIT if mmap),
 /// then disable W^X for the current thread. Then we write the code, and re-enable W^X.
+#[inline]
 pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Option<usize> {
     // I don't trust Apple to keep mmap working, so I'm doing manual implementation with mach_ APIs.
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
@@ -90,6 +92,7 @@ pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Option<usiz
 /// # Returns
 ///
 /// Success or panic.
+#[inline]
 pub fn restore_write_xor_execute(address: *const u8, size: usize, protection: usize) {
     // I don't trust Apple to keep mmap working, so I'm doing manual implementation with mach_ APIs.
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]

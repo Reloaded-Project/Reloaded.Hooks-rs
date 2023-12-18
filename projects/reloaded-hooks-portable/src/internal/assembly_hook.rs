@@ -20,8 +20,10 @@ use crate::{
     },
 };
 use alloc::vec::Vec;
+use alloca::with_alloca;
 use core::{
     cmp::max,
+    mem::{transmute, MaybeUninit},
     ops::{Add, Sub},
 };
 
@@ -132,7 +134,7 @@ where
         ));
     }
 
-    let jump_back_address = settings.hook_address + code.len();
+    let jump_back_address = settings.hook_address + orig_code_length;
 
     let hook_params = HookFunctionCommonParams {
         behaviour: settings.behaviour,
@@ -241,6 +243,20 @@ where
 
     // Now JIT a jump to the original code.
     overwrite_code(settings.hook_address, &code);
+
+    // Now be a good citizen and add nops to the end of our jump.
+    // This will ensure we don't leave invalid instructions.
+    let num_nops = orig_code_length - code.len();
+    if num_nops > 0 {
+        with_alloca(
+            orig_code_length - code.len(),
+            |nops: &mut [MaybeUninit<u8>]| {
+                let slice = unsafe { transmute::<&mut [MaybeUninit<u8>], &mut [u8]>(nops) };
+                TJit::fill_nops(slice);
+                overwrite_code(settings.hook_address + code.len(), slice);
+            },
+        );
+    }
 
     // Advance the buffer to account for code written.
     buf.advance(hook_at_hook_end.add(orig_at_orig.len()).sub(buf_addr));

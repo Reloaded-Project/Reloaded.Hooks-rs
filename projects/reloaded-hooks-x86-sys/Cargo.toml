@@ -22,7 +22,7 @@ reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portabl
 hex = "0.4.3"
 
 [dependencies.iced-x86]
-version = "1.20.0"
+version = "=1.16.0" # due to bug https://github.com/icedland/iced/issues/498
 default-features = false
 # See below for all features
 features = ["no_std", "code_asm", "decoder"]

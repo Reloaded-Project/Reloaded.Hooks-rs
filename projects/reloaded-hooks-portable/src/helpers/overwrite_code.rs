@@ -1,6 +1,9 @@
 use core::ptr::copy_nonoverlapping;
 
-use super::icache_clear::clear_instruction_cache;
+use super::{
+    atomic_write_masked::{atomic_write_masked, NativeMemoryAtomicWriter},
+    icache_clear::clear_instruction_cache,
+};
 use crate::api::platforms::platform_functions::{
     disable_write_xor_execute, restore_write_xor_execute, unprotect_memory,
 };
@@ -23,7 +26,12 @@ pub(crate) fn overwrite_code(address: usize, buffer: &[u8]) {
     }
 
     unsafe {
-        copy_nonoverlapping(buffer.as_ptr(), address as *mut u8, buffer.len());
+        // If the instructions are short, we can do it atomic! >w< enhancing our reliability.
+        if buffer.len() <= 8 {
+            atomic_write_masked::<NativeMemoryAtomicWriter>(address, buffer, buffer.len());
+        } else {
+            copy_nonoverlapping(buffer.as_ptr(), address as *mut u8, buffer.len());
+        }
     }
 
     if let Some(orig_val) = orig {

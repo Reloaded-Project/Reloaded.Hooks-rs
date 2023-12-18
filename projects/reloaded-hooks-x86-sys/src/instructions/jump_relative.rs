@@ -18,11 +18,37 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
+    #[case(-0x80000000, "e9fbffff7f")] // underflow
+    fn jmp_relative_underflow_x86(#[case] offset: isize, #[case] expected_encoded: &str) {
+        let operations = vec![Op::JumpRelative(JumpRel::new(offset as usize))];
+        let result = JitX86::compile(0, &operations);
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+
+    #[rstest]
+    #[case(-0x10, "e9ebffffff")] // underflow
+    fn jmp_relative_underflow_x86_into_highmem(
+        #[case] offset: isize,
+        #[case] expected_encoded: &str,
+    ) {
+        let operations = vec![Op::JumpRelative(JumpRel::new(offset as usize))];
+        let result = JitX86::compile(0, &operations);
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+
+    #[rstest]
+    #[case(1, "e9fc0f0000")] // overflow
+    fn jmp_relative_overflow_x86(#[case] offset: isize, #[case] expected_encoded: &str) {
+        let operations = vec![Op::JumpRelative(JumpRel::new(offset as usize))];
+        let result = JitX86::compile(0xFFFFF000, &operations);
+        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
+    }
+
+    #[rstest]
     #[case(0x7FFFFFFF, "e9faffff7f")]
     fn jmp_relative_x86(#[case] offset: usize, #[case] expected_encoded: &str) {
         let operations = vec![Op::JumpRelative(JumpRel::new(offset))];
         let result = JitX86::compile(0, &operations);
-        assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
 
@@ -31,7 +57,6 @@ mod tests {
     fn jmp_relative_x64(#[case] offset: usize, #[case] expected_encoded: &str) {
         let operations = vec![Op::JumpRelative(JumpRel::new(offset))];
         let result = JitX64::compile(0, &operations);
-        assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
 
@@ -51,7 +76,6 @@ mod tests {
         // Instruction Pointer of assembled code to make it within range.
         let operations = vec![Op::CallRelative(CallRel::new(0x80000005))];
         let result = JitX86::compile(5, &operations);
-        assert!(result.is_ok());
         assert_eq!("e8fbffff7f", hex::encode(result.unwrap()));
     }
 
@@ -71,7 +95,6 @@ mod tests {
         // Instruction Pointer of assembled code to make it within range.
         let operations = vec![Op::CallRelative(CallRel::new(0x80000005))];
         let result = JitX64::compile(5, &operations);
-        assert!(result.is_ok());
         assert_eq!("e8fbffff7f", hex::encode(result.unwrap()));
     }
 }

@@ -60,6 +60,12 @@ impl Jit<Register> for JitX64 {
     fn max_indirect_offsets() -> &'static [u32] {
         &[0x7FFFFFFF, 0xFFFFFFFF]
     }
+
+    fn fill_nops(arr: &mut [u8]) {
+        for byte in arr.iter_mut() {
+            *byte = 0x90;
+        }
+    }
 }
 
 fn encode_instruction_x64(

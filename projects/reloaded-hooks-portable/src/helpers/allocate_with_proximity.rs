@@ -1,5 +1,7 @@
 extern crate alloc;
 
+use core::ops::Sub;
+
 use crate::api::{
     buffers::buffer_abstractions::{Buffer, BufferFactory},
     jit::compiler::Jit,
@@ -53,5 +55,16 @@ where
     }
 
     let buf_boxed = TBufferFactory::get_any_buffer(target_size, TJit::code_alignment()).unwrap();
-    (false, buf_boxed)
+
+    // Test if returned address is within relative jump distance.
+    // Some targets may relative jump from any address to any address, either due to RAM limitation
+    // restricting address space, or due to having a long relative jump (x86)
+    let delta = target_address
+        .wrapping_sub(buf_boxed.get_address() as usize)
+        .wrapping_sub(target_size as usize);
+
+    let in_distance = TJit::max_relative_jump_distances()
+        .iter()
+        .any(|distance| delta <= *distance);
+    (in_distance, buf_boxed)
 }

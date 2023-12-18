@@ -13,6 +13,19 @@ pub trait AtomicWriter {
         Self: Sized;
 }
 
+pub struct NativeMemoryAtomicWriter {}
+
+impl AtomicWriter for NativeMemoryAtomicWriter {
+    fn atomic_write<TInteger>(address: usize, value: TInteger)
+    where
+        Self: Sized,
+    {
+        unsafe {
+            *(address as *mut TInteger) = value;
+        }
+    }
+}
+
 /// Automatic implementation for buffers.
 impl<T> AtomicWriter for T
 where
@@ -94,7 +107,7 @@ mod tests {
                 let mut buffer = [0xFFu8; 8];
                 let address = buffer.as_mut_ptr() as usize;
 
-                atomic_write_masked::<MockAtomicWriter>(address, &$input, $num_bytes);
+                atomic_write_masked::<NativeMemoryAtomicWriter>(address, &$input, $num_bytes);
                 let result = &buffer[0..$num_bytes];
                 assert_eq!(result, $expected);
 
@@ -149,17 +162,4 @@ mod tests {
         [0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21],
         &[0x1A, 0x1B, 0x1C, 0x1D, 0x1E, 0x1F, 0x20, 0x21]
     );
-
-    struct MockAtomicWriter {}
-
-    impl AtomicWriter for MockAtomicWriter {
-        fn atomic_write<TInteger>(address: usize, value: TInteger)
-        where
-            Self: Sized,
-        {
-            unsafe {
-                *(address as *mut TInteger) = value;
-            }
-        }
-    }
 }

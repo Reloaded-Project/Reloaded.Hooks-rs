@@ -29,4 +29,12 @@ impl<T: Default> JumpRelativeOperation<T> {
             scratch_register: T::default(),
         }
     }
+
+    /// Creates a new relative jump operation with screatch register
+    pub fn with_scratch(target_address: usize, scratch: Option<T>) -> Self {
+        JumpRelativeOperation {
+            target_address,
+            scratch_register: scratch.unwrap_or_default(),
+        }
+    }
 }

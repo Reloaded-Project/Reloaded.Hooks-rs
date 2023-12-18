@@ -25,11 +25,14 @@ pub(crate) fn encode_push_constant(
 
 #[cfg(test)]
 mod tests {
-    use crate::{x64::jit::JitX64, x86::jit::JitX86};
+    #[cfg(target_pointer_width = "64")]
+    use crate::x64::jit::JitX64;
+    use crate::x86::jit::JitX86;
     use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};
     use rstest::rstest;
 
     #[rstest]
+    #[cfg(target_pointer_width = "64")]
     #[case(0x11111111EFEFEFEF, "681111111168efefefef")]
     fn push_constant_x64(#[case] constant: usize, #[case] expected_encoded: &str) {
         let operations = vec![Op::PushConst(PushConst::new(constant, None))];

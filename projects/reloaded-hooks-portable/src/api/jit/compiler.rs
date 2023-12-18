@@ -64,6 +64,9 @@ pub trait Jit<TRegister: RegisterInfo> {
     fn max_indirect_offsets() -> &'static [u32] {
         &[]
     }
+
+    /// Fills an array with NOP instructions.
+    fn fill_nops(arr: &mut [u8]);
 }
 
 /// Errors that can occur during JIT compilation.

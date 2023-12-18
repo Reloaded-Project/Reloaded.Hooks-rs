@@ -55,6 +55,12 @@ impl Jit<Register> for JitX86 {
     fn max_branch_bytes() -> u32 {
         5 // jmp/call rel32
     }
+
+    fn fill_nops(arr: &mut [u8]) {
+        for byte in arr.iter_mut() {
+            *byte = 0x90;
+        }
+    }
 }
 
 fn encode_instruction_x86(
