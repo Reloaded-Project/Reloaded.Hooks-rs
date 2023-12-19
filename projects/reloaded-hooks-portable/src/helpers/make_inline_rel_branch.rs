@@ -68,6 +68,7 @@ fn make_inline_branch_x86(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], InlineBr
     }
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 unsafe fn copy_rel8_branch(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], InlineBranchError> {
     let mut result: [MaybeUninit<u8>; INLINE_BRANCH_LEN] =
         unsafe { MaybeUninit::uninit().assume_init() };
@@ -75,6 +76,7 @@ unsafe fn copy_rel8_branch(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], InlineB
     Ok(transmute(result))
 }
 
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 unsafe fn copy_rel32_branch(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], InlineBranchError> {
     let mut result: [MaybeUninit<u8>; INLINE_BRANCH_LEN] =
         unsafe { MaybeUninit::uninit().assume_init() };
@@ -83,6 +85,7 @@ unsafe fn copy_rel32_branch(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], Inline
 }
 
 #[cold]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 unsafe fn copy_rel16_branch_cold(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], InlineBranchError> {
     let mut result: [MaybeUninit<u8>; INLINE_BRANCH_LEN] =
         unsafe { MaybeUninit::uninit().assume_init() };
@@ -91,6 +94,7 @@ unsafe fn copy_rel16_branch_cold(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], I
 }
 
 #[cold]
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 fn unexpected_array_length_cold(len: usize) -> Result<[u8; INLINE_BRANCH_LEN], InlineBranchError> {
     Err(InlineBranchError::ArrayTooShort(INLINE_BRANCH_LEN, len))
 }

@@ -29,7 +29,7 @@ features = ["no_std", "code_asm", "decoder"]
 
 [dev-dependencies]
 criterion = "0.5.1"
-reloaded-memory-buffers = "3.3.0"
+reloaded-memory-buffers = "4.0.1"
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.12", features = ["flamegraph", "criterion"] }

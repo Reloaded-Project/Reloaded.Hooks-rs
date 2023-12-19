@@ -1,7 +1,5 @@
 extern crate alloc;
 
-use core::ops::Sub;
-
 use crate::api::{
     buffers::buffer_abstractions::{Buffer, BufferFactory},
     jit::compiler::Jit,

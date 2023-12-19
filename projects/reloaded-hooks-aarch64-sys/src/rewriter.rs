@@ -4,9 +4,9 @@ use crate::all_registers::AllRegisters;
 use alloc::vec::Vec;
 use reloaded_hooks_portable::api::rewriter::code_rewriter::{CodeRewriter, CodeRewriterError};
 
-struct CodeRewriterX64;
+pub struct CodeRewriterAarch64;
 
-impl CodeRewriter<AllRegisters> for CodeRewriterX64 {
+impl CodeRewriter<AllRegisters> for CodeRewriterAarch64 {
     unsafe fn rewrite_code(
         old_code: *const u8,
         old_code_size: usize,
