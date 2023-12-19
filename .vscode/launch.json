@@ -4,6 +4,7 @@
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+
         {
             "name": "[assembly_hook_32] i686-unknown-linux-gnu",
             "type": "lldb",
@@ -24,6 +25,27 @@
                 ],
                 "problemMatcher": "$rustc",
             }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug x86 Benchmarks",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bench=my_benchmark",
+                    "--manifest-path=${workspaceFolder}/projects/reloaded-hooks-x86-sys/Cargo.toml",
+                    "--",
+                    "assembly_hook_creation"
+                ],
+                "filter": {
+                    "name": "my_benchmark",
+                    "kind": "bench"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
         }
     ],
 }

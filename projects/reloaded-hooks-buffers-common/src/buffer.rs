@@ -4,7 +4,7 @@ use reloaded_hooks_portable::{
 };
 use reloaded_memory_buffers::{buffers::Buffers, structs::SafeLocatorItem};
 
-pub(crate) struct StaticLinkedBuffer {
+pub struct StaticLinkedBuffer {
     pub(crate) buf: SafeLocatorItem,
 }
 

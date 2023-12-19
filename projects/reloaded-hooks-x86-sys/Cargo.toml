@@ -12,13 +12,16 @@ default = ["x86", "x64"]
 x86 = []
 x64 = [ "iced-x86/instr_info" ]
 
+[lib]
+bench = false
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 libc = "0.2.147"
 rstest = "0.18.2"
 derive-enum-all-values = "0.1.0"
 smallvec = { version = "1.11.0", features = ["const_new"] }
-reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portable" }
+reloaded-hooks-portable = { path = "../reloaded-hooks-portable" }
 hex = "0.4.3"
 
 [dependencies.iced-x86]
@@ -29,6 +32,7 @@ features = ["no_std", "code_asm", "decoder"]
 
 [dev-dependencies]
 criterion = "0.5.1"
+reloaded-hooks-buffers-common = { path = "../reloaded-hooks-buffers-common" }
 reloaded-memory-buffers = "4.0.1"
 
 [target.'cfg(unix)'.dev-dependencies]

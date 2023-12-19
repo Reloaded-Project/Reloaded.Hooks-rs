@@ -10,7 +10,7 @@ include = ["src/**/*"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 smallvec = { version = "1.11.0", features = ["const_new"] }
-reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portable" }
+reloaded-hooks-portable = { path = "../reloaded-hooks-portable" }
 reloaded-memory-buffers = "4.0.1"
 
 [dev-dependencies]

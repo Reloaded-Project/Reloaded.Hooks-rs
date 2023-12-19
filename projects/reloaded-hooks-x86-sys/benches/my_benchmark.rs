@@ -1,28 +1,19 @@
-mod assembler_bench_64;
-use assembler_bench_64::{
-    compile_instructions_64, create_and_assemble_instructions_64, create_operations_64,
+mod benchmarks;
+use benchmarks::{
+    assembler_bench_64::{benchmark_assemble_x64_total, benchmark_compile_only},
+    assembly_hook_bench_64::benchmark_create_assembly_hook,
 };
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{criterion_group, criterion_main, Criterion};
 
 #[cfg(not(target_os = "windows"))]
 use pprof::criterion::{Output, PProfProfiler};
 
 fn criterion_benchmark(c: &mut Criterion) {
-    benchmark_assemble_x64_total(c);
-    benchmark_compile_only(c);
-}
+    benchmark_assemble_x64_total(c); // assemble_x64_total
+    benchmark_compile_only(c); // assemble_x64_compile_only
 
-fn benchmark_compile_only(c: &mut Criterion) {
-    let ops = create_operations_64();
-    c.bench_function("assemble_x64_compile_only", |b| {
-        b.iter(|| black_box(compile_instructions_64(0, &ops)))
-    });
-}
-
-fn benchmark_assemble_x64_total(c: &mut Criterion) {
-    c.bench_function("assemble_x64_total", |b| {
-        b.iter(|| black_box(create_and_assemble_instructions_64(0)))
-    });
+    // Flawed benchmark, see readme!!
+    benchmark_create_assembly_hook(c); // assembly_hook_creation
 }
 
 #[cfg(not(target_os = "windows"))]

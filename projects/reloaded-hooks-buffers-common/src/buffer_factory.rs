@@ -7,7 +7,7 @@ use alloc::string::String;
 use reloaded_hooks_portable::api::buffers::buffer_abstractions::{Buffer, BufferFactory};
 use reloaded_memory_buffers::{buffers::Buffers, structs::params::BufferSearchSettings};
 
-struct BuffersFactory {}
+pub struct BuffersFactory {}
 
 impl BufferFactory<StaticLinkedBuffer> for BuffersFactory {
     fn get_buffer(

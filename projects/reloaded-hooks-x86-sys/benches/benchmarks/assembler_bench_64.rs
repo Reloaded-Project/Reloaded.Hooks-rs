@@ -1,11 +1,24 @@
-use std::rc::Rc;
-
+use criterion::{black_box, Criterion};
 use reloaded_hooks_portable::api::jit::{
     compiler::{Jit, JitError},
     operation::Operation,
     operation_aliases::*,
 };
 use reloaded_hooks_x86_sys::x64::{self, jit::JitX64, Register};
+use std::rc::Rc;
+
+pub(crate) fn benchmark_compile_only(c: &mut Criterion) {
+    let ops = create_operations_64();
+    c.bench_function("assemble_x64_compile_only", |b| {
+        b.iter(|| black_box(compile_instructions_64(0, &ops)))
+    });
+}
+
+pub(crate) fn benchmark_assemble_x64_total(c: &mut Criterion) {
+    c.bench_function("assemble_x64_total", |b| {
+        b.iter(|| black_box(create_and_assemble_instructions_64(0)))
+    });
+}
 
 // Separate function for the code to be benchmarked.
 #[allow(dead_code)]
