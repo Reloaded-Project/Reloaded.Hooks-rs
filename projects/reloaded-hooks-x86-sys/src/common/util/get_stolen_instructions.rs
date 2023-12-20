@@ -35,7 +35,7 @@ pub(crate) fn get_stolen_instructions(
         },
         code,
         ip as u64,
-        DecoderOptions::NONE,
+        DecoderOptions::NO_INVALID_CHECK,
     );
 
     get_stolen_instructions_from_decoder(&mut decoder, code, min_bytes)
@@ -63,7 +63,10 @@ pub(crate) fn get_stolen_instructions_from_decoder(
     let mut total_bytes: u32 = 0;
     let mut orig_instructions: SmallVec<[Instruction; 4]> = smallvec![];
 
-    for instr in decoder {
+    let mut instr = Instruction::default();
+    while decoder.can_decode() {
+        decoder.decode_out(&mut instr);
+
         if instr.is_invalid() {
             return Err(CodeRewriterError::FailedToDisasm(
                 total_bytes.to_string(),
@@ -140,7 +143,10 @@ pub(crate) fn get_stolen_instructions_length_from_decoder(
     let mut total_bytes: u32 = 0;
     let mut total_instructions: u32 = 0;
 
-    for instr in decoder {
+    let mut instr = Instruction::default();
+    while decoder.can_decode() {
+        decoder.decode_out(&mut instr);
+
         if instr.is_invalid() {
             return Err(CodeRewriterError::FailedToDisasm(
                 total_bytes.to_string(),
