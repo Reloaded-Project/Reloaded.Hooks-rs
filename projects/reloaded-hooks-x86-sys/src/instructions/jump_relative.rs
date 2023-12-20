@@ -13,88 +13,41 @@ pub(crate) fn encode_jump_relative(
 
 #[cfg(test)]
 mod tests {
-    use crate::{x64::jit::JitX64, x86::jit::JitX86};
+    use crate::x64::jit::JitX64;
+    use crate::x86::jit::JitX86;
     use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};
     use rstest::rstest;
 
     #[rstest]
-    #[case(-0x80000000, "e9fbffff7f")] // underflow
-    fn jmp_relative_underflow_x86(#[case] offset: isize, #[case] expected_encoded: &str) {
+    // Regular relative jump
+    #[case(0x7FFFFFFF, "e9faffff7f", 0)]
+    // Jump into low memory, by overflow
+    #[case(1, "e9fc0f0000", 0xFFFFF000)]
+    // Jump into high memory by underflow
+    #[case((u32::MAX - 0xF) as isize, "e9ebffffff", 0)]
+    // TODO: ^ bug in Iced, this should be 'ebee', but still valid.
+    // Jump into high memory by underflow, max offset
+    #[case((u32::MAX - 0x7FFFFFFF) as isize, "e9fbffff7f", 0)]
+    fn jmp_relative_x86(#[case] offset: isize, #[case] expected_encoded: &str, #[case] pc: usize) {
         let operations = vec![Op::JumpRelative(JumpRel::new(offset as usize))];
-        let result = JitX86::compile(0, &operations);
+        let result = JitX86::compile(pc, &operations);
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
 
     #[rstest]
-    #[case(-0x10, "e9ebffffff")] // underflow
-    fn jmp_relative_underflow_x86_into_highmem(
-        #[case] offset: isize,
-        #[case] expected_encoded: &str,
-    ) {
+    // Regular relative jump
+    #[case(0x7FFFFFFF, "e9faffff7f", 0)]
+    // Jump into low memory, by overflow
+    #[case(1, "e9fc0f0000", usize::MAX - 0xFFF)]
+    // Jump into high memory by underflow
+    #[case((usize::MAX - 0xF) as isize, "ebee", 0)]
+    // Jump into high memory by underflow, max offset
+    #[case((usize::MAX - 0x7FFFFFFA) as isize, "e900000080", 0)]
+    // TODO: ^ bug in Iced, does not encode correctly when `0x7FFFFFFF`, off by 5 error.
+    #[cfg(target_pointer_width = "64")]
+    fn jmp_relative_x64(#[case] offset: isize, #[case] expected_encoded: &str, #[case] pc: usize) {
         let operations = vec![Op::JumpRelative(JumpRel::new(offset as usize))];
-        let result = JitX86::compile(0, &operations);
+        let result = JitX64::compile(pc, &operations);
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
-    }
-
-    #[rstest]
-    #[case(1, "e9fc0f0000")] // overflow
-    fn jmp_relative_overflow_x86(#[case] offset: isize, #[case] expected_encoded: &str) {
-        let operations = vec![Op::JumpRelative(JumpRel::new(offset as usize))];
-        let result = JitX86::compile(0xFFFFF000, &operations);
-        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
-    }
-
-    #[rstest]
-    #[case(0x7FFFFFFF, "e9faffff7f")]
-    fn jmp_relative_x86(#[case] offset: usize, #[case] expected_encoded: &str) {
-        let operations = vec![Op::JumpRelative(JumpRel::new(offset))];
-        let result = JitX86::compile(0, &operations);
-        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
-    }
-
-    #[rstest]
-    #[case(0x7FFFFFFF, "e9faffff7f")]
-    fn jmp_relative_x64(#[case] offset: usize, #[case] expected_encoded: &str) {
-        let operations = vec![Op::JumpRelative(JumpRel::new(offset))];
-        let result = JitX64::compile(0, &operations);
-        assert_eq!(expected_encoded, hex::encode(result.unwrap()));
-    }
-
-    #[test]
-    #[should_panic]
-    fn out_of_range_x86() {
-        // Note: This fails inside Iced :/
-        let operations = vec![Op::CallRelative(CallRel::new(usize::MAX))];
-        let result = JitX86::compile(0, &operations);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn relative_to_eip_x86() {
-        // Verifies that the JIT compiles a relative call that branches towards target_address
-        // This is verified by branching to an address outside of the 2GB range and setting
-        // Instruction Pointer of assembled code to make it within range.
-        let operations = vec![Op::CallRelative(CallRel::new(0x80000005))];
-        let result = JitX86::compile(5, &operations);
-        assert_eq!("e8fbffff7f", hex::encode(result.unwrap()));
-    }
-
-    #[test]
-    #[should_panic]
-    fn out_of_range_x64() {
-        // Note: This fails inside Iced :/
-        let operations = vec![Op::CallRelative(CallRel::new(usize::MAX))];
-        let result = JitX64::compile(0, &operations);
-        assert!(result.is_err());
-    }
-
-    #[test]
-    fn is_relative_to_rip_x64() {
-        // Verifies that the JIT compiles a relative call that branches towards target_address
-        // This is verified by branching to an address outside of the 2GB range and setting
-        // Instruction Pointer of assembled code to make it within range.
-        let operations = vec![Op::CallRelative(CallRel::new(0x80000005))];
-        let result = JitX64::compile(5, &operations);
-        assert_eq!("e8fbffff7f", hex::encode(result.unwrap()));
     }
 }

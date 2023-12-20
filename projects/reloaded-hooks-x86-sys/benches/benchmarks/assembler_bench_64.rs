@@ -5,7 +5,6 @@ use reloaded_hooks_portable::api::jit::{
     operation_aliases::*,
 };
 use reloaded_hooks_x86_sys::x64::{self, jit::JitX64, Register};
-use std::rc::Rc;
 
 pub(crate) fn benchmark_compile_only(c: &mut Criterion) {
     let ops = create_operations_64();
@@ -24,7 +23,7 @@ pub(crate) fn benchmark_assemble_x64_total(c: &mut Criterion) {
 #[allow(dead_code)]
 pub(crate) fn create_and_assemble_instructions_64(
     address: usize,
-) -> Result<Rc<[u8]>, JitError<x64::Register>> {
+) -> Result<Vec<u8>, JitError<x64::Register>> {
     let operations = create_operations_64();
     compile_instructions_64(address, &operations)
 }
@@ -51,6 +50,6 @@ pub(crate) fn create_operations_64() -> Vec<Operation<Register>> {
 pub(crate) fn compile_instructions_64(
     address: usize,
     operations: &[Operation<Register>],
-) -> Result<Rc<[u8]>, JitError<Register>> {
+) -> Result<Vec<u8>, JitError<Register>> {
     JitX64::compile(address, operations)
 }

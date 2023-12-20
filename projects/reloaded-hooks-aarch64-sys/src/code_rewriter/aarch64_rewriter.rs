@@ -1,10 +1,5 @@
 extern crate alloc;
 
-use core::mem::{forget, size_of};
-
-use alloc::vec::Vec;
-use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
-
 use super::{
     instruction_rewrite_result::InstructionRewriteResult,
     instructions::{
@@ -12,6 +7,13 @@ use super::{
         ldr_literal::rewrite_ldr_literal, tbz::rewrite_tbz,
     },
 };
+use crate::helpers::{vec_u32_to_u8, vec_u8_to_u32};
+use alloc::vec::Vec;
+use core::{
+    mem::{self},
+    ptr::read_unaligned,
+};
+use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 
 /// Rewrites the code from one address to another.
 ///
@@ -48,17 +50,17 @@ pub(crate) fn rewrite_code_aarch64(
     old_address: usize,
     new_address: usize,
     scratch_register: Option<u8>,
-) -> Result<Vec<u8>, CodeRewriterError> {
+    existing_buffer: &mut Vec<u8>,
+) -> Result<(), CodeRewriterError> {
     // Note: Not covered by unit tests (because we read from old_address), careful when modifying.
-
-    let mut vec = Vec::<u32>::with_capacity(old_code_size * 2 / size_of::<u32>());
+    let mut vec = vec_u8_to_u32(mem::take(existing_buffer));
     let mut old_addr_ptr = old_address as *mut u32;
     let mut old_ins_ptr = old_code as *mut u32;
     let old_ins_end_ptr = (old_code.wrapping_add(old_code_size)) as *mut u32;
     let mut current_new_address = new_address;
 
     while old_ins_ptr < old_ins_end_ptr {
-        let instruction = unsafe { *old_ins_ptr };
+        let instruction = unsafe { read_unaligned(old_ins_ptr) };
 
         // Rewrite instruction.
         let result = rewrite_instruction(
@@ -81,17 +83,8 @@ pub(crate) fn rewrite_code_aarch64(
         }
     }
 
-    // Unsafe cast to u8 vec
-    unsafe {
-        let result = Ok(Vec::from_raw_parts(
-            vec.as_ptr() as *mut u8,
-            vec.len() * size_of::<u32>(),
-            vec.capacity() * size_of::<u32>(),
-        ));
-
-        forget(vec); // prevent drop
-        result
-    }
+    *existing_buffer = vec_u32_to_u8(vec);
+    Ok(())
 }
 
 fn rewrite_instruction(

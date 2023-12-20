@@ -16,7 +16,6 @@ use crate::{
     internal::assembly_hook::create_assembly_hook,
 };
 use alloc::boxed::Box;
-use alloc::rc::Rc;
 use bitfield::bitfield;
 use core::marker::PhantomData;
 
@@ -101,8 +100,8 @@ where
 {
     pub fn new(
         is_enabled: bool,
-        branch_to_orig: Rc<[u8]>,
-        branch_to_hook: Rc<[u8]>,
+        branch_to_orig: Box<[u8]>,
+        branch_to_hook: Box<[u8]>,
         enabled_code: Box<[u8]>,
         disabled_code: Box<[u8]>,
         stub_address: usize,

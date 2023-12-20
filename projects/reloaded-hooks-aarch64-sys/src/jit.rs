@@ -2,6 +2,7 @@ extern crate alloc;
 
 use crate::{
     all_registers::AllRegisters,
+    helpers::{vec_i32_to_u8, vec_u8_to_i32},
     jit_instructions::{
         branch_absolute::{encode_call_absolute, encode_jump_absolute},
         branch_ip_relative::{encode_call_ip_relative, encode_jump_ip_relative},
@@ -20,10 +21,11 @@ use crate::{
         xchg::encode_xchg,
     },
 };
-use alloc::{rc::Rc, vec::Vec};
-use core::{mem::size_of, slice};
+use alloc::vec::Vec;
+use core::mem::{self, size_of};
 use reloaded_hooks_portable::api::jit::{
     compiler::{Jit, JitCapabilities, JitError},
+    jump_relative_operation::JumpRelativeOperation,
     operation::Operation,
 };
 
@@ -33,26 +35,31 @@ impl Jit<AllRegisters> for JitAarch64 {
     fn compile(
         address: usize,
         operations: &[Operation<AllRegisters>],
-    ) -> Result<Rc<[u8]>, JitError<AllRegisters>> {
+    ) -> Result<Vec<u8>, JitError<AllRegisters>> {
         // Initialize Assembler
 
         // Usually most opcodes will correspond to 1 instruction, however there may be 2
         // in some cases, so we reserve accordingly.
 
         // As all instructions are 32-bits in Aarch64, we use an i32 vec.
-        let mut buf = Vec::<i32>::with_capacity(operations.len() * 2);
+        let mut buf = Vec::with_capacity(operations.len() * 2 * size_of::<i32>());
+        Self::compile_with_buf(address, operations, &mut buf)?;
+        Ok(buf)
+    }
+
+    fn compile_with_buf(
+        address: usize,
+        operations: &[Operation<AllRegisters>],
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<AllRegisters>> {
         let mut pc = address;
-
-        // Encode every instruction.
+        let mut buf_i32 = vec_u8_to_i32(mem::take(buf));
         for operation in operations {
-            encode_instruction_aarch64(operation, &mut pc, &mut buf)?;
+            encode_instruction_aarch64(operation, &mut pc, &mut buf_i32)?;
         }
 
-        let ptr = buf.as_ptr() as *const u8;
-        unsafe {
-            let slice = slice::from_raw_parts(ptr, buf.len() * size_of::<i32>());
-            Ok(Rc::from(slice))
-        }
+        *buf = vec_i32_to_u8(buf_i32);
+        Ok(())
     }
 
     fn code_alignment() -> u32 {
@@ -85,6 +92,21 @@ impl Jit<AllRegisters> for JitAarch64 {
         for chunk in arr.chunks_mut(4) {
             chunk.copy_from_slice(&NOP);
         }
+    }
+
+    fn encode_jump(
+        x: &JumpRelativeOperation<AllRegisters>,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<AllRegisters>> {
+        let mut buf_i32 = vec_u8_to_i32(mem::take(buf));
+        let result = encode_jump_relative(x, pc, &mut buf_i32);
+        *buf = vec_i32_to_u8(buf_i32);
+        result
+    }
+
+    fn max_relative_jump_bytes() -> usize {
+        12
     }
 }
 

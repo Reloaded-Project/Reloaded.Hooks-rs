@@ -21,6 +21,7 @@ use super::patches::{
 /// `instructions`: The instructions to relocate.
 /// `new_pc`: The new program counter (RIP/EIP).
 /// `scratch_gpr`: A scratch general purpose register that can be used for operations.
+/// `buf`: The buffer to write the relocated code to.
 ///
 /// # Safety (For >= 2GiB relocations)
 ///
@@ -36,7 +37,8 @@ pub(crate) fn relocate_code(
     instructions: &SmallVec<[Instruction; 4]>,
     new_pc: usize,
     scratch_gpr: Option<AllRegisters>,
-) -> Result<Vec<u8>, CodeRewriterError> {
+    buf: &mut Vec<u8>,
+) -> Result<(), CodeRewriterError> {
     let mut new_isns: SmallVec<[Instruction; 4]> = smallvec![];
     let mut current_new_pc = new_pc;
 
@@ -121,7 +123,8 @@ pub(crate) fn relocate_code(
     };
 
     let new_code = result.code_buffer;
-    Ok(new_code)
+    buf.extend(new_code);
+    Ok(())
 }
 
 pub(crate) fn append_if_can_encode_relative(
@@ -390,8 +393,16 @@ mod tests {
         let hex_bytes: Vec<u8> = str_to_vec(instructions);
         let instructions =
             get_stolen_instructions(true, hex_bytes.len(), &hex_bytes, old_address).unwrap();
-        let result = relocate_code(true, &instructions.0, new_address, Some(AllRegisters::rax));
+        let mut result = Vec::new();
+        relocate_code(
+            true,
+            &instructions.0,
+            new_address,
+            Some(AllRegisters::rax),
+            &mut result,
+        )
+        .unwrap();
 
-        assert_eq!(hex::encode(result.unwrap()), expected);
+        assert_eq!(hex::encode(result), expected);
     }
 }

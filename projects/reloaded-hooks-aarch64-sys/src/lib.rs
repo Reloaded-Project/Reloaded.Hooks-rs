@@ -81,3 +81,6 @@ pub(crate) mod jit_instructions {
 
 #[cfg(test)]
 pub(crate) mod test_helpers;
+
+/// Utility methods
+pub(crate) mod helpers;

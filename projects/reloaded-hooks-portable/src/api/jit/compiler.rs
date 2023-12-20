@@ -1,8 +1,8 @@
 extern crate alloc;
 
-use super::operation::Operation;
+use super::{jump_relative_operation::JumpRelativeOperation, operation::Operation};
 use crate::api::traits::register_info::RegisterInfo;
-use alloc::{rc::Rc, string::String};
+use alloc::{string::String, vec::Vec};
 use bitflags::bitflags;
 use core::fmt::Debug;
 use thiserror_no_std::Error;
@@ -38,7 +38,14 @@ pub trait Jit<TRegister: RegisterInfo> {
     fn compile(
         address: usize,
         operations: &[Operation<TRegister>],
-    ) -> Result<Rc<[u8]>, JitError<TRegister>>;
+    ) -> Result<Vec<u8>, JitError<TRegister>>;
+
+    /// Compiles the specified sequence of operations into a sequence of bytes.
+    fn compile_with_buf(
+        address: usize,
+        operations: &[Operation<TRegister>],
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<TRegister>>;
 
     /// Required alignment of code for the current architecture.
     ///
@@ -67,6 +74,23 @@ pub trait Jit<TRegister: RegisterInfo> {
 
     /// Fills an array with NOP instructions.
     fn fill_nops(arr: &mut [u8]);
+
+    /// Assembles a 'jmp'/'branch' instruction directly, bypassing the whole compilation step.
+    /// This is used to speed up single instruction com
+    ///
+    /// # Parameters
+    /// - `x` - The jump instruction to encode.
+    /// - `pc` - The current program counter.
+    /// - `buf` - The buffer to write the instruction to.
+    fn encode_jump(
+        x: &JumpRelativeOperation<TRegister>,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<TRegister>>;
+
+    /// Maximum number of bytes required to perform a relative jump.
+    /// This is the max amount of bytes that can be returned by [`self::encode_jump`].
+    fn max_relative_jump_bytes() -> usize;
 }
 
 /// Errors that can occur during JIT compilation.

@@ -27,7 +27,7 @@ mod tests {
         // Overwrite the first bytes with hook
         let _hook = unsafe {
             let settings =
-                AssemblyHookSettings::new_minimal(add_addr, &[0xff, 0x44, 0x24, 0x08], 5)
+                AssemblyHookSettings::new_minimal(add_addr, &[0xff, 0x44, 0x24, 0x08], 6)
                     .with_scratch_register(x86::Register::ecx);
 
             AssemblyHook::<
@@ -62,7 +62,7 @@ mod tests {
             let settings = AssemblyHookSettings::new_minimal(
                 add_addr,
                 &[0xff, 0x44, 0x24, 0x08], // inc dword ptr [esp + 4]
-                5,
+                6,
             )
             .with_scratch_register(x86::Register::ecx);
 
@@ -110,7 +110,7 @@ mod tests {
         let settings = AssemblyHookSettings::new_minimal(
             add_addr,
             &[0xff, 0x44, 0x24, 0x08], // inc dword ptr [esp + 4]
-            5,
+            6,
         )
         .with_scratch_register(x86::Register::ecx);
 

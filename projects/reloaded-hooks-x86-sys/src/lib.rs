@@ -50,6 +50,11 @@ pub(crate) mod common {
         #[cfg(feature = "x64")]
         pub mod patches;
     }
+
+    pub mod jit_instructions {
+        pub mod encode_relative_jump;
+    }
+
     pub mod jit_common;
 
     #[allow(dead_code)]

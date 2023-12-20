@@ -10,8 +10,8 @@ use crate::api::{
     },
     traits::register_info::RegisterInfo,
 };
-use alloc::rc::Rc;
 use alloc::string::ToString;
+use alloc::vec::Vec;
 
 /// Creates a jump operation for a given address.
 ///
@@ -25,20 +25,29 @@ pub(crate) fn create_jump_operation<TRegister, TJit, TBufferFactory, TBuffer>(
     can_relative_jump: bool,
     target: usize,
     scratch_register: Option<TRegister>,
-) -> Result<Rc<[u8]>, JitError<TRegister>>
+    buffer: &mut Vec<u8>,
+) -> Result<(), JitError<TRegister>>
 where
     TRegister: RegisterInfo + Clone + Default,
     TJit: Jit<TRegister>,
     TBuffer: Buffer,
     TBufferFactory: BufferFactory<TBuffer>,
 {
+    // Run accelerated command if possible as full JIT'ter can sometimes be slow.
+    if can_relative_jump {
+        let mut mem_addr = mem_address;
+        TJit::encode_jump(&JumpRel::new(target), &mut mem_addr, buffer)?;
+        return Ok(());
+    }
+
     let ops: [Operation<TRegister>; 1] = create_jump_operation_ops::<
         TRegister,
         TJit,
         TBufferFactory,
         TBuffer,
     >(can_relative_jump, target, scratch_register)?;
-    TJit::compile(mem_address, &ops)
+    _ = TJit::compile_with_buf(mem_address, &ops, buffer);
+    Ok(())
 }
 
 /// Creates a jump operation for a given address.

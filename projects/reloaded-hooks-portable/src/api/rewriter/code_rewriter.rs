@@ -41,11 +41,69 @@ pub trait CodeRewriter<TRegister> {
     /// Dereferences raw pointers, please ensure that the pointers are valid.
     unsafe fn rewrite_code(
         old_code: *const u8,
-        old_address_size: usize,
+        old_code_size: usize,
         old_address: usize,
         new_address: usize,
         scratch_register: Option<TRegister>,
-    ) -> Result<Vec<u8>, CodeRewriterError>;
+    ) -> Result<Vec<u8>, CodeRewriterError> {
+        // Calculate the capacity for the buffer
+        let mut buffer = Vec::with_capacity(old_code_size * 2);
+
+        // Call rewrite_code_with_buffer with the created buffer
+        Self::rewrite_code_with_buffer(
+            old_code,
+            old_code_size,
+            old_address,
+            new_address,
+            scratch_register,
+            &mut buffer,
+        )?;
+
+        Ok(buffer)
+    }
+
+    /// Rewrites the code from one address to another, using an existing buffer.
+    ///
+    /// This function behaves similarly to `rewrite_code`, but instead of returning a new `Vec<u8>`,
+    /// it accepts a mutable reference to an existing `Vec<u8>` and modifies it in place.
+    ///
+    /// # Parameters
+    ///
+    /// * `old_code`: A pointer to the start of the original block of code.
+    /// * `old_code_size`: The size, in bytes, of the block of code to rewrite.
+    /// * `old_address`: The address assumed to be the original location of the code.
+    /// * `new_address`: The new address where the rewritten code will be executed.
+    /// * `scratch_register`:
+    ///     - An optional scratch general purpose register that can be used for operations.
+    ///     - This register may or may not be used, depending on the specifics of the code being rewritten.
+    /// * `existing_buffer`: The rewritten code is appended here.
+    ///
+    /// # Behavior
+    ///
+    /// The function will iterate over the block of code byte by byte, identifying any
+    /// instructions that use relative addressing. When such an instruction is identified,
+    /// its offset is adjusted to account for the difference between `old_address` and `new_address`.
+    ///
+    /// The existing buffer is not automatically cleared before use. If a fresh buffer is needed,
+    /// it should be cleared or appropriately prepared by the caller before passing it to this function.
+    ///
+    /// # Returns
+    ///
+    /// If successful, the function returns `Ok(())`. In case of a re-encode error, it returns
+    /// `Err(CodeRewriterError)`, indicating the operation failed.
+    ///
+    /// # Safety
+    ///
+    /// - Dereferences raw pointers. Ensure that `old_code` points to a valid block of code
+    ///   of size `old_code_size` and that it is safe to read from.
+    unsafe fn rewrite_code_with_buffer(
+        old_code: *const u8,
+        old_code_size: usize,
+        old_address: usize,
+        new_address: usize,
+        scratch_register: Option<TRegister>,
+        existing_buffer: &mut Vec<u8>,
+    ) -> Result<(), CodeRewriterError>;
 
     /// Returns the maximum number of bytes that a single instruction can increase in size
     fn max_ins_size_increase() -> usize;

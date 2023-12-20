@@ -12,23 +12,25 @@ use reloaded_hooks_portable::api::rewriter::code_rewriter::{CodeRewriter, CodeRe
 pub struct CodeRewriterX64;
 
 impl CodeRewriter<Register> for CodeRewriterX64 {
-    unsafe fn rewrite_code(
+    unsafe fn rewrite_code_with_buffer(
         old_code: *const u8,
-        old_address_size: usize,
+        old_code_size: usize,
         old_address: usize,
         new_address: usize,
         scratch_register: Option<Register>,
-    ) -> Result<Vec<u8>, CodeRewriterError> {
-        let ins_slice = unsafe { slice::from_raw_parts(old_code, old_address_size) };
+        existing_buffer: &mut Vec<u8>,
+    ) -> Result<(), CodeRewriterError> {
+        let ins_slice = unsafe { slice::from_raw_parts(old_code, old_code_size) };
         let instructions =
-            get_stolen_instructions(true, old_address_size, ins_slice, old_address).unwrap();
-        let result = relocate_code(
+            get_stolen_instructions(true, old_code_size, ins_slice, old_address).unwrap();
+        relocate_code(
             true,
             &instructions.0,
             new_address,
             scratch_register.map(map_register_x64_to_allregisters),
+            existing_buffer,
         )?;
-        Ok(result)
+        Ok(())
     }
 
     fn max_ins_size_increase() -> usize {
