@@ -196,13 +196,18 @@ where
     /// Writes the hook to memory, either enabling or disabling it based on the provided parameters.
     fn write_hook(&self, branch_opcode: &[u8], code: &[u8], num_bytes: usize) {
         // Write the branch first, as per docs
-        TBuffer::overwrite(self.stub_address, branch_opcode);
+        // This also overwrites some extra code afterwards, but that's a-ok for now.
+        unsafe {
+            atomic_write_masked::<TBuffer>(self.stub_address, branch_opcode, num_bytes);
+        }
 
         // Now write the remaining code
         TBuffer::overwrite(self.stub_address + num_bytes, &code[num_bytes..]);
 
-        // Now write the non-branch code
-        atomic_write_masked::<TBuffer>(self.stub_address, &code[..num_bytes], num_bytes);
+        // And now re-insert the code we temp overwrote with the branch
+        unsafe {
+            atomic_write_masked::<TBuffer>(self.stub_address, code, num_bytes);
+        }
     }
 
     /// Enables the hook.

@@ -136,10 +136,6 @@ The following table below shows common hook lengths, for:
 
 ## Thread Safety & Memory Layout
 
-!!! note "[Reloaded3](https://reloaded-project.github.io/Reloaded-III/) allows mod load/unloads in real time, so this is a hard requirement."
-
-!!! warning "Therefore, assembly hooks should be thread safe."
-
 In order to support thread safety, while retaining maximum runtime performance, the buffers where the 
 original and hook code are contained have a very specific memory layout (shown below)
 
@@ -148,6 +144,9 @@ original and hook code are contained have a very specific memory layout (shown b
 - Hook Function
 - Original Code
 ```
+
+Emplacing the jump to the hook function itself, and patching within the hook function should be atomic
+whenever it is possible on the platform.
 
 ### Example
 

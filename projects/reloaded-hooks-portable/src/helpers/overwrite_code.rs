@@ -1,7 +1,7 @@
 use core::ptr::copy_nonoverlapping;
 
 use super::{
-    atomic_write_masked::{atomic_write_masked, NativeMemoryAtomicWriter},
+    atomic_write_masked::{atomic_write_masked, NativeMemoryAtomicWriter, MAX_ATOMIC_WRITE_BYTES},
     icache_clear::clear_instruction_cache,
 };
 use crate::api::platforms::platform_functions::{
@@ -27,7 +27,7 @@ pub(crate) fn overwrite_code(address: usize, buffer: &[u8]) {
 
     unsafe {
         // If the instructions are short, we can do it atomic! >w< enhancing our reliability.
-        if buffer.len() <= 8 {
+        if buffer.len() <= MAX_ATOMIC_WRITE_BYTES as usize {
             atomic_write_masked::<NativeMemoryAtomicWriter>(address, buffer, buffer.len());
         } else {
             copy_nonoverlapping(buffer.as_ptr(), address as *mut u8, buffer.len());

@@ -1,7 +1,9 @@
 use core::sync::atomic::{AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering};
 
+use portable_atomic::AtomicU128;
+
 /// Performs an atomic write of value in `src` to `tgt`.
-/// Size must be 1/2/4/8 bytes.
+/// Size must be 1/2/4/8/16 bytes.
 ///
 /// # Safety
 ///
@@ -24,6 +26,10 @@ pub unsafe fn atomic_write(src: *const u8, tgt: *mut u8, size: usize) {
         8 => {
             let atomic = (tgt as *mut AtomicU64).as_ref().unwrap_unchecked();
             atomic.store(*(src as *const u64), Ordering::Relaxed);
+        }
+        16 => {
+            let atomic = (tgt as *mut AtomicU128).as_ref().unwrap_unchecked();
+            atomic.store(*(src as *const u128), Ordering::Relaxed);
         }
         _ => panic!("Unsupported size for atomic write."),
     }

@@ -10,6 +10,11 @@
 
 !!! warning "Only guaranteed to work on platforms with [Targeted Memory Allocation](../../platform/overview.md#recommended-targeted-memory-allocation)"
 
+    Because the library needs to be able to acquire memory in proximity of the original function.  
+
+    Usually this is almost always achievable, but cases where Denuvo DRM inflates ARM64 binaries 
+    (20MB -> 500MB) may prove problematic as ARM64 has +-128MiB range for relative jumps.
+
 !!! note "I'm not a security person/researcher. I just make full stack game modding tools, mods and libraries. Naming in these design docs might be unconventional."
 
 This hook works by replacing the target of a `call` (a.k.a. Branch with Link) instruction with a new target.
@@ -86,3 +91,89 @@ When the hook is deactivated, the stub is replaced with a direct jump back to th
 
 By bypassing your code entirely, it is safe for your dynamic library (`.dll`/`.so`/`.dylib`) 
 to unload from the process.
+
+## Example
+
+### Before
+
+```asm
+; x86 Assembly
+originalCaller:
+    ; Some code...
+    call originalFunction
+    ; More code...
+
+originalFunction:
+    ; Function implementation...
+```
+
+### After (Fast Mode)
+
+```asm
+; x86 Assembly
+originalCaller:
+    ; Some code...
+    call newFunction
+    ; More code...
+
+newFunction:
+    ; New function implementation...
+    call originalFunction ; Optional.
+
+originalFunction:
+    ; Original function implementation...
+```
+
+### After
+
+```asm
+; x86 Assembly
+originalCaller:
+    ; Some code...
+    call stub
+    ; More code...
+
+stub:
+    jmp newFunction
+    ; nop padding to 8 bytes (if needed)
+
+newFunction:
+    ; New function implementation...
+    call originalFunction ; Optional.
+
+originalFunction:
+    ; Original function implementation...
+```
+
+### After (with Calling Convention Conversion)
+
+```asm
+; x86 Assembly
+originalCaller:
+    ; Some code...
+    call wrapper
+    ; More code...
+
+wrapper:
+    ; call convention conversion implementation
+    call newFunction
+    ; call convention conversion implementation
+    ret
+
+newFunction:
+    ; New function implementation...
+    call reverseWrapper ; Optional.
+
+reverseWrapper:
+    ; call convention conversion implementation
+    call originalFunction
+    ; call convention conversion implementation
+    ret
+
+originalFunction:
+    ; Original function implementation...
+```
+
+## Thread Safety & Memory Layout
+
+Emplacing the jump to the stub and patching within the stub are atomic operations on all supported platforms.

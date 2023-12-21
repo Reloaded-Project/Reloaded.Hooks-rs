@@ -106,8 +106,8 @@ pub trait Buffer {
     /// This method works around the complicated tidbits of writing to buffer, such as instruction
     /// cache invalidation and permission changes on W^X systems where applicable.
     ///
-    /// `TInteger` must be a native integer type, such as `u8`, `u16`, `u32`, `u64`, which can be written
-    /// using a single instruction.
+    /// `TInteger` must be a native integer type, such as `u8`, `u16`, `u32`, `u64`, `u128` which
+    /// can be written using a single instruction.
     ///
     /// # Parameters
     ///
