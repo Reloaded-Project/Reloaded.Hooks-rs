@@ -19,11 +19,11 @@ pub(crate) fn benchmark_create_assembly_hook(c: &mut Criterion) {
     // Allocate the function.
     let add_addr = alloc_function(&CALCULATOR_ADD_CDECL_X86).unwrap();
 
-    // Preallocate a 128MB buffer (to make this test less accounting of unrealistic buffer allocations)
+    // Preallocate a 256MB buffer (to make this test less accounting of unrealistic buffer allocations)
     // We want to measure the time it takes to create the hook, not the time it takes to allocate unrealistic amount of buffers.
-    let proximity_target = ProximityTarget::new(add_addr, 0x8000000, 0x80000000);
+    let proximity_target = ProximityTarget::new(add_addr, 0x8000000 * 2, 0x80000000);
     let _buf_opt = BuffersFactory::get_buffer(
-        0x8000000,
+        0x8000000 * 2,
         proximity_target.target_address,
         proximity_target.requested_proximity,
         JitX86::code_alignment(),
