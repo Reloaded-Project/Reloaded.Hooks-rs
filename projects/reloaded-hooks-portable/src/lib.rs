@@ -7,6 +7,8 @@ pub mod api {
 
     /// The errors that can occur when generating a wrapper.
     pub mod errors {
+        pub mod assembly_hook_error;
+        pub mod inline_branch_error;
         pub mod wrapper_generation_error;
     }
 
@@ -19,7 +21,15 @@ pub mod api {
 
     /// Settings passed to other methodss
     pub mod settings {
+        pub mod assembly_hook_settings;
         pub mod proximity_target;
+    }
+
+    /// Settings passed to other methodss
+    pub mod hooks {
+        pub mod assembly {
+            pub mod assembly_hook;
+        }
     }
 
     /// Platform and architecture specific integrations
@@ -29,8 +39,20 @@ pub mod api {
         #[allow(warnings)]
         pub mod platform_functions;
 
-        #[allow(warnings)]
-        mod platform_functions_mmap_rs;
+        // The easiest OS to work with tbh
+        #[cfg(target_os = "windows")]
+        pub mod platform_functions_windows;
+
+        // Good boys and girls that follow the unix standard go here
+        #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
+        pub mod platform_functions_unix;
+
+        // and apple goes here...
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        pub mod platform_functions_apple;
+
+        #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+        pub(crate) mod platform_functions_mmap_rs;
     }
 
     /// Public API related to Just In Time Compilation
@@ -66,14 +88,21 @@ pub mod api {
         pub mod code_rewriter;
     }
 
+    /// Trait for determining length of disassembled instructions
+    pub mod length_disassembler;
+
     pub mod calling_convention_info;
     pub mod function_info;
     pub mod wrapper_generator;
     pub mod wrapper_instruction_generator;
 }
 
+pub(crate) mod internal {
+    pub(crate) mod assembly_hook;
+}
+
 /// Code for all the graph algorithms.
-pub mod graphs {
+pub(crate) mod graphs {
     pub mod algorithms {
         pub mod move_graph_builder;
         pub mod move_optimizer;
@@ -86,14 +115,21 @@ pub mod graphs {
 /// Helper functions for the library.
 pub mod helpers {
     pub mod alignment_space_finder;
+    pub mod allocate_with_proximity;
+    pub mod atomic_write;
+    pub mod atomic_write_masked;
+    pub mod icache_clear;
+    pub mod jit_jump_operation;
+    pub mod make_inline_rel_branch;
+    pub mod overwrite_code;
 
-    // Benchmark and test only.
+    /// For Benchmarks and tests only. Do not use in production code.
     #[doc(hidden)]
     pub mod test_helpers;
 }
 
 /// Code optimization algorithms.
-pub mod optimize {
+pub(crate) mod optimize {
     pub mod combine_push_operations;
     pub mod eliminate_common_callee_saved_registers;
     pub mod merge_stackalloc_and_return;

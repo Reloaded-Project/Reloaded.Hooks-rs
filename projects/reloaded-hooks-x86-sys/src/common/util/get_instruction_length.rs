@@ -3044,6 +3044,8 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::VEX_KNC_Undoc_r64_rm64_128_F2_0F38_W1_F0 => 4,
         Code::VEX_KNC_Undoc_r32_rm32_128_F2_0F38_W0_F1 => 4,
         Code::VEX_KNC_Undoc_r64_rm64_128_F2_0F38_W1_F1 => 4,
+        /*
+        // TODO: Unlock after upgrading Iced
         Code::VEX_Vpdpbuud_xmm_xmm_xmmm128 => 4,
         Code::VEX_Vpdpbuud_ymm_ymm_ymmm256 => 4,
         Code::VEX_Vpdpbsud_xmm_xmm_xmmm128 => 4,
@@ -3081,7 +3083,7 @@ pub(crate) fn get_instruction_length(code: Code) -> usize {
         Code::VEX_Vsm4rnds4_xmm_xmm_xmmm128 => 4,
         Code::VEX_Vsm4rnds4_ymm_ymm_ymmm256 => 4,
         Code::VEX_Vsm3rnds2_xmm_xmm_xmmm128_imm8 => 5,
-
+        */
         // Alternate instructions (untested)
         _ => panic!("Unknown instruction"),
     }

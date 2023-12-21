@@ -10,12 +10,15 @@ pub(crate) fn encode_call_absolute(
     a: &mut CodeAssembler,
     x: &CallAbs<AllRegisters>,
 ) -> Result<(), JitError<AllRegisters>> {
-    if a.bitness() == 64 {
-        let target_reg = x.scratch_register.as_iced_64()?;
-        a.mov(target_reg, x.target_address as u64)
-            .map_err(convert_error)?;
-        a.call(target_reg).map_err(convert_error)?;
-    } else if a.bitness() == 32 {
+    if a.bitness() == 64 && cfg!(feature = "x64") {
+        #[cfg(feature = "x64")]
+        {
+            let target_reg = x.scratch_register.as_iced_64()?;
+            a.mov(target_reg, x.target_address as u64)
+                .map_err(convert_error)?;
+            a.call(target_reg).map_err(convert_error)?;
+        }
+    } else if a.bitness() == 32 && cfg!(feature = "x86") {
         let target_reg = x.scratch_register.as_iced_32()?;
         a.mov(target_reg, x.target_address as u32)
             .map_err(convert_error)?;
@@ -40,26 +43,22 @@ mod tests {
 
     #[test]
     fn call_absolute_x86() {
-        let mut jit = JitX86 {};
-
         let operations = vec![Op::CallAbsolute(CallAbs {
             scratch_register: x86::Register::eax,
             target_address: 0x12345678,
         })];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("b878563412ffd0", hex::encode(result.unwrap()));
     }
 
     #[test]
     fn call_absolute_x64() {
-        let mut jit = JitX64 {};
-
         let operations = vec![Op::CallAbsolute(CallAbs {
             scratch_register: x64::Register::rax,
             target_address: 0x12345678,
         })];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!("48b87856341200000000ffd0", hex::encode(result.unwrap()));
     }

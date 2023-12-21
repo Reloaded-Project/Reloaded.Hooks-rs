@@ -7,7 +7,7 @@
 /// use reloaded_hooks_portable::api::jit::jump_absolute_indirect_operation::JumpAbsoluteIndirectOperation;
 ///
 /// let jump_op = JumpAbsoluteIndirectOperation {
-///     scratch_register: "x9",
+///     scratch_register: Some("x9"),
 ///     pointer_address: 0x123456,
 /// };
 ///
@@ -30,7 +30,7 @@
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct JumpAbsoluteIndirectOperation<T> {
     /// The scratch register to use for the jump operation.
-    pub scratch_register: T,
+    pub scratch_register: Option<T>,
 
     /// The target address to jump to.
     pub pointer_address: usize,
@@ -40,7 +40,7 @@ impl<T: Default> JumpAbsoluteIndirectOperation<T> {
     /// Creates a new relative jump operation.
     pub fn new(pointer_address: usize) -> Self {
         JumpAbsoluteIndirectOperation {
-            scratch_register: Default::default(),
+            scratch_register: None,
             pointer_address,
         }
     }

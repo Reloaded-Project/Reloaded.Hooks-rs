@@ -1,25 +1,34 @@
 extern crate alloc;
 
-use super::operation::Operation;
+use super::{jump_relative_operation::JumpRelativeOperation, operation::Operation};
 use crate::api::traits::register_info::RegisterInfo;
-use alloc::{rc::Rc, string::String};
+use alloc::{string::String, vec::Vec};
+use bitflags::bitflags;
 use core::fmt::Debug;
 use thiserror_no_std::Error;
 
-/// Lists the supported features of the JIT
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum JitCapabilities {
-    /// Can encode call that is relative to the instruction pointer.
-    /// This controls whether [CallIpRelativeOperation](super::call_rip_relative_operation::CallIpRelativeOperation) is emitted.
-    CanEncodeIPRelativeCall,
+bitflags! {
+    /// Lists the supported features of the JIT.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub struct JitCapabilities: u32 {
+        /// Can encode call that is relative to the instruction pointer.
+        /// This controls whether `CallIpRelativeOperation` (super::call_rip_relative_operation::CallIpRelativeOperation) is emitted.
+        const CAN_ENCODE_IP_RELATIVE_CALL = 1 << 0;
 
-    /// Can encode jump that is relative to the instruction pointer.
-    /// This controls whether [JumpIpRelativeOperation](super::jump_rip_relative_operation::JumpIpRelativeOperation) is emitted.
-    CanEncodeIPRelativeJump,
+        /// Can encode jump that is relative to the instruction pointer.
+        /// This controls whether `JumpIpRelativeOperation` (super::jump_rip_relative_operation::JumpIpRelativeOperation) is emitted.
+        const CAN_ENCODE_IP_RELATIVE_JUMP = 1 << 1;
 
-    /// Can encode multiple push/pop operations at once.
-    /// This controls whetehr [MultiPush](super::push_operation::PushOperation) and [MultiPop](super::pop_operation::PopOperation) are emitted.
-    CanMultiPush,
+        /// Can encode multiple push/pop operations at once.
+        /// This controls whether `MultiPush` (super::push_operation::PushOperation) and
+        /// `MultiPop` (super::pop_operation::PopOperation) are emitted.
+        const CAN_MULTI_PUSH = 1 << 2;
+
+        /// Set this flag if Jit can produce an 'Absolute Indirect Jump' that uses less bytes
+        /// than an 'Absolute Jump'. This is used for Assembly Hooks to reduce number of bytes
+        /// used.
+        const PROFITABLE_ABSOLUTE_INDIRECT_JUMP = 1 << 3;
+    }
 }
 
 /// The trait for a Just In Time Compiler used for emitting
@@ -27,10 +36,16 @@ pub enum JitCapabilities {
 pub trait Jit<TRegister: RegisterInfo> {
     /// Compiles the specified sequence of operations into a sequence of bytes.
     fn compile(
-        &mut self,
         address: usize,
         operations: &[Operation<TRegister>],
-    ) -> Result<Rc<[u8]>, JitError<TRegister>>;
+    ) -> Result<Vec<u8>, JitError<TRegister>>;
+
+    /// Compiles the specified sequence of operations into a sequence of bytes.
+    fn compile_with_buf(
+        address: usize,
+        operations: &[Operation<TRegister>],
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<TRegister>>;
 
     /// Required alignment of code for the current architecture.
     ///
@@ -38,13 +53,44 @@ pub trait Jit<TRegister: RegisterInfo> {
     /// This is usually 4 bytes on most architectures, and 16 bytes on x86.
     fn code_alignment() -> u32;
 
+    /// Maximum number of bytes required to perform a branch (i.e. an absolute branch).
+    fn max_branch_bytes() -> u32;
+
     /// Maximum distances of supported relative jump assembly instruction sequences.
     /// This affects wrapper generation, and parameters passed into JIT.
     fn max_relative_jump_distances() -> &'static [usize];
 
     /// Returns the functionalities supported by this JIT.
     /// These functionalities affect code generation performed by this library.
-    fn get_jit_capabilities() -> &'static [JitCapabilities];
+    fn get_jit_capabilities() -> JitCapabilities;
+
+    /// Max Offset used for Absolute Indirect Jump.
+    /// a.k.a. [`reloaded_hooks_portable::api::jit::jump_absolute_indirect_operation::JumpAbsoluteIndirectOperation`]
+    ///
+    /// Override this if you set [`reloaded_hooks_portable::api::jit::compiler::JitCapabilities::PROFITABLE_ABSOLUTE_INDIRECT_JUMP`] in [`self::get_jit_capabilities`]
+    fn max_indirect_offsets() -> &'static [u32] {
+        &[]
+    }
+
+    /// Fills an array with NOP instructions.
+    fn fill_nops(arr: &mut [u8]);
+
+    /// Assembles a 'jmp'/'branch' instruction directly, bypassing the whole compilation step.
+    /// This is used to speed up single instruction com
+    ///
+    /// # Parameters
+    /// - `x` - The jump instruction to encode.
+    /// - `pc` - The current program counter.
+    /// - `buf` - The buffer to write the instruction to.
+    fn encode_jump(
+        x: &JumpRelativeOperation<TRegister>,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<TRegister>>;
+
+    /// Maximum number of bytes required to perform a relative jump.
+    /// This is the max amount of bytes that can be returned by [`self::encode_jump`].
+    fn max_relative_jump_bytes() -> usize;
 }
 
 /// Errors that can occur during JIT compilation.

@@ -8,12 +8,12 @@ use crate::common::util::iced_extensions::is_immediate;
 use crate::common::util::invert_branch_condition::invert_branch_condition;
 use crate::{all_registers::AllRegisters, common::util::get_instruction_length};
 use alloc::string::ToString;
-use iced_x86::{Code, Instruction, MemoryOperand, OpKind, Register};
+use iced_x86::{Code, Instruction, MemoryOperand, OpKind};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use smallvec::SmallVec;
 
 pub(crate) fn patch_relative_branch(
-    scratch_gpr: AllRegisters,
+    scratch_gpr: Option<AllRegisters>,
     new_isns: &mut SmallVec<[Instruction; 4]>,
     current_new_pc: &mut usize,
     instruction: &Instruction,
@@ -24,7 +24,10 @@ pub(crate) fn patch_relative_branch(
     }
 
     let target = instruction.near_branch_target();
-    let scratch_reg = scratch_gpr.as_iced_allregister().unwrap();
+    let scratch_reg = scratch_gpr
+        .ok_or_else(|| CodeRewriterError::NoScratchRegister(Default::default()))?
+        .as_iced_allregister()
+        .unwrap();
     let mut mov_ins = Instruction::with2(Code::Mov_r64_imm64, scratch_reg, target)
         .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
     mov_ins.set_len(10);
@@ -42,7 +45,7 @@ pub(crate) fn patch_relative_branch(
 }
 
 pub(crate) fn patch_jump_conditional(
-    scratch_gpr: AllRegisters,
+    scratch_gpr: Option<AllRegisters>,
     new_isns: &mut SmallVec<[Instruction; 4]>,
     current_new_pc: &mut usize,
     instruction: &Instruction,
@@ -79,7 +82,10 @@ pub(crate) fn patch_jump_conditional(
 
     // Invert branch condition and make jump absolute.
     let target = instruction.near_branch_target();
-    let scratch_reg = scratch_gpr.as_iced_allregister().unwrap();
+    let scratch_reg = scratch_gpr
+        .ok_or_else(|| CodeRewriterError::NoScratchRegister(Default::default()))?
+        .as_iced_allregister()
+        .unwrap();
     let inverted_condition = invert_branch_condition(instruction.code())?;
 
     // 12 bytes for mov + branch
@@ -101,7 +107,7 @@ pub(crate) fn patch_jump_conditional(
 }
 
 pub(crate) fn patch_loop(
-    scratch_gpr: AllRegisters,
+    scratch_gpr: Option<AllRegisters>,
     new_isns: &mut SmallVec<[Instruction; 4]>,
     current_new_pc: &mut usize,
     instruction: &Instruction,
@@ -132,7 +138,10 @@ pub(crate) fn patch_loop(
 
     // Jump forward
     let target = instruction.near_branch_target();
-    let scratch_reg = scratch_gpr.as_iced_allregister().unwrap();
+    let scratch_reg = scratch_gpr
+        .ok_or_else(|| CodeRewriterError::NoScratchRegister(Default::default()))?
+        .as_iced_allregister()
+        .unwrap();
 
     let mut loop_over = Instruction::with_branch(instruction.code(), (*current_new_pc + 4) as u64)
         .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
@@ -188,7 +197,7 @@ fn patch_loop_imm32(
 }
 
 pub(crate) fn patch_jcx(
-    scratch_gpr: AllRegisters,
+    scratch_gpr: Option<AllRegisters>,
     new_isns: &mut SmallVec<[Instruction; 4]>,
     current_new_pc: &mut usize,
     instruction: &Instruction,
@@ -213,7 +222,10 @@ pub(crate) fn patch_jcx(
 
     // Jump forward
     let target = instruction.near_branch_target();
-    let scratch_reg = scratch_gpr.as_iced_allregister().unwrap();
+    let scratch_reg = scratch_gpr
+        .ok_or_else(|| CodeRewriterError::NoScratchRegister(Default::default()))?
+        .as_iced_allregister()
+        .unwrap();
 
     let mut jcx_over = Instruction::with_branch(instruction.code(), (*current_new_pc + 4) as u64)
         .map_err(|x| CodeRewriterError::ThirdPartyAssemblerError(x.to_string()))?;
@@ -289,7 +301,7 @@ pub(crate) fn append_if_can_encode_relative_rip(
 }
 
 pub(crate) fn patch_rip_relative_operand(
-    scratch_gpr: AllRegisters,
+    scratch_gpr: Option<AllRegisters>,
     new_isns: &mut SmallVec<[Instruction; 4]>,
     cur_new_pc: &mut usize,
     instruction: &Instruction,
@@ -299,7 +311,10 @@ pub(crate) fn patch_rip_relative_operand(
     }
 
     let target = instruction.memory_displacement64();
-    let scratch_reg = scratch_gpr.as_iced_allregister().unwrap();
+    let scratch_reg = scratch_gpr
+        .ok_or_else(|| CodeRewriterError::NoScratchRegister(Default::default()))?
+        .as_iced_allregister()
+        .unwrap();
     let length = get_instruction_length(instruction.code());
 
     // For encoding, Iced allows us to specify immediates as 32-bit, even if they are imm8 etc. let's abuse this.

@@ -44,6 +44,7 @@ even in bare metal or embedded environments.
 | [Hook Stacking](./dev/arch/overview.md#hook-stacking)                                                 | ✅         | ✅     |
 | [Calling Convention Wrapper Generation](./dev/arch/overview.md#calling-convention-wrapper-generation) | ✅         | ✅     |
 | [Optimal Wrapper Generation](./dev/arch/overview.md#optimal-wrapper-generation)                       | ✅         | ✅     |
+| [Length Disassembler](./dev/arch/overview.md#length-disassembler)                                     | ✅         | ✅     |
 
 Bootstrapping a new architecture is not a difficult job!!  
 Please see [Architecture Support Overview](./dev/arch/overview.md) for porting guidance.

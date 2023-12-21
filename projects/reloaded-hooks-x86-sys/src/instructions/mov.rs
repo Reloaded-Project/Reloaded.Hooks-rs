@@ -9,8 +9,15 @@ pub(crate) fn encode_mov(
 ) -> Result<(), JitError<AllRegisters>> {
     if mov.target.is_32() && mov.source.is_32() {
         a.mov(mov.target.as_iced_32()?, mov.source.as_iced_32()?)
-    } else if mov.target.is_64() && mov.source.is_64() {
-        a.mov(mov.target.as_iced_64()?, mov.source.as_iced_64()?)
+    } else if mov.target.is_64() && mov.source.is_64() && cfg!(feature = "x64") {
+        #[cfg(feature = "x64")]
+        {
+            a.mov(mov.target.as_iced_64()?, mov.source.as_iced_64()?)
+        }
+        #[cfg(not(feature = "x64"))]
+        {
+            Ok(())
+        }
     } else if mov.target.is_xmm() && mov.source.is_xmm() {
         a.movaps(mov.target.as_iced_xmm()?, mov.source.as_iced_xmm()?)
     } else if mov.target.is_ymm() && mov.source.is_ymm() {
@@ -44,9 +51,8 @@ mod tests {
         #[case] target: x64::Register,
         #[case] expected_encoded: &str,
     ) {
-        let mut jit = JitX64 {};
         let operations = vec![Op::Mov(Mov { source, target })];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -61,9 +67,8 @@ mod tests {
         #[case] target: x86::Register,
         #[case] expected_encoded: &str,
     ) {
-        let mut jit = JitX86 {};
         let operations = vec![Op::Mov(Mov { source, target })];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }

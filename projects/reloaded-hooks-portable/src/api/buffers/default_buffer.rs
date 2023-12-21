@@ -1,8 +1,14 @@
 extern crate alloc;
-use alloc::alloc::{dealloc, Layout};
+
+use crate::api::platforms::platform_functions::{
+    disable_write_xor_execute, restore_write_xor_execute,
+};
+use crate::helpers::atomic_write::atomic_write;
+use crate::helpers::icache_clear::clear_instruction_cache;
 use alloc::rc::Rc;
 use core::cell::RefCell;
-use core::ptr::NonNull;
+use core::mem::size_of;
+use core::ptr::{copy_nonoverlapping, NonNull};
 use core::sync::atomic::{AtomicBool, Ordering};
 
 use super::buffer_abstractions::Buffer;
@@ -11,7 +17,6 @@ pub struct AllocatedBuffer {
     pub(crate) ptr: NonNull<u8>,
     pub(crate) write_offset: RefCell<u32>,
     pub(crate) size: u32,
-    pub(crate) layout: Layout,
     pub(crate) locked: AtomicBool,
 }
 
@@ -28,7 +33,6 @@ impl Clone for AllocatedBuffer {
             ptr: self.ptr,
             write_offset: self.write_offset.clone(),
             size: self.size,
-            layout: self.layout,
             locked: AtomicBool::new(self.locked.load(Ordering::Relaxed)),
         }
     }
@@ -54,8 +58,11 @@ impl Buffer for LockedBuffer {
         debug_assert!(end <= self.buffer.size, "Buffer overflow");
 
         let buffer_ptr = self.buffer.ptr.as_ptr();
+
+        // Make buffer RW for W^X
+        let orig = disable_write_xor_execute(buffer_ptr as *const u8, data.len());
         unsafe {
-            core::ptr::copy_nonoverlapping(
+            copy_nonoverlapping(
                 data.as_ptr(),
                 buffer_ptr.add(current_offset as usize),
                 data.len(),
@@ -63,7 +70,62 @@ impl Buffer for LockedBuffer {
         }
 
         *self.buffer.write_offset.borrow_mut() = end; // Mutable borrow to update
-        unsafe { buffer_ptr.add(end as usize) }
+        let result = unsafe { buffer_ptr.add(end as usize) };
+
+        // Make code executable again for W^X
+        if let Some(orig_val) = orig {
+            restore_write_xor_execute(buffer_ptr as *const u8, data.len(), orig_val);
+        }
+
+        clear_instruction_cache(
+            buffer_ptr as *const u8,
+            (buffer_ptr as usize + data.len()) as *const u8,
+        );
+        result
+    }
+
+    fn overwrite(address: usize, buffer: &[u8]) {
+        let orig = disable_write_xor_execute(address as *const u8, buffer.len());
+        unsafe {
+            copy_nonoverlapping(buffer.as_ptr(), address as *mut u8, buffer.len());
+        }
+
+        if let Some(orig_val) = orig {
+            restore_write_xor_execute(address as *const u8, buffer.len(), orig_val);
+        }
+
+        clear_instruction_cache(address as *const u8, (address + buffer.len()) as *const u8);
+    }
+
+    fn advance(&mut self, num_bytes: usize) -> *const u8 {
+        let current_offset = *self.buffer.write_offset.borrow();
+        let new_offset = current_offset + num_bytes as u32;
+        *self.buffer.write_offset.borrow_mut() = new_offset;
+        self.buffer.ptr.as_ptr().wrapping_add(new_offset as usize)
+    }
+
+    fn overwrite_atomic<TInteger>(address: usize, buffer: TInteger)
+    where
+        Self: Sized,
+    {
+        let orig = disable_write_xor_execute(address as *const u8, size_of::<TInteger>());
+
+        unsafe {
+            atomic_write(
+                &buffer as *const TInteger as *const u8,
+                address as *mut u8,
+                size_of::<TInteger>(),
+            );
+        }
+
+        if let Some(orig_val) = orig {
+            restore_write_xor_execute(address as *const u8, size_of::<TInteger>(), orig_val);
+        }
+
+        clear_instruction_cache(
+            address as *const u8,
+            (address + size_of::<TInteger>()) as *const u8,
+        );
     }
 }
 
@@ -75,6 +137,6 @@ impl Drop for LockedBuffer {
 
 impl Drop for AllocatedBuffer {
     fn drop(&mut self) {
-        unsafe { dealloc(self.ptr.as_ptr(), self.layout) }
+        // These buffers are supposed to last the lifetime of the process.
     }
 }

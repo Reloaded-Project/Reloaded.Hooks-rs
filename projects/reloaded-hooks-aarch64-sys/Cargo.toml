@@ -11,13 +11,14 @@ include = ["src/**/*"]
 [dependencies]
 smallvec = { version = "1.11.0", features = ["const_new"] }
 reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portable" }
-rstest = "0.18.2"
 derive-enum-all-values = "0.1.0"
 bitfield = "0.14.0"
 
 [dev-dependencies]
 criterion = "0.5.1"
+rstest = "0.18.2"
 hex = "0.4.3"
+reloaded-memory-buffers = "4.0.1"
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.12", features = ["flamegraph", "criterion"] }

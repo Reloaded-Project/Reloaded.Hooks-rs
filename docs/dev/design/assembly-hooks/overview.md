@@ -122,17 +122,135 @@ The following table below shows common hook lengths, for:
 | Architecture   | Relative            | TMA          | Worst Case      |
 |----------------|---------------------|--------------|-----------------|
 | x86^[1]^       | 5 bytes (+- 2GiB)   | 5 bytes      | 5 bytes         |
-| x86_64         | 5 bytes (+- 2GiB)   | 6 bytes^[2]^ | 12 bytes^[3]^   |
-| x86_64 (macOS) | 5 bytes (+- 2GiB)   | 12 bytes^[4]^| 12 bytes^[3]^   |
-| ARM64          | 4 bytes (+- 128MiB) | 12 bytes^[6]^| 24 bytes^[5]^   |
-| ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 24 bytes^[5]^   |
+| x86_64         | 5 bytes (+- 2GiB)   | 6 bytes^[2]^ | 13 bytes^[3]^   |
+| x86_64 (macOS) | 5 bytes (+- 2GiB)   | 13 bytes^[4]^| 13 bytes^[3]^   |
+| ARM64          | 4 bytes (+- 128MiB) | 12 bytes^[6]^| 20 bytes^[5]^   |
+| ARM64 (macOS)  | 4 bytes (+- 128MiB) | 12 bytes^[6]^| 20 bytes^[5]^   |
 
 ^[1]^: x86 can reach any address from any address with relative branch due to integer overflow/wraparound.  
 ^[2]^: [`jmp [<Address>]`, with &lt;Address&gt; at &lt; 2GiB](../../arch/operations.md#jumpabsoluteindirect).  
-^[3]^: [mov <reg>, address + call <reg>](../../arch/operations.md#jumpabsolute).  
-^[4]^: macOS restricts access to `< 2GiB` memory locations, so absolute jump must be used.  
+^[3]^: [`mov <reg>, address` + `call <reg>`](../../arch/operations.md#jumpabsolute). +1 if using an extended reg.  
+^[4]^: macOS restricts access to `< 2GiB` memory locations, so absolute jump must be used. +1 if using an extended reg.  
 ^[5]^: [MOVZ + MOVK + LDR + BR](../../arch/operations.md#jumpabsolute).  
 ^[6]^: [ADRP + ADD + BR](../../arch/operations.md#jumprelative).  
+
+## Thread Safety & Memory Layout
+
+!!! note "[Reloaded3](https://reloaded-project.github.io/Reloaded-III/) allows mod load/unloads in real time, so this is a hard requirement."
+
+!!! warning "Therefore, assembly hooks should be thread safe."
+
+In order to support thread safety, while retaining maximum runtime performance, the buffers where the 
+original and hook code are contained have a very specific memory layout (shown below)
+
+```text
+- [Hook Function / Original Code]
+- Hook Function
+- Original Code
+```
+
+### Example
+
+If the *'Original Code'* was:
+
+```asm
+mov x0, x1
+add x0, x2
+```
+
+And the *'Hook Code'* was:
+
+```asm
+add x1, x1
+mov x0, x2
+```
+
+The memory would look like this when hooked.
+
+```asm
+entry: ; Currently Applied (Hook)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; Backup (Hook)
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+```
+
+### Switching State
+
+!!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `entry`, this allows us to manipulate the remaining code safely."
+
+```asm
+entry: ; Currently Applied (Hook)
+    b original ; Temp branch to original
+    mov x0, x2
+    b back_to_code
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; Backup (Hook)
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+```
+
+!!! note "Don't forget to clear instruction cache on non-x86 architectures which need it."
+
+This ensures we can safely overwrite the remaining code...
+
+Then we overwrite `entry` code with `hook` code, except the branch:
+
+```asm
+entry: ; Currently Applied (Hook)
+    b original     ; Branch to original
+    add x0, x2     ; overwritten with 'original' code.
+    b back_to_code ; overwritten with 'original' code.
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; Backup (Hook)
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+```
+
+And lastly, overwrite the branch. 
+
+To do this, read the original `sizeof(nint)` bytes at `entry`, replace branch bytes with original bytes 
+and do an atomic write. This way, the remaining instruction is safely replaced.
+
+```asm
+entry: ; Currently Applied (Hook)
+    add x1, x1     ; 'original' code.
+    add x0, x2     ; 'original' code.
+    b back_to_code ; 'original' code.
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; Backup (Hook)
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+```
+
+This way we achieve zero overhead CPU-wise, at expense of some memory.
 
 ## Legacy Compatibility Considerations
 

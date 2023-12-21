@@ -15,5 +15,11 @@
     "discord.enabled": true,
     "files.associations": {
         "cstdarg": "cpp"
-    }
+    },
+    "lldb.launch.initCommands": [
+        "settings set target.x86-disassembly-flavor intel"
+    ],
+    "lldb.launch.sourceLanguages": [
+        "rust"
+    ]
 }

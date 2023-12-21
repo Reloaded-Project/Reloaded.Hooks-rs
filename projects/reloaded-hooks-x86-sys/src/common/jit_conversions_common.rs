@@ -1,5 +1,6 @@
 use crate::all_registers::AllRegisters;
 
+#[cfg(feature = "x86")]
 pub(crate) fn map_register_x86_to_allregisters(reg: crate::x86::Register) -> AllRegisters {
     match reg {
         crate::x86::Register::eax => AllRegisters::eax,
@@ -49,6 +50,7 @@ pub(crate) fn map_register_x86_to_allregisters(reg: crate::x86::Register) -> All
     }
 }
 
+#[cfg(feature = "x64")]
 pub(crate) fn map_register_x64_to_allregisters(reg: crate::x64::Register) -> AllRegisters {
     match reg {
         crate::x64::Register::rax => AllRegisters::rax,
@@ -131,6 +133,7 @@ pub(crate) fn map_register_x64_to_allregisters(reg: crate::x64::Register) -> All
     }
 }
 
+#[cfg(feature = "x86")]
 pub(crate) fn map_allregisters_to_x86(reg: AllRegisters) -> crate::x86::Register {
     match reg {
         AllRegisters::eax => crate::x86::Register::eax,
@@ -177,6 +180,7 @@ pub(crate) fn map_allregisters_to_x86(reg: AllRegisters) -> crate::x86::Register
     }
 }
 
+#[cfg(feature = "x64")]
 pub(crate) fn map_allregisters_to_x64(reg: AllRegisters) -> crate::x64::Register {
     match reg {
         AllRegisters::rax => crate::x64::Register::rax,

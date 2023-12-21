@@ -60,6 +60,32 @@ For GUI integration, run action `Coverage Gutter: Watch` (in `Ctrl+Shift+P` acti
 If you wish to debug benchmarks in VSCode, go to `Run and Debug` Menu and generate the launch 
 profiles, you should get one for debugging benchmarks.
 
+## Benchmarks with Side Effects
+
+Some benchmarks have side effects, such as `assembly_hook_creation` in x86 package; which make subsequent runs slower. 
+
+In those scenarios, you can run them as such:
+
+```
+cargo bench --bench my_benchmark -- assembly_hook_creation --warm-up-time 0.000000001 --measurement-time 5 --verbose
+```
+
+You will get a printout such as:
+
+```
+Benchmarking assembly_hook_creation: Warming up for 1.0000 ns
+Benchmarking assembly_hook_creation: Collecting 100 samples in estimated 52.981 s (80800 iterations)
+Benchmarking assembly_hook_creation: Analyzing
+assembly_hook_creation  time:   [10.355 µs 10.613 µs 10.833 µs]
+                        change: [-5.0994% -1.8940% +1.5054%] (p = 0.28 > 0.05)
+                        No change in performance detected.
+```
+
+With this info, you'll find out that for 80800 iterations it takes, 10.613 µs on average, per iteration, or
+857ms for all 80800 iterations, if extrapolated.
+
+These benches are disabled by default, re-enable them in source code to run them if desired.
+
 ## Profiling Benchmarks
 
 ### Linux/OSX
@@ -110,7 +136,7 @@ rustup component add rust-src --toolchain nightly
 Run `cargo-bloat` the following command to calculate package size:
 
 ```
-cargo +nightly bloat --profile profile -Z build-std=std,panic_abort -Z build-std-features=panic_immediate_abort --target x86_64-unknown-linux-gnu -n 100
+RUSTFLAGS="-C panic=abort -C lto=fat -C embed-bitcode=yes" cargo +nightly bloat -Z build-std=std,panic_abort -Z build-std-features=panic_immediate_abort --target x86_64-pc-windows-gnu --profile profile --crate-type cdylib -n 100
 ```
 
 Change `--target` if needed for your platform.  

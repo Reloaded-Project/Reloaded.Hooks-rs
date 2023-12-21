@@ -144,21 +144,19 @@ fn two_parameters(
     optimized: bool,
 ) -> Result<Vec<Operation<MockRegister>>, WrapperGenerationError> {
     // Two parameters
-    let capabiltiies = [
-        JitCapabilities::CanEncodeIPRelativeCall,
-        JitCapabilities::CanEncodeIPRelativeJump,
-        JitCapabilities::CanMultiPush,
-    ];
+    let capabiltiies = JitCapabilities::CAN_ENCODE_IP_RELATIVE_CALL
+        | JitCapabilities::CAN_ENCODE_IP_RELATIVE_JUMP
+        | JitCapabilities::CAN_MULTI_PUSH;
 
-    let options = get_common_options(optimized, &MOCK_FUNCTION, &capabiltiies);
+    let options = get_common_options(optimized, &MOCK_FUNCTION, capabiltiies);
     generate_wrapper_instructions(from_convention, to_convention, options)
 }
 
-fn get_common_options<'a>(
+fn get_common_options(
     optimized: bool,
-    mock_function: &'a MockFunction,
-    capabilties: &'a [JitCapabilities],
-) -> WrapperInstructionGeneratorOptions<'a, MockFunction> {
+    mock_function: &MockFunction,
+    capabilties: JitCapabilities,
+) -> WrapperInstructionGeneratorOptions<MockFunction> {
     WrapperInstructionGeneratorOptions {
         stack_entry_alignment: size_of::<isize>(), // no_alignment
         target_address: 0x1000,                    // some arbitrary address

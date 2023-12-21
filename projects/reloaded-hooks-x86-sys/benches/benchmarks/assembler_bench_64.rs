@@ -1,5 +1,4 @@
-use std::rc::Rc;
-
+use criterion::{black_box, Criterion};
 use reloaded_hooks_portable::api::jit::{
     compiler::{Jit, JitError},
     operation::Operation,
@@ -7,14 +6,26 @@ use reloaded_hooks_portable::api::jit::{
 };
 use reloaded_hooks_x86_sys::x64::{self, jit::JitX64, Register};
 
+pub(crate) fn benchmark_compile_only(c: &mut Criterion) {
+    let ops = create_operations_64();
+    c.bench_function("assemble_x64_compile_only", |b| {
+        b.iter(|| black_box(compile_instructions_64(0, &ops)))
+    });
+}
+
+pub(crate) fn benchmark_assemble_x64_total(c: &mut Criterion) {
+    c.bench_function("assemble_x64_total", |b| {
+        b.iter(|| black_box(create_and_assemble_instructions_64(0)))
+    });
+}
+
 // Separate function for the code to be benchmarked.
 #[allow(dead_code)]
 pub(crate) fn create_and_assemble_instructions_64(
     address: usize,
-) -> Result<Rc<[u8]>, JitError<x64::Register>> {
-    let mut jit = JitX64 {};
+) -> Result<Vec<u8>, JitError<x64::Register>> {
     let operations = create_operations_64();
-    compile_instructions_64(&mut jit, address, &operations)
+    compile_instructions_64(address, &operations)
 }
 
 pub(crate) fn create_operations_64() -> Vec<Operation<Register>> {
@@ -37,9 +48,8 @@ pub(crate) fn create_operations_64() -> Vec<Operation<Register>> {
 }
 
 pub(crate) fn compile_instructions_64(
-    jit: &mut JitX64,
     address: usize,
     operations: &[Operation<Register>],
-) -> Result<Rc<[u8]>, JitError<Register>> {
-    jit.compile(address, operations)
+) -> Result<Vec<u8>, JitError<Register>> {
+    JitX64::compile(address, operations)
 }

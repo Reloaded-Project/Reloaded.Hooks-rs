@@ -9,12 +9,12 @@ use reloaded_hooks_portable::api::jit::operation_aliases::Push;
 
 macro_rules! encode_xmm_push {
     ($a:expr, $reg:expr, $reg_type:ident, $op:ident) => {
-        if $a.bitness() == 32 {
+        if $a.bitness() == 32 && cfg!(feature = "x86") {
             $a.sub(iced_regs::esp, $reg.size() as i32)
                 .map_err(convert_error)?;
             $a.$op(dword_ptr(iced_regs::esp), $reg.$reg_type()?)
                 .map_err(convert_error)?;
-        } else if $a.bitness() == 64 {
+        } else if $a.bitness() == 64 && cfg!(feature = "x64") {
             $a.sub(iced_regs::rsp, $reg.size() as i32)
                 .map_err(convert_error)?;
             $a.$op(qword_ptr(iced_regs::rsp), $reg.$reg_type()?)
@@ -33,7 +33,8 @@ pub(crate) fn encode_push(
 ) -> Result<(), JitError<AllRegisters>> {
     if push.register.is_32() {
         a.push(push.register.as_iced_32()?).map_err(convert_error)?;
-    } else if push.register.is_64() {
+    } else if push.register.is_64() && cfg!(feature = "x64") {
+        #[cfg(feature = "x64")]
         a.push(push.register.as_iced_64()?).map_err(convert_error)?;
     } else if push.register.is_xmm() {
         encode_xmm_push!(a, push.register, as_iced_xmm, movdqu);
@@ -63,9 +64,8 @@ mod tests {
     #[case(x64::Register::ymm0, "4883ec20c5fe7f0424")]
     #[case(x64::Register::zmm0, "4883ec4062f17f487f0424")]
     fn push_x64(#[case] register: x64::Register, #[case] expected_encoded: &str) {
-        let mut jit = JitX64 {};
         let operations = vec![Op::Push(Push::new(register))];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -76,9 +76,8 @@ mod tests {
     #[case(x86::Register::ymm0, "83ec20c5fe7f0424")]
     #[case(x86::Register::zmm0, "83ec4062f17f487f0424")]
     fn push_x86(#[case] register: x86::Register, #[case] expected_encoded: &str) {
-        let mut jit = JitX86 {};
         let operations = vec![Op::Push(Push::new(register))];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }

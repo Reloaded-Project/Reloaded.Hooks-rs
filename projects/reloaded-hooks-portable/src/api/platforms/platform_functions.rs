@@ -1,38 +1,23 @@
 extern crate alloc;
 
+use crate::api::buffers::buffer_abstractions::BufferFactory;
+use alloc::boxed::Box;
 use alloc::string::String;
-use lazy_static::lazy_static;
 use spin::Mutex;
 
-use crate::api::buffers::{
-    buffer_abstractions::BufferFactory, default_buffer_factory::DefaultBufferFactory,
-};
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
+use super::platform_functions_unix;
 
-use alloc::boxed::Box;
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+use super::platform_functions_apple;
 
-use super::platform_functions_mmap_rs::{reprotect_memory_mmap_rs, unprotect_memory_mmap_rs};
+#[cfg(target_os = "windows")]
+use crate::api::platforms::platform_functions_windows;
 
-lazy_static! {
-/// The factory for creating read/write/execute buffers used by the library.
-    pub static ref BUFFER_FACTORY: Mutex<Box<dyn BufferFactory>> =
-    Mutex::new(Box::new(DefaultBufferFactory::new()));
-}
+#[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+use super::platform_functions_mmap_rs::unprotect_memory_mmap_rs;
 
-/// See [`unprotect_memory`].
-pub static mut UNPROTECT_MEMORY: fn(*const u8, usize) -> Result<Option<usize>, String> =
-    unprotect_memory;
-
-/// See [`reprotect_memory`].
-pub static mut REPROTECT_MEMORY: fn(*const u8, usize, usize) -> Result<(), String> =
-    reprotect_memory;
-
-/// See [`disable_write_xor_execute`].
-pub static mut DISABLE_WRITE_XOR_EXECUTE: fn(*const u8, usize) -> Result<Option<usize>, String> =
-    disable_write_xor_execute;
-
-/// See [`restore_write_xor_execute`].
-pub static mut RESTORE_WRITE_XOR_EXECUTE: fn(*const u8, usize) -> Result<(), String> =
-    restore_write_xor_execute;
+pub(crate) static MUTUAL_EXCLUSOR: Mutex<()> = Mutex::new(());
 
 /// Removes protection from a memory region.
 /// This makes it such that existing game code can be safely overwritten.
@@ -44,32 +29,26 @@ pub static mut RESTORE_WRITE_XOR_EXECUTE: fn(*const u8, usize) -> Result<(), Str
 ///
 /// # Returns
 ///
-/// The old memory protection (if needed for call to [`self::reprotect_memory`]).
-/// If the value returns `None`, then reprotect_memory will not be called.
-///
-/// # Returns
-///
-/// Success or error.
-pub fn unprotect_memory(address: *const u8, size: usize) -> Result<Option<usize>, String> {
+/// This function is crucial to the operation of the library. On failure, we panic.
+#[inline]
+pub fn unprotect_memory(address: *const u8, size: usize) {
     // Implement your logic to unprotect the memory here.
     // Returning an example Result
-    unprotect_memory_mmap_rs(address, size)
-}
 
-/// Removes protection from a memory region.
-/// This makes it such that existing game code can be safely overwritten.
-///
-/// # Parameters
-///
-/// - `address`: The address of the memory to disable write XOR execute protection for.
-/// - `size`: The size of the memory to disable write XOR execute protection for.
-/// - `protection`: The protection returned in the result of the call to [`self::disable_write_xor_execute`].
-///
-/// # Returns
-///
-/// Success or error.
-pub fn reprotect_memory(address: *const u8, size: usize, protection: usize) -> Result<(), String> {
-    reprotect_memory_mmap_rs(address, size, protection)
+    // Windows uses VirtualProtect
+    #[cfg(target_os = "windows")]
+    platform_functions_windows::unprotect_memory(address, size);
+
+    // Non-apple unix platforms use mprotect
+    #[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
+    platform_functions_unix::unprotect_memory(address, size);
+
+    // I don't trust Apple to keep mmap working, so I'm doing manual implementation with mach_ APIs.
+    #[cfg(any(target_os = "macos", target_os = "ios"))]
+    platform_functions_apple::unprotect_memory(address, size);
+
+    #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
+    unprotect_memory_mmap_rs(address, size);
 }
 
 /// Temporarily disables write XOR execute protection with an OS specialized
@@ -83,7 +62,7 @@ pub fn reprotect_memory(address: *const u8, size: usize, protection: usize) -> R
 /// # Returns
 ///
 /// - `usize`: The old memory protection (if needed for call to [`self::restore_write_xor_execute`]).
-///            
+/// Or we panic.       
 ///
 /// # Remarks
 ///
@@ -92,8 +71,14 @@ pub fn reprotect_memory(address: *const u8, size: usize, protection: usize) -> R
 ///
 /// The idea is that you use memory which is read_write_execute (MAP_JIT if mmap),
 /// then disable W^X for the current thread. Then we write the code, and re-enable W^X.
-pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Result<Option<usize>, String> {
-    Ok(Some(0))
+#[inline]
+pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Option<usize> {
+    // I don't trust Apple to keep mmap working, so I'm doing manual implementation with mach_ APIs.
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    return platform_functions_apple::disable_write_xor_execute(address, size);
+
+    #[cfg(not(all(target_os = "macos", target_arch = "aarch64")))]
+    None
 }
 
 /// Restores write XOR execute protection.
@@ -106,8 +91,10 @@ pub fn disable_write_xor_execute(address: *const u8, size: usize) -> Result<Opti
 ///
 /// # Returns
 ///
-/// Success or error.
-pub fn restore_write_xor_execute(address: *const u8, size: usize) -> Result<(), String> {
-    // TODO: Implement for Apple M1
-    Ok(())
+/// Success or panic.
+#[inline]
+pub fn restore_write_xor_execute(address: *const u8, size: usize, protection: usize) {
+    // I don't trust Apple to keep mmap working, so I'm doing manual implementation with mach_ APIs.
+    #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
+    platform_functions_apple::restore_write_xor_execute(address, size, protection);
 }

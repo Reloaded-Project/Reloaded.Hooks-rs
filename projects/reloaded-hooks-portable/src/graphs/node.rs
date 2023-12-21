@@ -10,7 +10,7 @@ use core::cell::RefCell;
 ///
 /// # Example
 ///
-/// ```
+/// ```ignore
 /// extern crate alloc;
 /// use reloaded_hooks_portable::graphs::node::Node;
 /// use alloc::rc::Rc;
@@ -50,7 +50,7 @@ where
     ///
     /// # Example
     ///
-    /// ```
+    /// ```ignore
     /// use reloaded_hooks_portable::graphs::node::Node;
     /// use std::cell::RefCell;
     ///
@@ -75,7 +75,7 @@ where
     ///
     /// # Example
     ///
-    /// ```
+    /// ```ignore
     /// extern crate alloc;
     /// use reloaded_hooks_portable::graphs::node::Node;
     /// use alloc::rc::Rc;

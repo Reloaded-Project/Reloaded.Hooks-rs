@@ -3,5 +3,49 @@
     // Hover to view descriptions of existing attributes.
     // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
-    "configurations": []
+    "configurations": [
+
+        {
+            "name": "[assembly_hook_32] i686-unknown-linux-gnu",
+            "type": "lldb",
+            "cwd": "${workspaceFolder}/projects/reloaded-hooks-x86-sys",
+            "request": "launch",
+            "sourceLanguages": ["rust"],
+            "env": {
+                "RUST_TEST_THREADS": "1",
+            },
+            "cargo": {
+                // No idea how to limit to 1 test, but at least we can limit to 1 compilation artifact.
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=assembly_hook_32",
+                    "--target=i686-unknown-linux-gnu",
+                    "--manifest-path=${workspaceFolder}/projects/reloaded-hooks-x86-sys/Cargo.toml"
+                ],
+                "problemMatcher": "$rustc",
+            }
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug x86 Benchmarks",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--bench=my_benchmark",
+                    "--manifest-path=${workspaceFolder}/projects/reloaded-hooks-x86-sys/Cargo.toml",
+                    "--",
+                    "assembly_hook_creation"
+                ],
+                "filter": {
+                    "name": "my_benchmark",
+                    "kind": "bench"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ],
 }

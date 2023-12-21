@@ -7,15 +7,11 @@ repository = "https://github.com/Reloaded-Project/reloaded-hooks"
 license-file = "LICENSE"
 include = ["src/**/*"]
 
-[lib]
-crate-type = ["dylib"]
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
 smallvec = { version = "1.11.0", features = ["const_new"] }
-reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portable" }
-reloaded-memory-buffers = { version = "3.1.3" }
-thiserror-no-std = "2.0.2"
+reloaded-hooks-portable = { path = "../reloaded-hooks-portable" }
+reloaded-memory-buffers = "4.0.1"
 
 [dev-dependencies]
 criterion = "0.5.1"

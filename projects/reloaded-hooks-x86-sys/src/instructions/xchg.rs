@@ -36,7 +36,8 @@ pub(crate) fn encode_xchg(
     if xchg.register1.is_32() && xchg.register2.is_32() {
         a.xchg(xchg.register1.as_iced_32()?, xchg.register2.as_iced_32()?)
             .map_err(convert_error)?
-    } else if xchg.register1.is_64() && xchg.register2.is_64() {
+    } else if xchg.register1.is_64() && xchg.register2.is_64() && cfg!(feature = "x64") {
+        #[cfg(feature = "x64")]
         a.xchg(xchg.register1.as_iced_64()?, xchg.register2.as_iced_64()?)
             .map_err(convert_error)?
     } else if xchg.register1.is_xmm() && xchg.register2.is_xmm() {
@@ -99,10 +100,9 @@ mod tests {
         #[case] scratch: Option<x86::Register>,
         #[case] expected_encoded: &str,
     ) {
-        let mut jit = JitX86 {};
         let xchg = XChg::new(register1, register2, scratch);
         let operations = vec![Op::Xchg(xchg)];
-        let result = jit.compile(0, &operations);
+        let result = JitX86::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }
@@ -133,10 +133,9 @@ mod tests {
         #[case] scratch: Option<x64::Register>,
         #[case] expected_encoded: &str,
     ) {
-        let mut jit = JitX64 {};
         let xchg = XChg::new(register1, register2, scratch);
         let operations = vec![Op::Xchg(xchg)];
-        let result = jit.compile(0, &operations);
+        let result = JitX64::compile(0, &operations);
         assert!(result.is_ok());
         assert_eq!(expected_encoded, hex::encode(result.unwrap()));
     }

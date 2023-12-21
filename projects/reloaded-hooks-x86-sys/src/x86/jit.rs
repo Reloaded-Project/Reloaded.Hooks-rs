@@ -5,9 +5,11 @@ use crate::common::jit_common::encode_instruction;
 use crate::common::jit_conversions_common::{
     map_allregisters_to_x86, map_register_x86_to_allregisters,
 };
+use crate::common::jit_instructions::encode_relative_jump::encode_jump_relative;
 use crate::x86::register::Register;
-use alloc::{rc::Rc, string::ToString};
+use alloc::{string::ToString, vec::Vec};
 use iced_x86::code_asm::CodeAssembler;
+use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
 use reloaded_hooks_portable::api::jit::{
     compiler::{transform_err, Jit, JitCapabilities, JitError},
     operation::{transform_op, Operation},
@@ -18,10 +20,28 @@ pub struct JitX86 {}
 /// Implementation of the x86 JIT.
 impl Jit<Register> for JitX86 {
     fn compile(
-        &mut self,
         address: usize,
         operations: &[Operation<Register>],
-    ) -> Result<Rc<[u8]>, JitError<Register>> {
+    ) -> Result<Vec<u8>, JitError<Register>> {
+        // Initialize Assembler
+        let mut a = CodeAssembler::new(32)
+            .map_err(|x| JitError::CannotInitializeAssembler(x.to_string()))?;
+
+        // Encode every instruction.
+        for operation in operations {
+            encode_instruction_x86(&mut a, operation, address)?;
+        }
+
+        // Assemble those damn instructions
+        a.assemble(address as u64)
+            .map_err(|x| JitError::CannotInitializeAssembler(x.to_string()))
+    }
+
+    fn compile_with_buf(
+        address: usize,
+        operations: &[Operation<Register>],
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<Register>> {
         // Initialize Assembler
         let mut a = CodeAssembler::new(32)
             .map_err(|x| JitError::CannotInitializeAssembler(x.to_string()))?;
@@ -36,7 +56,8 @@ impl Jit<Register> for JitX86 {
             .assemble(address as u64)
             .map_err(|x| JitError::CannotInitializeAssembler(x.to_string()))?;
 
-        Ok(Rc::from(result))
+        buf.extend(result);
+        Ok(())
     }
 
     fn code_alignment() -> u32 {
@@ -47,12 +68,32 @@ impl Jit<Register> for JitX86 {
         &[i32::MAX as usize]
     }
 
-    fn get_jit_capabilities() -> &'static [JitCapabilities] {
-        &[
-            JitCapabilities::CanEncodeIPRelativeCall,
-            JitCapabilities::CanEncodeIPRelativeJump,
-            JitCapabilities::CanMultiPush,
-        ]
+    fn get_jit_capabilities() -> JitCapabilities {
+        JitCapabilities::CAN_ENCODE_IP_RELATIVE_CALL
+            | JitCapabilities::CAN_ENCODE_IP_RELATIVE_JUMP
+            | JitCapabilities::CAN_MULTI_PUSH
+    }
+
+    fn max_branch_bytes() -> u32 {
+        5 // jmp/call rel32
+    }
+
+    fn fill_nops(arr: &mut [u8]) {
+        for byte in arr.iter_mut() {
+            *byte = 0x90;
+        }
+    }
+
+    fn encode_jump(
+        x: &JumpRelativeOperation<Register>,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<Register>> {
+        encode_jump_relative(x, pc, buf)
+    }
+
+    fn max_relative_jump_bytes() -> usize {
+        5
     }
 }
 

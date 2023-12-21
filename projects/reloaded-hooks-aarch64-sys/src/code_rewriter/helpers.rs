@@ -4,6 +4,9 @@ use super::instruction_rewrite_result::InstructionRewriteResult;
 use crate::instructions::{add_immediate::AddImmediate, adr::Adr, mov_immediate::MovImmediate};
 use alloc::boxed::Box;
 
+// TODO: Optimize this in case any of the values are 0. Those can be zero'd by initial movz.
+// This is a very rare occurrence, so not optimized for now.
+
 /// Produces an `InstructionRewriteResult` which represents the best possible way to
 /// encode the provided value as an immediate move instruction for the given destination register.
 ///
@@ -69,11 +72,8 @@ pub(crate) fn emit_mov_const_to_reg(destination: u8, value: usize) -> Instructio
     }
 }
 
-// TODO: Optimize this in case any of the values are 0. Those can be zero'd by initial movz.
-// This is a very rare occurrence, so not optimized for now.
-
 /// Produces an `InstructionRewriteResult` which represents the best possible way to
-/// encode the provided value as an immediate move instruction for the given destination register.
+/// move the upper 48 bits of a constant to the given destination register.
 ///
 /// # Parameters
 ///

@@ -7,6 +7,8 @@ use iced_x86::{BlockEncoder, BlockEncoderOptions, InstructionBlock};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use smallvec::{smallvec, SmallVec};
 
+// Patches only needed for 64-bit.
+#[cfg(feature = "x64")]
 use super::patches::{
     patch_jcx, patch_jump_conditional, patch_loop, patch_relative_branch,
     patch_rip_relative_operand,
@@ -17,8 +19,10 @@ use super::patches::{
 /// # Parameters
 /// `is_64bit`: Whether the code is 64bit or not.
 /// `instructions`: The instructions to relocate.
+/// `orig_ins_bytes`: The original instruction bytes.
 /// `new_pc`: The new program counter (RIP/EIP).
 /// `scratch_gpr`: A scratch general purpose register that can be used for operations.
+/// `buf`: The buffer to write the relocated code to.
 ///
 /// # Safety (For >= 2GiB relocations)
 ///
@@ -32,21 +36,21 @@ use super::patches::{
 pub(crate) fn relocate_code(
     is_64bit: bool,
     instructions: &SmallVec<[Instruction; 4]>,
+    orig_ins_bytes: &[u8],
     new_pc: usize,
-    scratch_gpr: AllRegisters,
-) -> Result<Vec<u8>, CodeRewriterError> {
+    scratch_gpr: Option<AllRegisters>,
+    buf: &mut Vec<u8>,
+) -> Result<(), CodeRewriterError> {
     let mut new_isns: SmallVec<[Instruction; 4]> = smallvec![];
     let mut current_new_pc = new_pc;
+    let mut needs_rewriting = false;
 
     // This code will be eliminated in a x86/x64 only build, because only 1 call will be made here
     // and the compiler will eliminate out the constant branch.
+    #[cfg(feature = "x64")]
     if is_64bit {
         // Note: These translations can only happen in x64, because in x86, branches will always be reachable.
         // Otherwise we need to translate the jmp/call to an absolute address.
-
-        // Note: It's techincally possible the original code moves the value to a register, then moves
-        // or uses the value from that register in very next instruction, making our rewriting unstable.
-
         for instruction in instructions {
             // Note: Check docs for `UnconditionalBranch` and `Call` above for instructions accepted into this branch.
             // If this is not a near call or jump, copy the instruction straight up.
@@ -60,6 +64,7 @@ pub(crate) fn relocate_code(
                     instruction,
                     is_call_near,
                 )?;
+                needs_rewriting = true;
                 continue;
             }
 
@@ -71,13 +76,15 @@ pub(crate) fn relocate_code(
                     &mut current_new_pc,
                     instruction,
                 )?;
-
+                needs_rewriting = true;
                 continue;
             } else if instruction.is_loopcc() || instruction.is_loop() {
                 patch_loop(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
+                needs_rewriting = true;
                 continue;
             } else if instruction.is_jcx_short() {
                 patch_jcx(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
+                needs_rewriting = true;
                 continue;
             } else if instruction.memory_base() == iced_x86::Register::RIP {
                 patch_rip_relative_operand(
@@ -86,6 +93,7 @@ pub(crate) fn relocate_code(
                     &mut current_new_pc,
                     instruction,
                 )?;
+                needs_rewriting = true;
                 continue;
             }
 
@@ -94,9 +102,40 @@ pub(crate) fn relocate_code(
         }
     }
 
+    #[cfg(feature = "x86")]
+    if !is_64bit {
+        // Note: For x86, we don't do any custom patching, but it's a great speedup if we can avoid re-encoding
+        // nonetheless.
+        for instruction in instructions {
+            if instruction.is_call_near()
+                || instruction.is_jmp_short_or_near()
+                || instruction.is_jcc_short_or_near()
+                || instruction.is_loopcc()
+                || instruction.is_loop()
+                || instruction.is_jcx_short()
+            {
+                needs_rewriting = true;
+            }
+
+            // Everything else is unhandled
+            append_instruction_with_new_pc(&mut new_isns, &mut current_new_pc, instruction);
+        }
+    }
+
+    if !needs_rewriting {
+        buf.extend(orig_ins_bytes);
+        return Ok(());
+    }
+
     let block = InstructionBlock::new(&new_isns, new_pc as u64);
     let result = match BlockEncoder::encode(
-        if is_64bit { 64 } else { 32 },
+        if is_64bit & cfg!(feature = "x64") {
+            64
+        } else if cfg!(feature = "x86") {
+            32
+        } else {
+            0
+        },
         block,
         BlockEncoderOptions::NONE,
     ) {
@@ -105,8 +144,8 @@ pub(crate) fn relocate_code(
     };
 
     let new_code = result.code_buffer;
-
-    Ok(new_code)
+    buf.extend(new_code);
+    Ok(())
 }
 
 pub(crate) fn append_if_can_encode_relative(
@@ -154,11 +193,11 @@ mod tests {
     use crate::all_registers::AllRegisters;
     use crate::common::rewriter::code_rewriter::relocate_code;
     use crate::common::util::get_stolen_instructions::get_stolen_instructions;
+    use crate::common::util::test_utilities::str_to_vec;
     use rstest::rstest;
 
-    // TODO: Iced library is potentially borked with code in 4GiB addresses in 32bit.
-
     #[rstest]
+    #[cfg(target_pointer_width = "64")]
     #[case::rip_relative_2gib("488b0508000000", 0x7FFFFFF7, 0, "488b05ffffff7f")] // mov rax, qword ptr [rip + 8] -> mov rax, qword ptr [rip + 0x7fffffff]
     #[case::simple_branch_pad("50eb02", 4096, 0, "50e9ff0f0000")] // push + jmp +2 -> push + jmp +4098
     #[case::simple_branch("eb02", 4096, 0, "e9ff0f0000")] // jmp +2 -> jmp +4098
@@ -259,6 +298,7 @@ mod tests {
     }
 
     #[rstest]
+    #[cfg(target_pointer_width = "64")]
     #[case::mov_lhs("48891d08000000", 0x100000000, 0, "48b80f00000001000000488918")] // mov [rip + 8], rbx -> mov rax, 0x10000000f + mov [rax], rbx
     #[case::mov_lhs_32("891d08000000", 0x100000000, 0, "48b80e000000010000008918")] // mov [rip + 8], ebx -> mov rax, 0x10000000e + mov [rax], ebx
     #[case::mov_lhs_16("66891d08000000", 0x100000000, 0, "48b80f00000001000000668918")] // mov [rip + 8], bx -> mov rax, 0x10000000f + mov [rax], bx
@@ -371,21 +411,20 @@ mod tests {
         expected: String,
     ) {
         // Remove spaces and convert the string to a vector of bytes
-        let hex_bytes: Vec<u8> = as_vec(instructions);
+        let hex_bytes: Vec<u8> = str_to_vec(instructions);
         let instructions =
-            get_stolen_instructions(true, hex_bytes.len() as u8, &hex_bytes, old_address).unwrap();
-        let result = relocate_code(true, &instructions.0, new_address, AllRegisters::rax);
+            get_stolen_instructions(true, hex_bytes.len(), &hex_bytes, old_address).unwrap();
+        let mut result = Vec::new();
+        relocate_code(
+            true,
+            &instructions.0,
+            &hex_bytes,
+            new_address,
+            Some(AllRegisters::rax),
+            &mut result,
+        )
+        .unwrap();
 
-        assert_eq!(hex::encode(result.unwrap()), expected);
-    }
-
-    fn as_vec(hex: String) -> Vec<u8> {
-        hex.as_bytes()
-            .chunks(2)
-            .map(|chunk| {
-                let hex_str = std::str::from_utf8(chunk).unwrap();
-                u8::from_str_radix(hex_str, 16).unwrap()
-            })
-            .collect()
+        assert_eq!(hex::encode(result), expected);
     }
 }

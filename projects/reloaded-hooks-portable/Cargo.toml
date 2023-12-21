@@ -9,7 +9,7 @@ include = ["src/**/*"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [dependencies]
-mmap-rs = "0.6.0" # STD!! | Only used for platforms that build with STD (Win/Linux/macOS etc.)
+mmap-rs-with-map-from-existing = "0.6.0" # STD!! | Gonna try only using on platforms that build with STD (Win/Linux/macOS etc.)
 hashbrown = "0.14.0"
 nohash = "0.2.0"
 spin = "0.9.8"
@@ -17,15 +17,36 @@ thiserror-no-std = "2.0.2"
 alloca = "0.4.0"
 derive-enum-all-values = "0.1.0"
 smallvec = { version = "1.11.0", features = ["const_new"] }
-lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
+bitflags = "2.4.1"
 derive_more = { version = "0.99.17", default-features = false, features = ["from", "add", "iterator"] }
-derive-new = { version = "0.5.9", default-features = false }
+derive-new = { version = "0.6.0", default-features = false }
+bitfield = "0.14.0"
+
+# Tests only!
+lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
 
 [dev-dependencies]
 criterion = "0.5.1"
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.12", features = ["flamegraph", "criterion"] }
+
+# Platform Specific
+[target.'cfg(not(target_os = "windows"))'.dependencies]
+clf = "0.1.7" # flushing cache
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.146" # direct access to mprotect
+
+[target.'cfg(target_os = "macos")'.dependencies]
+mach = "0.3.2" # direct access to macOS memory stuff
+
+[target.'cfg(target_os = "windows")'.dependencies.windows]
+version = "0.48.0"
+features = [
+    "Win32_System_Memory",
+    "Win32_Foundation"
+]
 
 # Dev Build
 [profile.dev]
