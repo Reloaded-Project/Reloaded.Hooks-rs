@@ -13,7 +13,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     benchmark_compile_only(c); // assemble_x64_compile_only
 
     // Flawed benchmark, see readme!!
-    benchmark_create_assembly_hook(c); // assembly_hook_creation
+    // benchmark_create_assembly_hook(c); // assembly_hook_creation
 }
 
 #[cfg(not(target_os = "windows"))]
