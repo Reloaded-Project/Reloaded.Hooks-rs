@@ -19,6 +19,7 @@ use super::patches::{
 /// # Parameters
 /// `is_64bit`: Whether the code is 64bit or not.
 /// `instructions`: The instructions to relocate.
+/// `orig_ins_bytes`: The original instruction bytes.
 /// `new_pc`: The new program counter (RIP/EIP).
 /// `scratch_gpr`: A scratch general purpose register that can be used for operations.
 /// `buf`: The buffer to write the relocated code to.
@@ -35,12 +36,14 @@ use super::patches::{
 pub(crate) fn relocate_code(
     is_64bit: bool,
     instructions: &SmallVec<[Instruction; 4]>,
+    orig_ins_bytes: &[u8],
     new_pc: usize,
     scratch_gpr: Option<AllRegisters>,
     buf: &mut Vec<u8>,
 ) -> Result<(), CodeRewriterError> {
     let mut new_isns: SmallVec<[Instruction; 4]> = smallvec![];
     let mut current_new_pc = new_pc;
+    let mut needs_rewriting = false;
 
     // This code will be eliminated in a x86/x64 only build, because only 1 call will be made here
     // and the compiler will eliminate out the constant branch.
@@ -48,10 +51,6 @@ pub(crate) fn relocate_code(
     if is_64bit {
         // Note: These translations can only happen in x64, because in x86, branches will always be reachable.
         // Otherwise we need to translate the jmp/call to an absolute address.
-
-        // Note: It's techincally possible the original code moves the value to a register, then moves
-        // or uses the value from that register in very next instruction, making our rewriting unstable.
-
         for instruction in instructions {
             // Note: Check docs for `UnconditionalBranch` and `Call` above for instructions accepted into this branch.
             // If this is not a near call or jump, copy the instruction straight up.
@@ -65,6 +64,7 @@ pub(crate) fn relocate_code(
                     instruction,
                     is_call_near,
                 )?;
+                needs_rewriting = true;
                 continue;
             }
 
@@ -76,13 +76,15 @@ pub(crate) fn relocate_code(
                     &mut current_new_pc,
                     instruction,
                 )?;
-
+                needs_rewriting = true;
                 continue;
             } else if instruction.is_loopcc() || instruction.is_loop() {
                 patch_loop(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
+                needs_rewriting = true;
                 continue;
             } else if instruction.is_jcx_short() {
                 patch_jcx(scratch_gpr, &mut new_isns, &mut current_new_pc, instruction)?;
+                needs_rewriting = true;
                 continue;
             } else if instruction.memory_base() == iced_x86::Register::RIP {
                 patch_rip_relative_operand(
@@ -91,6 +93,7 @@ pub(crate) fn relocate_code(
                     &mut current_new_pc,
                     instruction,
                 )?;
+                needs_rewriting = true;
                 continue;
             }
 
@@ -101,9 +104,27 @@ pub(crate) fn relocate_code(
 
     #[cfg(feature = "x86")]
     if !is_64bit {
+        // Note: For x86, we don't do any custom patching, but it's a great speedup if we can avoid re-encoding
+        // nonetheless.
         for instruction in instructions {
+            if instruction.is_call_near()
+                || instruction.is_jmp_short_or_near()
+                || instruction.is_jcc_short_or_near()
+                || instruction.is_loopcc()
+                || instruction.is_loop()
+                || instruction.is_jcx_short()
+            {
+                needs_rewriting = true;
+            }
+
+            // Everything else is unhandled
             append_instruction_with_new_pc(&mut new_isns, &mut current_new_pc, instruction);
         }
+    }
+
+    if !needs_rewriting {
+        buf.extend(orig_ins_bytes);
+        return Ok(());
     }
 
     let block = InstructionBlock::new(&new_isns, new_pc as u64);
@@ -397,6 +418,7 @@ mod tests {
         relocate_code(
             true,
             &instructions.0,
+            &hex_bytes,
             new_address,
             Some(AllRegisters::rax),
             &mut result,

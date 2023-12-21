@@ -26,6 +26,7 @@ impl CodeRewriter<Register> for CodeRewriterX86 {
         relocate_code(
             false,
             &instructions.0,
+            ins_slice,
             new_address,
             scratch_register.map(map_register_x86_to_allregisters),
             existing_buffer,

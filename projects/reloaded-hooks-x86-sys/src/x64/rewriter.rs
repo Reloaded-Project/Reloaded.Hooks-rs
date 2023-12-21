@@ -26,6 +26,7 @@ impl CodeRewriter<Register> for CodeRewriterX64 {
         relocate_code(
             true,
             &instructions.0,
+            ins_slice,
             new_address,
             scratch_register.map(map_register_x64_to_allregisters),
             existing_buffer,
