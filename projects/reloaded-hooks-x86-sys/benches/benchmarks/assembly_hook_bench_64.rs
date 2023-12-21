@@ -15,6 +15,7 @@ use reloaded_hooks_x86_sys::x86::length_disassembler::LengthDisassemblerX86;
 use reloaded_hooks_x86_sys::x86::rewriter::CodeRewriterX86;
 
 // Assembler benches.
+#[allow(dead_code)]
 pub(crate) fn benchmark_create_assembly_hook(c: &mut Criterion) {
     // Allocate the function.
     let add_addr = alloc_function(&CALCULATOR_ADD_CDECL_X86).unwrap();

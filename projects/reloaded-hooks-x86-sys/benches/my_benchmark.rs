@@ -1,8 +1,7 @@
 mod benchmarks;
-use benchmarks::{
-    assembler_bench_64::{benchmark_assemble_x64_total, benchmark_compile_only},
-    assembly_hook_bench_64::benchmark_create_assembly_hook,
-};
+use benchmarks::assembler_bench_64::{benchmark_assemble_x64_total, benchmark_compile_only};
+#[allow(unused_imports)]
+use benchmarks::assembly_hook_bench_64::benchmark_create_assembly_hook; // commented out
 use criterion::{criterion_group, criterion_main, Criterion};
 
 #[cfg(not(target_os = "windows"))]
