@@ -134,86 +134,9 @@ The following table below shows common hook lengths, for:
 ^[5]^: [MOVZ + MOVK + LDR + BR](../../arch/operations.md#jumpabsolute).  
 ^[6]^: [ADRP + ADD + BR](../../arch/operations.md#jumprelative).  
 
-## Thread Safety & Memory Layout
+## Thread Safety, Memory Layout & State Switching
 
-!!! info "Extra: [Thread Safety on x86](../common.md#thread-safety-on-x86)"
-
-### Stub Memory Layout
-
-In order to support thread safety, while retaining maximum runtime performance, the buffers where the 
-original and hook code are contained have a very specific memory layout (shown below)
-
-```text
-- [Hook Function / Original Code]
-- Hook Function
-- Original Code
-```
-
-Emplacing the jump to the hook function itself, and patching within the hook function should be atomic
-whenever it is possible on the platform.
-
-#### Example
-
-If the *'Original Code'* was:
-
-```asm
-mov x0, x1
-add x0, x2
-```
-
-And the *'Hook Code'* was:
-
-```asm
-add x1, x1
-mov x0, x2
-```
-
-The memory would look like this when hooked.
-
-```asm
-entry: ; Currently Applied (Hook)
-    mov x0, x1
-    add x0, x2
-    b back_to_code
-
-original: ; Backup (Original)
-    mov x0, x1
-    add x0, x2
-    b back_to_code
-
-hook: ; Backup (Hook)
-    add x1, x1
-    mov x0, x2
-    b back_to_code
-```
-
-### Heap Layout
-
-Each Assembly Hook contains a pointer to the heap stub (seen above) and a pointer to the heap.
-
-The heap contains all information required to perform operations on the stub.
-
-```text
-- AssemblyHookPackedProps
-    - Enabled Flag
-    - Offset of Hook Function (Also length of HookFunction/OriginalCode block)
-    - Offset of Original Code
-- [Hook Function / Original Code]
-```
-
-The data in the heap contains a short 'AssemblyHookPackedProps' struct, detailing the data that is required
-to make a temporary branch to the stub/hook function. After that is the either the `hook function` bytes or
-the `original code` bytes, depending on the state of the hook.
-
-The hook uses a 'swapping' system, where the `[Hook Function / Original Code]` block in the stub is swapped
-with the `[Hook Function / Original Code]` block in the heap. When one contains the code for `Hook Function`,
-the other contains the code for `Original Code`. This is memory efficient.
-
-### Switching State
-
-!!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `entry`, this allows us to manipulate the remaining code safely."
-
-!!! info "Read [Thread Safe Enable/Disable of Hooks](../common.md#thread-safe-enabledisable-of-hooks) for more info."
+!!! info "Common: [Thread Safety & Memory Layout](../common.md#hook-memory-layouts--thread-safety)"
 
 ## Legacy Compatibility Considerations
 

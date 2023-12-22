@@ -110,13 +110,11 @@ When the hook is deactivated, the stub is replaced with a direct jump back to th
 By bypassing your code entirely, it is safe for your dynamic library (`.dll`/`.so`/`.dylib`) 
 to unload from the process.
 
-## Thread Safety & Memory Layout
+## Thread Safety, Memory Layout & State Switching
 
-!!! info "Extra: [Thread Safety on x86](../common.md#thread-safety-on-x86)"
+!!! info "Common: [Thread Safety & Memory Layout](../common.md#hook-memory-layouts--thread-safety)"
 
 ### Stub Memory Layout
-
-Emplacing the jump to the stub and patching within the stub are atomic operations on all supported platforms.
 
 The 'branch hook' stub uses the following memory layout:
 
@@ -241,33 +239,3 @@ newFunction:
 originalFunction:
     ; Original function implementation...
 ```
-
-### Heap Layout
-
-Each Assembly Hook contains a pointer to the heap stub (seen above) and a pointer to the heap.
-
-The heap contains all information required to perform operations on the stub.
-
-```text
-- BranchHookPackedProps
-    - Enabled Flag
-    - Offset of BranchToHook (Also length of BranchToHook/BranchToOriginalFunction block)
-    - Offset of BranchToOriginal
-- [BranchToHook/BranchToOriginalFunction]
-```
-
-Replace `BranchToHook` with `ReverseWrapper` if calling convention conversion is needed.
-
-The data in the heap contains a short 'BranchHookPackedProps' struct, detailing the data that is required
-to make a temporary branch to the enabled/disabled code. After that is the either the `BranchToHook/ReverseWrapper` 
-bytes or the `BranchToOriginal` bytes, depending on the state of the hook.
-
-The hook uses a 'swapping' system, where the `[BranchToHook/BranchToOriginalFunction]` block in the 
-stub is swapped with the `[Hook Function / Original Code]` block in the heap. When one contains the 
-code for `Hook Function`, the other contains the code for `Original Code`. This is memory efficient.
-
-### Switching State
-
-!!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `stub`, this allows us to manipulate the remaining code safely."
-
-!!! info "Read [Thread Safe Enable/Disable of Hooks](../common.md#thread-safe-enabledisable-of-hooks) for more info."
