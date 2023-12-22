@@ -53,6 +53,7 @@ nav:
   - Home: index.md
   - Library Internals:
     - Design Docs: 
+      - Common Notes: dev/design/common.md
       - Function Hooks: 
         - Overview: dev/design/function-hooks/overview.md
         - Hooking Strategy: 
@@ -63,7 +64,6 @@ nav:
       - Assembly Hooks: dev/design/assembly-hooks/overview.md
       - Branch Hooks: dev/design/branch-hooks/overview.md
       - VTable Hooks: dev/design/vtable-hooks/overview.md
-      - Common Notes: dev/design/common.md
     - Architectures:
       - Overview: dev/arch/overview.md
       - Operations: dev/arch/operations.md

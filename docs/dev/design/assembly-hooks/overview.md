@@ -189,71 +189,7 @@ hook: ; Backup (Hook)
 
 !!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `entry`, this allows us to manipulate the remaining code safely."
 
-!!! info "Not thread safe on all architectures (see above)."
-
-```asm
-entry: ; Currently Applied (Hook)
-    b original ; Temp branch to original
-    mov x0, x2
-    b back_to_code
-
-original: ; Backup (Original)
-    mov x0, x1
-    add x0, x2
-    b back_to_code
-
-hook: ; Backup (Hook)
-    add x1, x1
-    mov x0, x2
-    b back_to_code
-```
-
-!!! note "Don't forget to clear instruction cache on non-x86 architectures which need it."
-
-This ensures we can safely overwrite the remaining code...
-
-Then we overwrite `entry` code with `hook` code, except the branch:
-
-```asm
-entry: ; Currently Applied (Hook)
-    b original     ; Branch to original
-    add x0, x2     ; overwritten with 'original' code.
-    b back_to_code ; overwritten with 'original' code.
-
-original: ; Backup (Original)
-    mov x0, x1
-    add x0, x2
-    b back_to_code
-
-hook: ; Backup (Hook)
-    add x1, x1
-    mov x0, x2
-    b back_to_code
-```
-
-And lastly, overwrite the branch. 
-
-To do this, read the original `sizeof(nint)` bytes at `entry`, replace branch bytes with original bytes 
-and do an atomic write. This way, the remaining instruction is safely replaced.
-
-```asm
-entry: ; Currently Applied (Hook)
-    add x1, x1     ; 'original' code.
-    add x0, x2     ; 'original' code.
-    b back_to_code ; 'original' code.
-
-original: ; Backup (Original)
-    mov x0, x1
-    add x0, x2
-    b back_to_code
-
-hook: ; Backup (Hook)
-    add x1, x1
-    mov x0, x2
-    b back_to_code
-```
-
-This way we achieve zero overhead CPU-wise, at expense of some memory.
+!!! info "Read [Thread Safe Enable/Disable of Hooks](../common.md#thread-safe-enabledisable-of-hooks) for more info."
 
 ## Legacy Compatibility Considerations
 
