@@ -138,6 +138,8 @@ The following table below shows common hook lengths, for:
 
 !!! info "Extra: [Thread Safety on x86](../common.md#thread-safety-on-x86)"
 
+### Stub Memory Layout
+
 In order to support thread safety, while retaining maximum runtime performance, the buffers where the 
 original and hook code are contained have a very specific memory layout (shown below)
 
@@ -150,7 +152,7 @@ original and hook code are contained have a very specific memory layout (shown b
 Emplacing the jump to the hook function itself, and patching within the hook function should be atomic
 whenever it is possible on the platform.
 
-### Example
+#### Example
 
 If the *'Original Code'* was:
 
@@ -185,6 +187,28 @@ hook: ; Backup (Hook)
     b back_to_code
 ```
 
+### Heap Layout
+
+Each Assembly Hook contains a pointer to the heap stub (seen above) and a pointer to the heap.
+
+The heap contains all information required to perform operations on the stub.
+
+```text
+- AssemblyHookPackedProps
+    - Enabled Flag
+    - Offset of Hook Function (Also length of HookFunction/OriginalCode block)
+    - Offset of Original Code
+- [Hook Function / Original Code]
+```
+
+The data in the heap contains a short 'AssemblyHookPackedProps' struct, detailing the data that is required
+to make a temporary branch to the stub/hook function. After that is the either the `hook function` bytes or
+the `original code` bytes, depending on the state of the hook.
+
+The hook uses a 'swapping' system, where the `[Hook Function / Original Code]` block in the stub is swapped
+with the `[Hook Function / Original Code]` block in the heap. When one contains the code for `Hook Function`,
+the other contains the code for `Original Code`. This is memory efficient.
+
 ### Switching State
 
 !!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `entry`, this allows us to manipulate the remaining code safely."
@@ -212,8 +236,9 @@ This means a few functionalities must be supported here:
 
 Assembly hook info is packed by default to save on memory space. By default, the following limits apply:
 
-| Property             | 4 Byte Instruction (e.g. ARM) | x86    | Unknown |
-| -------------------- | ----------------------------- | ------ | ------- |
-| Max Branch Length    | 4                             | 5      | 8       |
-| Max Orig Code Length | 16KiB                         | 4KiB   | 128MiB  |
-| Max Hook Code Length | 2MiB                          | 128KiB | 1GiB    |
+| Property             | 4 Byte Instruction (e.g. ARM64) | Other (e.g. x86) |
+| -------------------- | ------------------------------- | ---------------- |
+| Max Orig Code Length | 128KiB                          | 32KiB            |
+| Max Hook Code Length | 128KiB                          | 32KiB            |
+
+!!! note "These limits may increase in the future if additional functionality warrants extending metadata length."

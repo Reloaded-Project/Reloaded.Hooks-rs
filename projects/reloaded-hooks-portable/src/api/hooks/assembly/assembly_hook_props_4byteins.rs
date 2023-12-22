@@ -1,68 +1,48 @@
 use bitfield::bitfield;
 
 bitfield! {
-    /// Defines the data layout of the Assembly Hook data.
-    /// For architectures which use 4 byte instructions.
+    /// Defines the data layout of the Assembly Hook data for architectures
+    /// with fixed instruction sizes of 4 bytes.
     pub struct AssemblyHookPackedProps(u32);
     impl Debug;
 
     /// True if the hook is enabled, else false.
     pub is_enabled, set_is_enabled: 0;
 
-    /// Length of the 'disabled code' array.
-    u16, disabled_code_len, set_disabled_code_len_impl: 12, 1; // Max 16KiB.
+    reserved, _: 1;
 
-    /// Length of the 'enabled code' array.
-    u32, enabled_code_len, set_enabled_code_len_impl: 31, 13; // Max 2MiB.
+    /// Size of the 'swap' space where hook function and original code are swapped out.
+    /// Represented in number of 4-byte instructions.
+    u16, swap_size, set_swap_size_impl: 16, 2; // Max 32Ki instructions, 128KiB.
+
+    /// Size of the 'swap' space where hook function and original code are swapped out.
+    /// Represented in number of 4-byte instructions.
+    u16, hook_fn_size, set_hook_fn_size_impl: 31, 17; // Max 32Ki instructions, 128KiB.
 }
 
 impl AssemblyHookPackedProps {
-    /// Gets the length of the 'enabled code' array.
-    pub fn get_enabled_code_len(&self) -> usize {
-        self.enabled_code_len() as usize * 4
+    pub fn get_swap_size(&self) -> usize {
+        (self.swap_size() as usize) * 4 // Convert from instructions to bytes
     }
 
-    /// Gets the length of the 'disabled code' array.
-    pub fn get_disabled_code_len(&self) -> usize {
-        self.disabled_code_len() as usize * 4
-    }
-
-    /// Sets the length of the 'enabled code' array with a minimum value of 4.
-    pub fn set_enabled_code_len(&mut self, len: usize) {
+    pub fn set_swap_size(&mut self, size: usize) {
         debug_assert!(
-            len >= 4 && len % 4 == 0,
-            "Length must be a multiple of 4 and at least 4"
+            size % 4 == 0 && size <= 128 * 1024,
+            "Swap size must be a multiple of 4 and at most 128KiB"
         );
-        self.set_enabled_code_len_impl((len / 4) as u32);
+        self.set_swap_size_impl((size / 4) as u16); // Convert from bytes to instructions
     }
 
-    /// Sets the length of the 'disabled code' array with a minimum value of 4.
-    pub fn set_disabled_code_len(&mut self, len: usize) {
+    pub fn get_hook_fn_size(&self) -> usize {
+        (self.hook_fn_size() as usize) * 4 // Convert from instructions to bytes
+    }
+
+    pub fn set_hook_fn_size(&mut self, size: usize) {
         debug_assert!(
-            len >= 4 && len % 4 == 0,
-            "Length must be a multiple of 4 and at least 4"
+            size % 4 == 0 && size <= 128 * 1024,
+            "Hook function size must be a multiple of 4 and at most 128KiB"
         );
-        self.set_disabled_code_len_impl((len / 4) as u16);
-    }
-
-    /// Sets the 'branch to orig' length field based on the provided length.
-    pub fn set_branch_to_hook_len(&mut self, _len: usize) {
-        // no-op, for API compatibility
-    }
-
-    /// Gets the length of the 'branch to hook' array. Always 4 for AArch64.
-    pub fn get_branch_to_hook_len(&self) -> usize {
-        4
-    }
-
-    /// Sets the 'branch to orig' length field based on the provided length.
-    pub fn set_branch_to_orig_len(&mut self, _len: usize) {
-        // no-op, for API compatibility
-    }
-
-    /// Gets the length of the 'branch to orig' array. Always 4 for AArch64.
-    pub fn get_branch_to_orig_len(&self) -> usize {
-        4
+        self.set_hook_fn_size_impl((size / 4) as u16); // Convert from bytes to instructions
     }
 }
 
@@ -71,34 +51,35 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_enabled_and_disabled_code_lengths() {
+    fn test_swap_and_hook_fn_sizes() {
         let mut props = AssemblyHookPackedProps(0);
 
-        // Test setting and getting enabled code length
-        props.set_enabled_code_len(123 * 4); // Multiples of 4
-        assert_eq!(props.get_enabled_code_len(), 123 * 4);
+        // Test setting and getting swap size
+        props.set_swap_size(1024); // 256 instructions
+        assert_eq!(props.get_swap_size(), 1024);
 
-        // Test setting and getting disabled code length
-        props.set_disabled_code_len(456 * 4); // Multiples of 4
-        assert_eq!(props.get_disabled_code_len(), 456 * 4);
+        // Test setting and getting hook function size
+        props.set_hook_fn_size(2048); // 512 instructions
+        assert_eq!(props.get_hook_fn_size(), 2048);
+
+        // Test upper limits
+        props.set_swap_size(127 * 1024); // 32Ki instructions
+        props.set_hook_fn_size(127 * 1024); // 32Ki instructions
+        assert_eq!(props.get_swap_size(), 127 * 1024);
+        assert_eq!(props.get_hook_fn_size(), 127 * 1024);
     }
 
     #[test]
-    #[should_panic(expected = "Length must be a multiple of 4 and at least 4")]
-    fn test_invalid_code_length() {
+    #[should_panic(expected = "Swap size must be a multiple of 4 and at most 128KiB")]
+    fn test_swap_size_limit() {
         let mut props = AssemblyHookPackedProps(0);
-        props.set_enabled_code_len(5); // Should panic, not a multiple of 4
+        props.set_swap_size(129 * 1024); // Should panic
     }
 
     #[test]
-    fn test_branch_lengths() {
+    #[should_panic(expected = "Hook function size must be a multiple of 4 and at most 128KiB")]
+    fn test_hook_fn_size_limit() {
         let mut props = AssemblyHookPackedProps(0);
-
-        // Setting and getting branch lengths, always 4 for AArch64
-        props.set_branch_to_hook_len(4);
-        assert_eq!(props.get_branch_to_hook_len(), 4);
-
-        props.set_branch_to_orig_len(4);
-        assert_eq!(props.get_branch_to_orig_len(), 4);
+        props.set_hook_fn_size(129 * 1024); // Should panic
     }
 }

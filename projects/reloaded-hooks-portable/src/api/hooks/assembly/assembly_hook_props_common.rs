@@ -3,54 +3,44 @@ use alloc::vec::Vec;
 use core::{
     mem::size_of,
     ptr::{copy_nonoverlapping, NonNull},
-    slice::from_raw_parts,
+    slice::from_raw_parts_mut,
 };
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-use super::assembly_hook_props_x86::AssemblyHookPackedProps;
-
-#[cfg(target_arch = "aarch64")]
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "riscv32",
+    target_arch = "riscv64"
+))]
 use super::assembly_hook_props_4byteins::AssemblyHookPackedProps;
 
-#[cfg(not(any(target_arch = "aarch64", target_arch = "x86", target_arch = "x86_64")))]
-use super::assembly_hook_props_unknown::AssemblyHookPackedProps;
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "riscv32",
+    target_arch = "riscv64"
+)))]
+use super::assembly_hook_props_other::AssemblyHookPackedProps;
 
 /*
     Memory Layout:
     - AssemblyHookPackedProps
-    - disabled_code_instructions
-    - enabled_code_instructions
-    - branch_to_orig_instructions
-    - branch_to_hook_instructions
+        - Enabled Flag
+        - Offset of Hook Function (Also length of HookFunction/OriginalCode block)
+        - Offset of Original Code
+    - enabled_code_instructions / disabled_code_instructions
 */
 
 // Implement common methods on AssemblyHookPackedProps
 impl AssemblyHookPackedProps {
-    pub fn get_disabled_code<'a>(&self) -> &'a [u8] {
+    pub fn get_swap_buffer<'a>(&self) -> &'a mut [u8] {
         let start_addr = self as *const Self as *const u8;
         let offset = size_of::<Self>();
-        unsafe { from_raw_parts(start_addr.add(offset), self.get_disabled_code_len()) }
-    }
-
-    pub fn get_enabled_code<'a>(&self) -> &'a [u8] {
-        let start_addr = self as *const Self as *const u8;
-        let offset = size_of::<Self>() + self.get_disabled_code_len();
-        unsafe { from_raw_parts(start_addr.add(offset), self.get_enabled_code_len()) }
-    }
-
-    pub fn get_branch_to_orig_slice<'a>(&self) -> &'a [u8] {
-        let start_addr = self as *const Self as *const u8;
-        let offset = size_of::<Self>() + self.get_disabled_code_len() + self.get_enabled_code_len();
-        unsafe { from_raw_parts(start_addr.add(offset), self.get_branch_to_hook_len()) }
-    }
-
-    pub fn get_branch_to_hook_slice<'a>(&self) -> &'a [u8] {
-        let start_addr = self as *const Self as *const u8;
-        let offset = size_of::<Self>()
-            + self.get_disabled_code_len()
-            + self.get_enabled_code_len()
-            + self.get_branch_to_orig_len();
-        unsafe { from_raw_parts(start_addr.add(offset), self.get_branch_to_orig_len()) }
+        unsafe { from_raw_parts_mut(start_addr.add(offset) as *mut u8, self.get_swap_size()) }
     }
 
     /// Frees the memory allocated for this instance using libc's free.

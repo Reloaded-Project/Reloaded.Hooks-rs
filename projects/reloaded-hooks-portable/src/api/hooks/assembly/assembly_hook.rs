@@ -9,21 +9,34 @@ use crate::{
         settings::assembly_hook_settings::AssemblyHookSettings,
         traits::register_info::RegisterInfo,
     },
-    helpers::atomic_write_masked::atomic_write_masked,
+    helpers::{
+        atomic_write_masked::atomic_write_masked, jit_jump_operation::create_jump_operation,
+    },
     internal::assembly_hook::create_assembly_hook,
 };
-
-use core::marker::PhantomData;
+use alloc::vec::Vec;
 use core::ptr::NonNull;
+use core::{marker::PhantomData, slice::from_raw_parts_mut};
 
-#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
-use super::assembly_hook_props_x86::*;
-
-#[cfg(target_arch = "aarch64")]
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "riscv32",
+    target_arch = "riscv64"
+))]
 use super::assembly_hook_props_4byteins::*;
 
-#[cfg(not(any(target_arch = "aarch64", target_arch = "x86", target_arch = "x86_64")))]
-use super::assembly_hook_props_unknown::*;
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "riscv32",
+    target_arch = "riscv64"
+)))]
+use super::assembly_hook_props_other::*;
 
 /// Represents an assembly hook.
 #[repr(C)] // Not 'packed' because this is not in array and malloc in practice will align this.
@@ -142,19 +155,45 @@ where
     }
 
     /// Writes the hook to memory, either enabling or disabling it based on the provided parameters.
-    fn write_hook(&self, branch_opcode: &[u8], code: &[u8], num_bytes: usize) {
-        // Write the branch first, as per docs
+    unsafe fn swap_hook(&self, temp_branch_offset: usize) {
+        let props = self.props.as_ref();
+
+        // Backup current code from swap buffer.
+        let swap_buffer_real = props.get_swap_buffer();
+        let swap_buffer_copy = swap_buffer_real.to_vec();
+
+        // Copy current code into swap buffer
+        let buf_buffer_real =
+            from_raw_parts_mut(self.stub_address as *mut u8, props.get_swap_size());
+        swap_buffer_real.copy_from_slice(buf_buffer_real);
+
+        // JIT temp branch to hook/orig code.
+        let mut vec = Vec::<u8>::with_capacity(8);
+        _ = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
+            self.stub_address,
+            true,
+            self.stub_address + temp_branch_offset,
+            None,
+            &mut vec,
+        );
+        let branch_opcode = &vec;
+        let branch_bytes = branch_opcode.len();
+
+        // Write the temp branch first, as per docs
         // This also overwrites some extra code afterwards, but that's a-ok for now.
         unsafe {
-            atomic_write_masked::<TBuffer>(self.stub_address, branch_opcode, num_bytes);
+            atomic_write_masked::<TBuffer>(self.stub_address, branch_opcode, branch_bytes);
         }
 
         // Now write the remaining code
-        TBuffer::overwrite(self.stub_address + num_bytes, &code[num_bytes..]);
+        TBuffer::overwrite(
+            self.stub_address + branch_bytes,
+            &swap_buffer_copy[branch_bytes..],
+        );
 
         // And now re-insert the code we temp overwrote with the branch
         unsafe {
-            atomic_write_masked::<TBuffer>(self.stub_address, code, num_bytes);
+            atomic_write_masked::<TBuffer>(self.stub_address, &swap_buffer_copy, branch_bytes);
         }
     }
 
@@ -164,13 +203,13 @@ where
     /// If the hook is disabled, this function will write the hook to memory.
     pub fn enable(&self) {
         unsafe {
-            let props = self.props.as_ref();
-            let num_bytes = props.get_branch_to_hook_len();
-            self.write_hook(
-                props.get_branch_to_hook_slice(),
-                props.get_enabled_code(),
-                num_bytes,
-            );
+            let props = &mut (*self.props.as_ptr());
+            if props.is_enabled() {
+                return;
+            };
+
+            self.swap_hook(props.get_swap_size());
+            props.set_is_enabled(true);
         }
     }
 
@@ -180,13 +219,13 @@ where
     /// If the hook is enabled, this function will no-op the hook.
     pub fn disable(&self) {
         unsafe {
-            let props = self.props.as_ref();
-            let num_bytes = props.get_branch_to_orig_len();
-            self.write_hook(
-                props.get_branch_to_orig_slice(),
-                props.get_disabled_code(),
-                num_bytes,
-            );
+            let props = &mut (*self.props.as_ptr());
+            if !props.is_enabled() {
+                return;
+            };
+
+            self.swap_hook(props.get_swap_size() + props.get_hook_fn_size());
+            props.set_is_enabled(false);
         }
     }
 
