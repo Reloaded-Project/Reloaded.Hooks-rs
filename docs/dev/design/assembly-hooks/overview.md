@@ -119,13 +119,13 @@ The following table below shows common hook lengths, for:
 - [Targeted Memory Allocation (TMA)](../../platform/overview.md#recommended-targeted-memory-allocation) (expected best case) when above `Relative Jump` range.  
 - Worst case scenario.  
 
-| Architecture   | Relative            | TMA          | Worst Case      |
-|----------------|---------------------|--------------|-----------------|
-| x86^[1]^       | 5 bytes (+- 2GiB)   | 5 bytes      | 5 bytes         |
-| x86_64         | 5 bytes (+- 2GiB)   | 6 bytes^[2]^ | 13 bytes^[3]^   |
-| x86_64 (macOS) | 5 bytes (+- 2GiB)   | 13 bytes^[4]^| 13 bytes^[3]^   |
-| ARM64          | 4 bytes (+- 128MiB) | 12 bytes^[6]^| 20 bytes^[5]^   |
-| ARM64 (macOS)  | 4 bytes (+- 128MiB) | 12 bytes^[6]^| 20 bytes^[5]^   |
+| Architecture   | Relative            | TMA           | Worst Case    |
+| -------------- | ------------------- | ------------- | ------------- |
+| x86^[1]^       | 5 bytes (+- 2GiB)   | 5 bytes       | 5 bytes       |
+| x86_64         | 5 bytes (+- 2GiB)   | 6 bytes^[2]^  | 13 bytes^[3]^ |
+| x86_64 (macOS) | 5 bytes (+- 2GiB)   | 13 bytes^[4]^ | 13 bytes^[3]^ |
+| ARM64          | 4 bytes (+- 128MiB) | 12 bytes^[6]^ | 20 bytes^[5]^ |
+| ARM64 (macOS)  | 4 bytes (+- 128MiB) | 12 bytes^[6]^ | 20 bytes^[5]^ |
 
 ^[1]^: x86 can reach any address from any address with relative branch due to integer overflow/wraparound.  
 ^[2]^: [`jmp [<Address>]`, with &lt;Address&gt; at &lt; 2GiB](../../arch/operations.md#jumpabsoluteindirect).  
@@ -207,3 +207,13 @@ This means a few functionalities must be supported here:
 - Supporting Assembly via FASM.
     - As this is only possible in Windows (FASM can't be recompiled on other OSes as library), this feature will be getting dropped.
     - The `Reloaded.Hooks` wrapper will continue to ship FASM for backwards compatibility, however mods are expected to migrate to the new library in the future.
+
+## Limits
+
+Assembly hook info is packed by default to save on memory space. By default, the following limits apply:
+
+| Property             | 4 Byte Instruction (e.g. ARM) | x86    | Unknown |
+| -------------------- | ----------------------------- | ------ | ------- |
+| Max Branch Length    | 4                             | 5      | 8       |
+| Max Orig Code Length | 16KiB                         | 4KiB   | 128MiB  |
+| Max Hook Code Length | 2MiB                          | 128KiB | 1GiB    |

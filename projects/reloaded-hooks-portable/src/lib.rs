@@ -29,6 +29,10 @@ pub mod api {
     pub mod hooks {
         pub mod assembly {
             pub mod assembly_hook;
+            pub mod assembly_hook_props_4byteins;
+            pub mod assembly_hook_props_common;
+            pub mod assembly_hook_props_unknown;
+            pub mod assembly_hook_props_x86;
         }
     }
 
