@@ -136,6 +136,8 @@ The following table below shows common hook lengths, for:
 
 ## Thread Safety & Memory Layout
 
+!!! info "Extra: [Thread Safety on x86](../common.md#thread-safety-on-x86)"
+
 In order to support thread safety, while retaining maximum runtime performance, the buffers where the 
 original and hook code are contained have a very specific memory layout (shown below)
 
@@ -186,6 +188,8 @@ hook: ; Backup (Hook)
 ### Switching State
 
 !!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `entry`, this allows us to manipulate the remaining code safely."
+
+!!! info "Not thread safe on all architectures (see above)."
 
 ```asm
 entry: ; Currently Applied (Hook)

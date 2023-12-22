@@ -45,7 +45,7 @@ Notably it differs in the following ways:
 ```mermaid
 flowchart TD
     CF[Caller Function]
-    RW[ReverseWrapper]
+    RW[Stub]
     HK["&lt;Your Function&gt;"]
     OM[Original Method]
 
@@ -65,7 +65,7 @@ flowchart TD
     HK["&lt;Your Function&gt;"]
     OM[Original Method]
 
-    CF -- "call &lt;<Your Function>&gt; instead of original" --> HK
+    CF -- "call 'Your Function' instead of original" --> HK
     HK -. "Calls &lt;Optionally&gt;" .-> OM
     OM -. "Returns" .-> HK
 ```
@@ -73,6 +73,24 @@ flowchart TD
 This option allows for a small performance improvement, saving 1 instruction and some instruction prefetching load. 
 
 This is on by default (can be disabled), and will take into effect when no conversion between calling conventions is needed and target is within 'Relative Jump' range for your CPU architecture. 
+
+### When Activated (with Calling Convention Conversion)
+
+```mermaid
+flowchart TD
+    CF[Caller Function]
+    RW[ReverseWrapper]
+    HK["&lt;Your Function&gt;"]
+    W[Wrapper]
+    OM[Original Method]
+
+    CF -- "call wrapper" --> RW
+    RW -- jump to your code --> HK
+    HK -. "Calls &lt;Optionally&gt;" .-> W
+    W -- "call original (wrapped)" --> OM
+    OM -. "Returns" .-> W
+    W -. "Returns" .-> HK
+```
 
 ### When Deactivated
 
@@ -92,39 +110,53 @@ When the hook is deactivated, the stub is replaced with a direct jump back to th
 By bypassing your code entirely, it is safe for your dynamic library (`.dll`/`.so`/`.dylib`) 
 to unload from the process.
 
-## Example
+## Thread Safety & Memory Layout
 
-### Before
+!!! info "Extra: [Thread Safety on x86](../common.md#thread-safety-on-x86)"
+
+Emplacing the jump to the stub and patching within the stub are atomic operations on all supported platforms.
+
+The 'branch hook' stub uses the following memory layout:
+
+```text
+- ([ReverseWrapper] OR [Branch to Custom Function]) OR [Branch to Original Function]
+- Branch to Original Function
+- [Wrapper] (If Calling Convention Conversion is needed)
+```
+
+!!! tip "The library is optimised to not use redundant memory"
+
+    For example, in x86 (32-bit), a `jmp` instruction can reach any address from any address. In that situation,
+    we don't write `Branch to Original Function` to the buffer at all, provided a `ReverseWrapper` is not needed,
+    as it is not necessary.
+
+### Examples
+
+!!! info "Using x86 Assembly."
+
+#### Before
 
 ```asm
-; x86 Assembly
 originalCaller:
     ; Some code...
     call originalFunction
     ; More code...
-
-originalFunction:
-    ; Function implementation...
 ```
 
-### After (Fast Mode)
+#### After (Fast Mode)
 
 ```asm
-; x86 Assembly
 originalCaller:
     ; Some code...
-    call newFunction
+    call userFunction ; To user method
     ; More code...
 
-newFunction:
+userFunction:
     ; New function implementation...
     call originalFunction ; Optional.
-
-originalFunction:
-    ; Original function implementation...
 ```
 
-### After
+#### After
 
 ```asm
 ; x86 Assembly
@@ -134,8 +166,124 @@ originalCaller:
     ; More code...
 
 stub:
+    ; == BranchToCustom ==
     jmp newFunction
-    ; nop padding to 8 bytes (if needed)
+    ; == BranchToCustom ==
+
+    ; == BranchToOriginal ==
+    jmp originalFunction
+    ; == BranchToOriginal ==
+
+newFunction:
+    ; New function implementation...
+    call originalFunction ; Optional.
+```
+
+#### After (with Calling Convention Conversion)
+
+```asm
+; x86 Assembly
+originalCaller:
+    ; Some code...
+    call stub
+    ; More code...
+
+stub:
+    ; == ReverseWrapper ==
+    ; implementation..
+    call userFunction
+    ; ..implementation
+    ; == ReverseWrapper ==
+
+    ; == Wrapper ==
+    ; implementation ..
+    jmp originalFunction
+    ; .. implementation
+    ; == Wrapper ==
+
+    ; == BranchToOriginal ==
+    jmp originalFunction ; Whenever disabled :wink:
+    ; == BranchToOriginal ==
+    
+userFunction:
+    ; New function implementation...
+    call wrapper; (See Above)
+```
+
+### Switching State
+
+!!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `stub`, this allows us to manipulate the remaining code safely."
+
+```asm
+stub:
+    ; == BranchToCustom ==
+    jmp BranchToOriginal ; jump to code that branches to original.
+    ; == BranchToCustom ==
+
+    ; == BranchToOriginal ==
+    jmp originalFunction
+    ; == BranchToOriginal ==
+```
+
+!!! note "Don't forget to clear instruction cache on non-x86 architectures which need it."
+
+This ensures we can safely overwrite the remaining code...
+
+Then we overwrite `entry` code with `hook` code, except the branch:
+
+```asm
+entry: ; Currently Applied (Hook)
+    b original     ; Branch to original
+    add x0, x2     ; overwritten with 'original' code.
+    b back_to_code ; overwritten with 'original' code.
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; Backup (Hook)
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+```
+
+And lastly, overwrite the branch. 
+
+To do this, read the original `sizeof(nint)` bytes at `entry`, replace branch bytes with original bytes 
+and do an atomic write. This way, the remaining instruction is safely replaced.
+
+```asm
+entry: ; Currently Applied (Hook)
+    add x1, x1     ; 'original' code.
+    add x0, x2     ; 'original' code.
+    b back_to_code ; 'original' code.
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; Backup (Hook)
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+```
+
+This way we achieve zero overhead CPU-wise, at expense of some memory.
+
+### After (Disabled)
+
+```asm
+; x86 Assembly
+originalCaller:
+    ; Some code...
+    call stub
+    ; More code...
+
+stub:
+    <jmp to `jmp originalFunction`> ; We disable the hook by branching to instruction that branches to original
+    jmp originalFunction ; Whenever disabled :wink:
 
 newFunction:
     ; New function implementation...
@@ -144,36 +292,3 @@ newFunction:
 originalFunction:
     ; Original function implementation...
 ```
-
-### After (with Calling Convention Conversion)
-
-```asm
-; x86 Assembly
-originalCaller:
-    ; Some code...
-    call wrapper
-    ; More code...
-
-wrapper:
-    ; call convention conversion implementation
-    call newFunction
-    ; call convention conversion implementation
-    ret
-
-newFunction:
-    ; New function implementation...
-    call reverseWrapper ; Optional.
-
-reverseWrapper:
-    ; call convention conversion implementation
-    call originalFunction
-    ; call convention conversion implementation
-    ret
-
-originalFunction:
-    ; Original function implementation...
-```
-
-## Thread Safety & Memory Layout
-
-Emplacing the jump to the stub and patching within the stub are atomic operations on all supported platforms.
