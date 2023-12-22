@@ -119,13 +119,13 @@ The following table below shows common hook lengths, for:
 - [Targeted Memory Allocation (TMA)](../../platform/overview.md#recommended-targeted-memory-allocation) (expected best case) when above `Relative Jump` range.  
 - Worst case scenario.  
 
-| Architecture   | Relative            | TMA          | Worst Case      |
-|----------------|---------------------|--------------|-----------------|
-| x86^[1]^       | 5 bytes (+- 2GiB)   | 5 bytes      | 5 bytes         |
-| x86_64         | 5 bytes (+- 2GiB)   | 6 bytes^[2]^ | 13 bytes^[3]^   |
-| x86_64 (macOS) | 5 bytes (+- 2GiB)   | 13 bytes^[4]^| 13 bytes^[3]^   |
-| ARM64          | 4 bytes (+- 128MiB) | 12 bytes^[6]^| 20 bytes^[5]^   |
-| ARM64 (macOS)  | 4 bytes (+- 128MiB) | 12 bytes^[6]^| 20 bytes^[5]^   |
+| Architecture   | Relative            | TMA           | Worst Case    |
+| -------------- | ------------------- | ------------- | ------------- |
+| x86^[1]^       | 5 bytes (+- 2GiB)   | 5 bytes       | 5 bytes       |
+| x86_64         | 5 bytes (+- 2GiB)   | 6 bytes^[2]^  | 13 bytes^[3]^ |
+| x86_64 (macOS) | 5 bytes (+- 2GiB)   | 13 bytes^[4]^ | 13 bytes^[3]^ |
+| ARM64          | 4 bytes (+- 128MiB) | 12 bytes^[6]^ | 20 bytes^[5]^ |
+| ARM64 (macOS)  | 4 bytes (+- 128MiB) | 12 bytes^[6]^ | 20 bytes^[5]^ |
 
 ^[1]^: x86 can reach any address from any address with relative branch due to integer overflow/wraparound.  
 ^[2]^: [`jmp [<Address>]`, with &lt;Address&gt; at &lt; 2GiB](../../arch/operations.md#jumpabsoluteindirect).  
@@ -135,6 +135,8 @@ The following table below shows common hook lengths, for:
 ^[6]^: [ADRP + ADD + BR](../../arch/operations.md#jumprelative).  
 
 ## Thread Safety & Memory Layout
+
+!!! info "Extra: [Thread Safety on x86](../common.md#thread-safety-on-x86)"
 
 In order to support thread safety, while retaining maximum runtime performance, the buffers where the 
 original and hook code are contained have a very specific memory layout (shown below)
@@ -187,69 +189,7 @@ hook: ; Backup (Hook)
 
 !!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `entry`, this allows us to manipulate the remaining code safely."
 
-```asm
-entry: ; Currently Applied (Hook)
-    b original ; Temp branch to original
-    mov x0, x2
-    b back_to_code
-
-original: ; Backup (Original)
-    mov x0, x1
-    add x0, x2
-    b back_to_code
-
-hook: ; Backup (Hook)
-    add x1, x1
-    mov x0, x2
-    b back_to_code
-```
-
-!!! note "Don't forget to clear instruction cache on non-x86 architectures which need it."
-
-This ensures we can safely overwrite the remaining code...
-
-Then we overwrite `entry` code with `hook` code, except the branch:
-
-```asm
-entry: ; Currently Applied (Hook)
-    b original     ; Branch to original
-    add x0, x2     ; overwritten with 'original' code.
-    b back_to_code ; overwritten with 'original' code.
-
-original: ; Backup (Original)
-    mov x0, x1
-    add x0, x2
-    b back_to_code
-
-hook: ; Backup (Hook)
-    add x1, x1
-    mov x0, x2
-    b back_to_code
-```
-
-And lastly, overwrite the branch. 
-
-To do this, read the original `sizeof(nint)` bytes at `entry`, replace branch bytes with original bytes 
-and do an atomic write. This way, the remaining instruction is safely replaced.
-
-```asm
-entry: ; Currently Applied (Hook)
-    add x1, x1     ; 'original' code.
-    add x0, x2     ; 'original' code.
-    b back_to_code ; 'original' code.
-
-original: ; Backup (Original)
-    mov x0, x1
-    add x0, x2
-    b back_to_code
-
-hook: ; Backup (Hook)
-    add x1, x1
-    mov x0, x2
-    b back_to_code
-```
-
-This way we achieve zero overhead CPU-wise, at expense of some memory.
+!!! info "Read [Thread Safe Enable/Disable of Hooks](../common.md#thread-safe-enabledisable-of-hooks) for more info."
 
 ## Legacy Compatibility Considerations
 
@@ -267,3 +207,13 @@ This means a few functionalities must be supported here:
 - Supporting Assembly via FASM.
     - As this is only possible in Windows (FASM can't be recompiled on other OSes as library), this feature will be getting dropped.
     - The `Reloaded.Hooks` wrapper will continue to ship FASM for backwards compatibility, however mods are expected to migrate to the new library in the future.
+
+## Limits
+
+Assembly hook info is packed by default to save on memory space. By default, the following limits apply:
+
+| Property             | 4 Byte Instruction (e.g. ARM) | x86    | Unknown |
+| -------------------- | ----------------------------- | ------ | ------- |
+| Max Branch Length    | 4                             | 5      | 8       |
+| Max Orig Code Length | 16KiB                         | 4KiB   | 128MiB  |
+| Max Hook Code Length | 2MiB                          | 128KiB | 1GiB    |

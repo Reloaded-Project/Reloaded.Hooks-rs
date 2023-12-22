@@ -6,7 +6,9 @@ use crate::{
             AssemblyHookError, RewriteErrorDetails,
             RewriteErrorSource::{self, *},
         },
-        hooks::assembly::assembly_hook::AssemblyHook,
+        hooks::assembly::{
+            assembly_hook::AssemblyHook, assembly_hook_props_common::alloc_and_copy_packed_props,
+        },
         jit::compiler::Jit,
         length_disassembler::LengthDisassembler,
         platforms::platform_functions::MUTUAL_EXCLUSOR,
@@ -16,16 +18,27 @@ use crate::{
     },
     helpers::{
         allocate_with_proximity::allocate_with_proximity,
-        jit_jump_operation::create_jump_operation, overwrite_code::overwrite_code,
+        jit_jump_operation::create_jump_operation, make_inline_rel_branch::INLINE_BRANCH_LEN,
+        overwrite_code::overwrite_code,
     },
 };
 use alloc::vec::Vec;
 use alloca::with_alloca;
 use core::{
     cmp::max,
-    mem::{transmute, MaybeUninit},
+    mem::{size_of, transmute, MaybeUninit},
     ops::{Add, Sub},
+    slice::from_raw_parts,
 };
+
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+use crate::api::hooks::assembly::assembly_hook_props_x86::*;
+
+#[cfg(target_arch = "aarch64")]
+use crate::api::hooks::assembly::assembly_hook_props_4byteins::*;
+
+#[cfg(not(any(target_arch = "aarch64", target_arch = "x86", target_arch = "x86_64")))]
+use crate::api::hooks::assembly::assembly_hook_props_unknown::*;
 
 /// Creates an assembly hook at a specified location in memory.
 ///
@@ -140,9 +153,21 @@ where
 
     // Reusable code buffers.
     let max_vec_len = max(hook_code_max_length, hook_orig_max_length);
-    let mut code_buf_1 = Vec::<u8>::with_capacity(max_vec_len);
-    let mut code_buf_2 = Vec::<u8>::with_capacity(max_vec_len);
+    let mut props_buf = Vec::<u8>::with_capacity(
+        max_vec_len
+            + size_of::<AssemblyHookPackedProps>()
+            + hook_code_max_length
+            + hook_orig_max_length
+            + INLINE_BRANCH_LEN * 2,
+    );
 
+    // Reserve space for AssemblyHookPackedProps, and get a pointer to it.
+    #[allow(clippy::uninit_vec)]
+    props_buf.set_len(size_of::<AssemblyHookPackedProps>());
+    let props: &mut AssemblyHookPackedProps =
+        unsafe { &mut *(props_buf.as_mut_ptr() as *mut AssemblyHookPackedProps) };
+
+    let mut code_buf = Vec::<u8>::with_capacity(max_vec_len);
     let hook_params = HookFunctionCommonParams {
         behaviour: settings.behaviour,
         asm_code: settings.asm_code,
@@ -159,45 +184,58 @@ where
     // - orig: Original Code
 
     // 'Original Code' @ entry
+    let orig_at_entry_start = props_buf.as_ptr().add(props_buf.len()) as usize;
     TRewriter::rewrite_code_with_buffer(
         settings.hook_address as *const u8,
         orig_code_length,
         settings.hook_address,
         buf_addr,
         settings.scratch_register.clone(),
-        &mut code_buf_1,
+        &mut props_buf,
     )
     .map_err(|e| new_rewrite_error(OriginalCode, settings.hook_address, buf_addr, e))?;
+    let rewritten_len = props_buf
+        .as_ptr()
+        .add(props_buf.len())
+        .sub(orig_at_entry_start) as usize;
+
     create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
-        buf_addr.wrapping_add(code_buf_1.len()),
+        buf_addr.wrapping_add(rewritten_len as usize),
         alloc_result.0,
         jump_back_address,
         settings.scratch_register.clone(),
-        &mut code_buf_1,
+        &mut props_buf,
     )
     .map_err(|e| AssemblyHookError::JitError(e))?;
+    let orig_at_entry_end = props_buf.as_ptr().add(props_buf.len()) as usize;
 
     // 'Hook Function' @ entry
     construct_hook_function::<TJit, TRegister, TRewriter, TBuffer, TBufferFactory>(
         &hook_params,
         buf_addr,
-        &mut code_buf_2,
+        &mut props_buf,
     )?;
 
+    let hook_at_entry_end = props_buf.as_ptr().add(props_buf.len()) as usize;
+
     // Write the default code.
-    let enabled_code = code_buf_2.as_slice().to_vec().into_boxed_slice();
-    let disabled_code = code_buf_1.as_slice().to_vec().into_boxed_slice();
-    code_buf_1.clear();
-    code_buf_2.clear();
+    let enabled_len = hook_at_entry_end - orig_at_entry_end;
+    let enabled_code = from_raw_parts(orig_at_entry_end as *const u8, enabled_len);
+    let disabled_len = orig_at_entry_end - orig_at_entry_start;
+    let disabled_code = from_raw_parts(orig_at_entry_start as *const u8, disabled_len);
 
     TBuffer::overwrite(
         buf_addr,
         if settings.auto_activate {
-            &enabled_code
+            enabled_code
         } else {
-            &disabled_code
+            disabled_code
         },
     );
+
+    props.set_is_enabled(settings.auto_activate);
+    props.set_enabled_code_len(enabled_len);
+    props.set_disabled_code_len(disabled_len);
 
     // Write the other 2 stubs.
     let entry_end_ptr = buf_addr + max(enabled_code.len(), disabled_code.len());
@@ -206,12 +244,12 @@ where
     construct_hook_function::<TJit, TRegister, TRewriter, TBuffer, TBufferFactory>(
         &hook_params,
         entry_end_ptr,
-        &mut code_buf_1,
+        &mut code_buf,
     )?;
 
-    TBuffer::overwrite(entry_end_ptr, &code_buf_1);
-    let hook_at_hook_end = entry_end_ptr + code_buf_1.len();
-    code_buf_1.clear();
+    TBuffer::overwrite(entry_end_ptr, &code_buf);
+    let hook_at_hook_end = entry_end_ptr + code_buf.len();
+    code_buf.clear();
 
     // 'Original Code' @ orig
     TRewriter::rewrite_code_with_buffer(
@@ -220,40 +258,44 @@ where
         settings.hook_address,
         hook_at_hook_end,
         settings.scratch_register.clone(),
-        &mut code_buf_1,
+        &mut code_buf,
     )
     .map_err(|e| new_rewrite_error(OrigCodeAtOrig, settings.hook_address, hook_at_hook_end, e))?;
     create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
-        hook_at_hook_end.wrapping_add(code_buf_1.len()),
+        hook_at_hook_end.wrapping_add(code_buf.len()),
         alloc_result.0,
         jump_back_address,
         settings.scratch_register.clone(),
-        &mut code_buf_1,
+        &mut code_buf,
     )
     .map_err(|e| AssemblyHookError::JitError(e))?;
-    TBuffer::overwrite(hook_at_hook_end, &code_buf_1);
-    let orig_at_orig_len = code_buf_1.len();
-    code_buf_1.clear();
+    TBuffer::overwrite(hook_at_hook_end, &code_buf);
+    let orig_at_orig_len = code_buf.len();
 
     // Branch `entry -> orig`
     // Branch `entry -> hook`
+    let branch_to_orig_start = props_buf.as_ptr().add(props_buf.len());
     create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
         buf_addr,
         true,
         entry_end_ptr,
         settings.scratch_register.clone(),
-        &mut code_buf_1,
+        &mut props_buf,
     )
     .map_err(|e| AssemblyHookError::JitError(e))?;
 
+    let branch_to_hook_start = props_buf.as_ptr().add(props_buf.len());
+    props.set_branch_to_orig_len(branch_to_hook_start.sub(branch_to_orig_start as usize) as usize);
     create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
         buf_addr,
         true,
         hook_at_hook_end,
         settings.scratch_register.clone(),
-        &mut code_buf_2,
+        &mut props_buf,
     )
     .map_err(|e| AssemblyHookError::JitError(e))?;
+    let branch_to_hook_end = props_buf.as_ptr().add(props_buf.len());
+    props.set_branch_to_hook_len(branch_to_hook_end.sub(branch_to_hook_start as usize) as usize);
 
     // Now JIT a jump to the original code.
     overwrite_code(settings.hook_address, &code);
@@ -276,14 +318,8 @@ where
     buf.advance(hook_at_hook_end.add(orig_at_orig_len).sub(buf_addr));
 
     // Populate remaining fields
-    AssemblyHook::new(
-        settings.auto_activate,
-        code_buf_1.into_boxed_slice(),
-        code_buf_2.into_boxed_slice(),
-        enabled_code,
-        disabled_code,
-        buf_addr,
-    )
+    let props = alloc_and_copy_packed_props(&props_buf);
+    AssemblyHook::new(props, buf_addr)
 }
 
 fn new_rewrite_error<TRegister>(

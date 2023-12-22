@@ -2,49 +2,28 @@ extern crate alloc;
 use crate::{
     api::{
         buffers::buffer_abstractions::{Buffer, BufferFactory},
-        errors::assembly_hook_error::{ArrayTooShortKind, AssemblyHookError},
+        errors::assembly_hook_error::AssemblyHookError,
         jit::compiler::Jit,
         length_disassembler::LengthDisassembler,
         rewriter::code_rewriter::CodeRewriter,
         settings::assembly_hook_settings::AssemblyHookSettings,
         traits::register_info::RegisterInfo,
     },
-    helpers::{
-        atomic_write_masked::atomic_write_masked,
-        make_inline_rel_branch::{make_inline_branch, INLINE_BRANCH_LEN},
-    },
+    helpers::atomic_write_masked::atomic_write_masked,
     internal::assembly_hook::create_assembly_hook,
 };
-use alloc::boxed::Box;
-use bitfield::bitfield;
+
 use core::marker::PhantomData;
+use core::ptr::NonNull;
 
-bitfield! {
-    /// `AddImmediate` represents the bitfields of the ADD (immediate) instruction
-    /// in AArch64 architecture.
-    pub struct AssemblyHookPackedProps(u8);
-    impl Debug;
+#[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
+use super::assembly_hook_props_x86::*;
 
-    /// Length of the 'branch to orig' inline array.
-    branch_to_orig_len, set_branch_to_orig_len: 6, 4;
+#[cfg(target_arch = "aarch64")]
+use super::assembly_hook_props_4byteins::*;
 
-    /// Length of the 'branch to hook' inline array.
-    branch_to_hook_len, set_branch_to_hook_len: 3, 1;
-
-    /// True if the hook is enabled, else false.
-    is_enabled, set_is_enabled: 0;
-}
-
-impl AssemblyHookPackedProps {
-    /// Creates a new `AssemblyHookPackedProps` with specified properties.
-    pub fn new(is_enabled: bool, branch_to_orig_len: u8, branch_to_hook_len: u8) -> Self {
-        let mut props = AssemblyHookPackedProps(0);
-        props.set_is_enabled(is_enabled);
-        props.set_branch_to_orig_len(branch_to_orig_len);
-        props.set_branch_to_hook_len(branch_to_hook_len);
-        props
-    }
-}
+#[cfg(not(any(target_arch = "aarch64", target_arch = "x86", target_arch = "x86_64")))]
+use super::assembly_hook_props_unknown::*;
 
 /// Represents an assembly hook.
 #[repr(C)] // Not 'packed' because this is not in array and malloc in practice will align this.
@@ -58,26 +37,13 @@ where
     TBufferFactory: BufferFactory<TBuffer>,
 {
     // docs/dev/design/assembly-hooks/overview.md
-    /// The code placed at the hook function when the hook is enabled.
-    enabled_code: Box<[u8]>, // 0
-
-    /// The code placed at the hook function when the hook is disabled.
-    disabled_code: Box<[u8]>, // 4/8
-
     /// The address of the stub containing custom code.
-    stub_address: usize, // 8/16
+    stub_address: usize, // 0
 
-    /// Stores sizes of 'branch_to_orig_opcode' and 'branch_to_hook_opcode'.
-    props: AssemblyHookPackedProps, // 12/24
+    /// Address of 'props' structure
+    props: NonNull<AssemblyHookPackedProps>, // 4/8
 
-    /// The code to branch to 'orig' segment in the buffer, when disabling the hook.
-    branch_to_orig_opcode: [u8; INLINE_BRANCH_LEN], // 13/25
-
-    /// The code to branch to 'hook' segment in the buffer, when enabling the hook.
-    branch_to_hook_opcode: [u8; INLINE_BRANCH_LEN], // 18/30 (-1 on AArch64)
-
-    // End: 40 (AArch64) [no pad: 33]
-    // End: 24/40 (x86)  [no pad: 23/35]
+    // Struct size: 8/16 bytes.
 
     // Dummy type parameters for Rust compiler to comply.
     _unused_buf: PhantomData<TBuffer>,
@@ -99,29 +65,11 @@ where
     TBufferFactory: BufferFactory<TBuffer>,
 {
     pub fn new(
-        is_enabled: bool,
-        branch_to_orig: Box<[u8]>,
-        branch_to_hook: Box<[u8]>,
-        enabled_code: Box<[u8]>,
-        disabled_code: Box<[u8]>,
+        props: NonNull<AssemblyHookPackedProps>,
         stub_address: usize,
     ) -> Result<Self, AssemblyHookError<TRegister>> {
-        let branch_to_orig_opcode =
-            Self::inline_branch(&branch_to_orig, ArrayTooShortKind::ToOrig)?;
-        let branch_to_hook_opcode =
-            Self::inline_branch(&branch_to_hook, ArrayTooShortKind::ToHook)?;
-        let props = AssemblyHookPackedProps::new(
-            is_enabled,
-            branch_to_orig_opcode.len() as u8,
-            branch_to_hook_opcode.len() as u8,
-        );
-
         Ok(Self {
             props,
-            branch_to_orig_opcode,
-            branch_to_hook_opcode,
-            enabled_code,
-            disabled_code,
             stub_address,
             _unused_buf: PhantomData,
             _unused_tj: PhantomData,
@@ -215,8 +163,15 @@ where
     /// If the hook is already enabled, this function does nothing.
     /// If the hook is disabled, this function will write the hook to memory.
     pub fn enable(&self) {
-        let num_bytes = self.props.branch_to_hook_len() as usize;
-        self.write_hook(&self.branch_to_hook_opcode, &self.enabled_code, num_bytes);
+        unsafe {
+            let props = self.props.as_ref();
+            let num_bytes = props.get_branch_to_hook_len();
+            self.write_hook(
+                props.get_branch_to_hook_slice(),
+                props.get_enabled_code(),
+                num_bytes,
+            );
+        }
     }
 
     /// Disables the hook.
@@ -224,19 +179,36 @@ where
     /// If the hook is already disabled, this function does nothing.
     /// If the hook is enabled, this function will no-op the hook.
     pub fn disable(&self) {
-        let num_bytes = self.props.branch_to_orig_len() as usize;
-        self.write_hook(&self.branch_to_orig_opcode, &self.disabled_code, num_bytes);
+        unsafe {
+            let props = self.props.as_ref();
+            let num_bytes = props.get_branch_to_orig_len();
+            self.write_hook(
+                props.get_branch_to_orig_slice(),
+                props.get_disabled_code(),
+                num_bytes,
+            );
+        }
     }
 
     /// Returns true if the hook is enabled, else false.
     pub fn get_is_enabled(&self) -> bool {
-        self.props.is_enabled()
+        unsafe { self.props.as_ref().is_enabled() }
     }
+}
 
-    fn inline_branch(
-        rc: &[u8],
-        kind: ArrayTooShortKind,
-    ) -> Result<[u8; INLINE_BRANCH_LEN], AssemblyHookError<TRegister>> {
-        make_inline_branch(rc).map_err(|e| AssemblyHookError::InlineBranchError(e, kind))
+impl<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory> Drop
+    for AssemblyHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
+where
+    TBuffer: Buffer,
+    TJit: Jit<TRegister>,
+    TRegister: RegisterInfo + Clone + Default,
+    TDisassembler: LengthDisassembler,
+    TRewriter: CodeRewriter<TRegister>,
+    TBufferFactory: BufferFactory<TBuffer>,
+{
+    fn drop(&mut self) {
+        unsafe {
+            self.props.as_mut().free();
+        }
     }
 }

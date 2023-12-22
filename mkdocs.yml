@@ -53,6 +53,7 @@ nav:
   - Home: index.md
   - Library Internals:
     - Design Docs: 
+      - Common Notes: dev/design/common.md
       - Function Hooks: 
         - Overview: dev/design/function-hooks/overview.md
         - Hooking Strategy: 
