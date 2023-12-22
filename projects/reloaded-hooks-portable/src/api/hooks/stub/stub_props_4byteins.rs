@@ -3,7 +3,7 @@ use bitfield::bitfield;
 bitfield! {
     /// Defines the data layout of the Assembly Hook data for architectures
     /// with fixed instruction sizes of 4 bytes.
-    pub struct AssemblyHookPackedProps(u32);
+    pub struct StubPackedProps(u32);
     impl Debug;
 
     /// True if the hook is enabled, else false.
@@ -20,7 +20,7 @@ bitfield! {
     u16, hook_fn_size, set_hook_fn_size_impl: 31, 17; // Max 32Ki instructions, 128KiB.
 }
 
-impl AssemblyHookPackedProps {
+impl StubPackedProps {
     pub fn get_swap_size(&self) -> usize {
         (self.swap_size() as usize) * 4 // Convert from instructions to bytes
     }
@@ -52,7 +52,7 @@ mod tests {
 
     #[test]
     fn test_swap_and_hook_fn_sizes() {
-        let mut props = AssemblyHookPackedProps(0);
+        let mut props = StubPackedProps(0);
 
         // Test setting and getting swap size
         props.set_swap_size(1024); // 256 instructions
@@ -72,14 +72,14 @@ mod tests {
     #[test]
     #[should_panic(expected = "Swap size must be a multiple of 4 and at most 128KiB")]
     fn test_swap_size_limit() {
-        let mut props = AssemblyHookPackedProps(0);
+        let mut props = StubPackedProps(0);
         props.set_swap_size(129 * 1024); // Should panic
     }
 
     #[test]
     #[should_panic(expected = "Hook function size must be a multiple of 4 and at most 128KiB")]
     fn test_hook_fn_size_limit() {
-        let mut props = AssemblyHookPackedProps(0);
+        let mut props = StubPackedProps(0);
         props.set_hook_fn_size(129 * 1024); // Should panic
     }
 }

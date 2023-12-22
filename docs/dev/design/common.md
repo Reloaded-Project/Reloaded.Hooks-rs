@@ -2,6 +2,20 @@
 
 !!! info "Design notes common to all hooking strategies."
 
+## Wrapper(s)
+
+!!! info "Wrappers are stubs which convert from the calling convention of the original function to your calling convention."
+
+!!! note "If the calling convention of the hooked function and your function matches, this wrapper is simply just 1 `jmp` instruction."
+
+Wrappers are documented [in their own page here](./wrappers.md).
+
+## ReverseWrapper(s)
+
+!!! info "Stub which converts from your code's calling convention to original function's calling convention"
+
+!!! info "This is basically [Wrapper](#wrappers) with `source` and `destination` swapped around"
+
 ## Thread Safe Enable/Disable of Hooks
 
 !!! info "Using ARM64 [Assembly Hook](./assembly-hooks/overview.md) as an example."

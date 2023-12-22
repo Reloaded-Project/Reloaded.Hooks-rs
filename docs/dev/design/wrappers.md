@@ -225,7 +225,7 @@ parameters is trivial, since you can directly mov into the intended target regis
 the most common use case in x86.
 
 For completeness, it should be noted that in the opposite direction `stdcall target -> custom`, such
-as one that would be used in entry point of a hook ([ReverseWrapper](./overview.md#reversewrappers)),
+as one that would be used in entry point of a hook ([ReverseWrapper](#reversewrappers)),
 no optimisation is needed here, as all registers are directly pushed without any extra steps.
 
 !!! tip "In the backend, the wrapper generator keeps track of current stack pointer (assuming start is '0'); and uses that information to match the push and pop operations accordingly 😉"

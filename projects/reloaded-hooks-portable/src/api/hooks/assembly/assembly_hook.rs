@@ -9,14 +9,10 @@ use crate::{
         settings::assembly_hook_settings::AssemblyHookSettings,
         traits::register_info::RegisterInfo,
     },
-    helpers::{
-        atomic_write_masked::atomic_write_masked, jit_jump_operation::create_jump_operation,
-    },
     internal::assembly_hook::create_assembly_hook,
 };
-use alloc::vec::Vec;
+use core::marker::PhantomData;
 use core::ptr::NonNull;
-use core::{marker::PhantomData, slice::from_raw_parts_mut};
 
 #[cfg(any(
     target_arch = "aarch64",
@@ -26,7 +22,7 @@ use core::{marker::PhantomData, slice::from_raw_parts_mut};
     target_arch = "riscv32",
     target_arch = "riscv64"
 ))]
-use super::assembly_hook_props_4byteins::*;
+use super::super::stub::stub_props_4byteins::*;
 
 #[cfg(not(any(
     target_arch = "aarch64",
@@ -36,7 +32,7 @@ use super::assembly_hook_props_4byteins::*;
     target_arch = "riscv32",
     target_arch = "riscv64"
 )))]
-use super::assembly_hook_props_other::*;
+use super::super::stub::stub_props_other::*;
 
 /// Represents an assembly hook.
 #[repr(C)] // Not 'packed' because this is not in array and malloc in practice will align this.
@@ -54,7 +50,7 @@ where
     stub_address: usize, // 0
 
     /// Address of 'props' structure
-    props: NonNull<AssemblyHookPackedProps>, // 4/8
+    props: NonNull<StubPackedProps>, // 4/8
 
     // Struct size: 8/16 bytes.
 
@@ -78,7 +74,7 @@ where
     TBufferFactory: BufferFactory<TBuffer>,
 {
     pub fn new(
-        props: NonNull<AssemblyHookPackedProps>,
+        props: NonNull<StubPackedProps>,
         stub_address: usize,
     ) -> Result<Self, AssemblyHookError<TRegister>> {
         Ok(Self {
@@ -154,78 +150,25 @@ where
         )
     }
 
-    /// Writes the hook to memory, either enabling or disabling it based on the provided parameters.
-    unsafe fn swap_hook(&self, temp_branch_offset: usize) {
-        let props = self.props.as_ref();
-
-        // Backup current code from swap buffer.
-        let swap_buffer_real = props.get_swap_buffer();
-        let swap_buffer_copy = swap_buffer_real.to_vec();
-
-        // Copy current code into swap buffer
-        let buf_buffer_real =
-            from_raw_parts_mut(self.stub_address as *mut u8, props.get_swap_size());
-        swap_buffer_real.copy_from_slice(buf_buffer_real);
-
-        // JIT temp branch to hook/orig code.
-        let mut vec = Vec::<u8>::with_capacity(8);
-        _ = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
-            self.stub_address,
-            true,
-            self.stub_address + temp_branch_offset,
-            None,
-            &mut vec,
-        );
-        let branch_opcode = &vec;
-        let branch_bytes = branch_opcode.len();
-
-        // Write the temp branch first, as per docs
-        // This also overwrites some extra code afterwards, but that's a-ok for now.
-        unsafe {
-            atomic_write_masked::<TBuffer>(self.stub_address, branch_opcode, branch_bytes);
-        }
-
-        // Now write the remaining code
-        TBuffer::overwrite(
-            self.stub_address + branch_bytes,
-            &swap_buffer_copy[branch_bytes..],
-        );
-
-        // And now re-insert the code we temp overwrote with the branch
-        unsafe {
-            atomic_write_masked::<TBuffer>(self.stub_address, &swap_buffer_copy, branch_bytes);
-        }
-    }
-
-    /// Enables the hook.
-    /// This will cause the hook to be written to memory.
+    /// Enables the hook at `stub_address`.
+    ///
     /// If the hook is already enabled, this function does nothing.
-    /// If the hook is disabled, this function will write the hook to memory.
+    /// If the hook is disabled, this function will perform a thread safe enabling of the hook.
     pub fn enable(&self) {
         unsafe {
-            let props = &mut (*self.props.as_ptr());
-            if props.is_enabled() {
-                return;
-            };
-
-            self.swap_hook(props.get_swap_size());
-            props.set_is_enabled(true);
+            (*self.props.as_ptr())
+                .enable::<TRegister, TJit, TBufferFactory, TBuffer>(self.stub_address);
         }
     }
 
-    /// Disables the hook.
-    /// This will cause the hook to be no-opped.
+    /// Disables the hook at `stub_address`.
+    ///
     /// If the hook is already disabled, this function does nothing.
-    /// If the hook is enabled, this function will no-op the hook.
+    /// If the hook is enabled, this function will perform a thread safe disabling of the hook.
     pub fn disable(&self) {
         unsafe {
-            let props = &mut (*self.props.as_ptr());
-            if !props.is_enabled() {
-                return;
-            };
-
-            self.swap_hook(props.get_swap_size() + props.get_hook_fn_size());
-            props.set_is_enabled(false);
+            (*self.props.as_ptr())
+                .disable::<TRegister, TJit, TBufferFactory, TBuffer>(self.stub_address);
         }
     }
 

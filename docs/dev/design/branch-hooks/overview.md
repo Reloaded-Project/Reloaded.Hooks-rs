@@ -28,7 +28,7 @@ Notably it differs in the following ways:
 - There is no [Wrapper To Call Original Function](../function-hooks/overview.md#when-activated-in-fast-mode) as no instructions are stolen.  
     - Your method will directly call original instead. 
 
-- You `call` the `ReverseWrapper` instead of `jump`ing to it.
+- You `call` the [ReverseWrapper](../common.md#reversewrappers) instead of `jump`ing to it.
 - Code replacement is at caller level rather than function level.
 
 ## High Level Diagram
@@ -114,14 +114,25 @@ to unload from the process.
 
 !!! info "Extra: [Thread Safety on x86](../common.md#thread-safety-on-x86)"
 
+### Stub Memory Layout
+
 Emplacing the jump to the stub and patching within the stub are atomic operations on all supported platforms.
 
 The 'branch hook' stub uses the following memory layout:
 
 ```text
-- ( [ReverseWrapper] OR [Branch to Custom Function] ) OR [Branch to Original Function]
+- [Branch to Hook Function / Branch to Original Function]
+- Branch to Hook Function
 - Branch to Original Function
-- [Wrapper] (If Calling Convention Conversion is needed)
+```
+
+If calling convention conversion is needed, the layout looks like this:
+
+```
+- [ReverseWrapper / Branch to Original Function]
+- ReverseWrapper
+- Branch to Original Function
+- Wrapper
 ```
 
 !!! tip "The library is optimised to not use redundant memory"
@@ -130,11 +141,11 @@ The 'branch hook' stub uses the following memory layout:
     we don't write `Branch to Original Function` to the buffer at all, provided a `ReverseWrapper` is not needed,
     as it is not necessary.
 
-### Examples
+#### Examples
 
 !!! info "Using x86 Assembly."
 
-#### Before
+##### Before
 
 ```asm
 originalCaller:
@@ -143,7 +154,7 @@ originalCaller:
     ; More code...
 ```
 
-#### After (Fast Mode)
+##### After (Fast Mode)
 
 ```asm
 originalCaller:
@@ -156,7 +167,7 @@ userFunction:
     call originalFunction ; Optional.
 ```
 
-#### After
+##### After
 
 ```asm
 ; x86 Assembly
@@ -166,9 +177,9 @@ originalCaller:
     ; More code...
 
 stub:
-    ; == BranchToCustom ==
+    ; == BranchToHook ==
     jmp newFunction
-    ; == BranchToCustom ==
+    ; == BranchToHook ==
 
     ; == BranchToOriginal ==
     jmp originalFunction
@@ -179,7 +190,7 @@ newFunction:
     call originalFunction ; Optional.
 ```
 
-#### After (with Calling Convention Conversion)
+##### After (with Calling Convention Conversion)
 
 ```asm
 ; x86 Assembly
@@ -210,7 +221,7 @@ userFunction:
     call wrapper; (See Above)
 ```
 
-#### After (Disabled)
+##### After (Disabled)
 
 ```asm
 ; x86 Assembly
@@ -230,6 +241,30 @@ newFunction:
 originalFunction:
     ; Original function implementation...
 ```
+
+### Heap Layout
+
+Each Assembly Hook contains a pointer to the heap stub (seen above) and a pointer to the heap.
+
+The heap contains all information required to perform operations on the stub.
+
+```text
+- BranchHookPackedProps
+    - Enabled Flag
+    - Offset of BranchToHook (Also length of BranchToHook/BranchToOriginalFunction block)
+    - Offset of BranchToOriginal
+- [BranchToHook/BranchToOriginalFunction]
+```
+
+Replace `BranchToHook` with `ReverseWrapper` if calling convention conversion is needed.
+
+The data in the heap contains a short 'BranchHookPackedProps' struct, detailing the data that is required
+to make a temporary branch to the enabled/disabled code. After that is the either the `BranchToHook/ReverseWrapper` 
+bytes or the `BranchToOriginal` bytes, depending on the state of the hook.
+
+The hook uses a 'swapping' system, where the `[BranchToHook/BranchToOriginalFunction]` block in the 
+stub is swapped with the `[Hook Function / Original Code]` block in the heap. When one contains the 
+code for `Hook Function`, the other contains the code for `Original Code`. This is memory efficient.
 
 ### Switching State
 

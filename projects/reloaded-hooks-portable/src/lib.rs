@@ -29,9 +29,17 @@ pub mod api {
     pub mod hooks {
         pub mod assembly {
             pub mod assembly_hook;
-            pub mod assembly_hook_props_4byteins;
-            pub mod assembly_hook_props_common;
-            pub mod assembly_hook_props_other;
+        }
+
+        pub mod branch {
+            pub mod branch_hook;
+        }
+
+        /// Contains the memory layout of various stubs used throughout the hooks.
+        pub mod stub {
+            pub mod stub_props_4byteins;
+            pub mod stub_props_common;
+            pub mod stub_props_other;
         }
     }
 

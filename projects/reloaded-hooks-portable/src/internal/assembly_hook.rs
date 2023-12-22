@@ -6,9 +6,8 @@ use crate::{
             AssemblyHookError, RewriteErrorDetails,
             RewriteErrorSource::{self, *},
         },
-        hooks::assembly::{
-            assembly_hook::AssemblyHook, assembly_hook_props_common::alloc_and_copy_packed_props,
-        },
+        hooks::assembly::assembly_hook::AssemblyHook,
+        hooks::stub::stub_props_common::*,
         jit::compiler::Jit,
         length_disassembler::LengthDisassembler,
         platforms::platform_functions::MUTUAL_EXCLUSOR,
@@ -38,7 +37,7 @@ use core::{
     target_arch = "riscv32",
     target_arch = "riscv64"
 ))]
-use crate::api::hooks::assembly::assembly_hook_props_4byteins::*;
+use crate::api::hooks::stub::stub_props_4byteins::*;
 
 #[cfg(not(any(
     target_arch = "aarch64",
@@ -48,7 +47,7 @@ use crate::api::hooks::assembly::assembly_hook_props_4byteins::*;
     target_arch = "riscv32",
     target_arch = "riscv64"
 )))]
-use crate::api::hooks::assembly::assembly_hook_props_other::*;
+use crate::api::hooks::stub::stub_props_other::*;
 
 /// Creates an assembly hook at a specified location in memory.
 ///
@@ -163,14 +162,13 @@ where
 
     // Reusable code buffers.
     let max_vec_len = max(hook_code_max_length, hook_orig_max_length);
-    let mut props_buf =
-        Vec::<u8>::with_capacity(max_vec_len + size_of::<AssemblyHookPackedProps>());
+    let mut props_buf = Vec::<u8>::with_capacity(max_vec_len + size_of::<StubPackedProps>());
 
-    // Reserve space for AssemblyHookPackedProps, and get a pointer to it.
+    // Reserve space for StubPackedProps, and get a pointer to it.
     #[allow(clippy::uninit_vec)]
-    props_buf.set_len(size_of::<AssemblyHookPackedProps>());
-    let props: &mut AssemblyHookPackedProps =
-        unsafe { &mut *(props_buf.as_mut_ptr() as *mut AssemblyHookPackedProps) };
+    props_buf.set_len(size_of::<StubPackedProps>());
+    let props: &mut StubPackedProps =
+        unsafe { &mut *(props_buf.as_mut_ptr() as *mut StubPackedProps) };
 
     let mut code_buf_1 = Vec::<u8>::with_capacity(max_vec_len);
     let mut code_buf_2 = Vec::<u8>::with_capacity(max_vec_len);
