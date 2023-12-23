@@ -25,9 +25,10 @@ mod tests {
         let add: Add = unsafe { transmute(add_addr) };
 
         // Overwrite the first bytes with hook
+        let code = &[0xffu8, 0x44, 0x24, 0x08]; // inc dword ptr [esp + 4]
         let _hook = unsafe {
             let settings =
-                AssemblyHookSettings::new_minimal(add_addr, &[0xff, 0x44, 0x24, 0x08], 6)
+                AssemblyHookSettings::new_minimal(add_addr, code.as_ptr() as usize, code.len(), 6)
                     .with_scratch_register(x86::Register::ecx);
 
             AssemblyHook::<
@@ -58,13 +59,11 @@ mod tests {
         let add: Add = unsafe { transmute(add_addr) };
 
         // Overwrite the first bytes with hook
+        let code = &[0xffu8, 0x44, 0x24, 0x08]; // inc dword ptr [esp + 4]
         let _hook = unsafe {
-            let settings = AssemblyHookSettings::new_minimal(
-                add_addr,
-                &[0xff, 0x44, 0x24, 0x08], // inc dword ptr [esp + 4]
-                6,
-            )
-            .with_scratch_register(x86::Register::ecx);
+            let settings =
+                AssemblyHookSettings::new_minimal(add_addr, code.as_ptr() as usize, code.len(), 6)
+                    .with_scratch_register(x86::Register::ecx);
 
             AssemblyHook::<
                 LockedBuffer,
@@ -107,12 +106,11 @@ mod tests {
         let add: Add = unsafe { transmute(add_addr) };
 
         // Overwrite the first bytes with hook
-        let settings = AssemblyHookSettings::new_minimal(
-            add_addr,
-            &[0xff, 0x44, 0x24, 0x08], // inc dword ptr [esp + 4]
-            6,
-        )
-        .with_scratch_register(x86::Register::ecx);
+        let code = &[0xffu8, 0x44, 0x24, 0x08]; // inc dword ptr [esp + 4]
+        let settings = unsafe {
+            AssemblyHookSettings::new_minimal(add_addr, code.as_ptr() as usize, code.len(), 6)
+                .with_scratch_register(x86::Register::ecx)
+        };
 
         let _hook = unsafe {
             AssemblyHook::<

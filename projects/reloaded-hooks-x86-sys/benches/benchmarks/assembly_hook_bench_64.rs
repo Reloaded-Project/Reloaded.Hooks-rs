@@ -30,13 +30,10 @@ pub(crate) fn benchmark_create_assembly_hook(c: &mut Criterion) {
         JitX86::code_alignment(),
     );
     mem::drop(_buf_opt); // return the buffer
-
-    let settings: AssemblyHookSettings<'_, x86::Register> = AssemblyHookSettings::new_minimal(
-        add_addr,
-        &[0xff, 0x44, 0x24, 0x08], // inc dword ptr [esp + 4]
-        6,
-    )
-    .with_scratch_register(x86::Register::ecx);
+    let code = &[0xffu8, 0x44, 0x24, 0x08]; // inc dword ptr [esp + 4]
+    let settings: AssemblyHookSettings<x86::Register> =
+        AssemblyHookSettings::new_minimal(add_addr, code.as_ptr() as usize, code.len(), 6)
+            .with_scratch_register(x86::Register::ecx);
 
     c.bench_function("assembly_hook_creation", |b| {
         b.iter(|| {

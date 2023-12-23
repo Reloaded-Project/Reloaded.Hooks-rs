@@ -26,9 +26,11 @@ mod tests {
 
         // Overwrite the first bytes with hook
         let _hook = unsafe {
+            let slice = &[0x48u8, 0xFF, 0xC1]; // inc rcx
             let settings = AssemblyHookSettings::new_minimal(
                 add_addr,
-                &[0x48, 0xFF, 0xC1], // inc rcx
+                slice.as_ptr() as usize,
+                slice.len(),
                 13,
             )
             .with_scratch_register(x64::Register::r8);
@@ -61,9 +63,11 @@ mod tests {
 
         // Overwrite the first bytes with hook
         let _hook = unsafe {
+            let slice = &[0x48u8, 0xFF, 0xC1]; // inc rcx
             let settings = AssemblyHookSettings::new_minimal(
                 add_addr,
-                &[0x48, 0xFF, 0xC1], // inc rcx
+                slice.as_ptr() as usize,
+                slice.len(),
                 13,
             )
             .with_scratch_register(x64::Register::r8);
@@ -110,12 +114,10 @@ mod tests {
         let add: Add = unsafe { transmute(add_addr) };
 
         // Overwrite the first bytes with hook
-        let settings = AssemblyHookSettings::new_minimal(
-            add_addr,
-            &[0x48, 0xFF, 0xC1], // inc rcx
-            13,
-        )
-        .with_scratch_register(x64::Register::r8);
+        let slice = &[0x48u8, 0xFF, 0xC1]; // inc rcx
+        let settings =
+            AssemblyHookSettings::new_minimal(add_addr, slice.as_ptr() as usize, slice.len(), 13)
+                .with_scratch_register(x64::Register::r8);
 
         let _hook = unsafe {
             AssemblyHook::<

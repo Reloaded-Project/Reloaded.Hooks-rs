@@ -22,6 +22,8 @@ Wrappers are documented [in their own page here](./wrappers.md).
 
 !!! info "Hooks in `reloaded-hooks-rs` are structured in a very specific way to ensure thread safety."
 
+!!! info "They sacrifice a bit of memory usage in favour of performance + thread safety."
+
 Most hooks, regardless of type have a memory layout that looks something like this:
 
 ```rust

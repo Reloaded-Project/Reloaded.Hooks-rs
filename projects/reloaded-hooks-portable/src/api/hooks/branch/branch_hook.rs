@@ -1,4 +1,6 @@
 extern crate alloc;
+
+/*
 use crate::{
     api::{
         buffers::buffer_abstractions::{Buffer, BufferFactory},
@@ -13,7 +15,6 @@ use crate::{
 use bitfield::bitfield;
 use core::marker::PhantomData;
 
-/*
 /// Represents an assembly hook.
 #[repr(C)] // Not 'packed' because this is not in array and malloc in practice will align this.
 pub struct BranchHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>

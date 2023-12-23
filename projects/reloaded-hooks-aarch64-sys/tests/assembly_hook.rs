@@ -25,9 +25,10 @@ mod tests {
         let add: Add = unsafe { transmute(add_addr) };
 
         // Overwrite the first bytes with hook
+        let code = &[0x21u8, 0x04, 0x00, 0x91];
         let _hook = unsafe {
             let settings =
-                AssemblyHookSettings::new_minimal(add_addr, &[0x21, 0x04, 0x00, 0x91], 20)
+                AssemblyHookSettings::new_minimal(add_addr, code.as_ptr() as usize, code.len(), 20)
                     .with_scratch_register(AllRegisters::x7);
 
             AssemblyHook::<
@@ -58,9 +59,10 @@ mod tests {
         let add: Add = unsafe { transmute(add_addr) };
 
         // Overwrite the first bytes with hook
+        let code = &[0x21u8, 0x04, 0x00, 0x91];
         let _hook = unsafe {
             let settings =
-                AssemblyHookSettings::new_minimal(add_addr, &[0x21, 0x04, 0x00, 0x91], 20)
+                AssemblyHookSettings::new_minimal(add_addr, code.as_ptr() as usize, code.len(), 20)
                     .with_scratch_register(AllRegisters::x7);
 
             AssemblyHook::<
@@ -104,8 +106,10 @@ mod tests {
         let add: Add = unsafe { transmute(add_addr) };
 
         // Overwrite the first bytes with hook
-        let settings = AssemblyHookSettings::new_minimal(add_addr, &[0x21, 0x04, 0x00, 0x91], 20)
-            .with_scratch_register(AllRegisters::x7);
+        let code = &[0x21u8, 0x04, 0x00, 0x91];
+        let settings =
+            AssemblyHookSettings::new_minimal(add_addr, code.as_ptr() as usize, code.len(), 20)
+                .with_scratch_register(AllRegisters::x7);
 
         let _hook = unsafe {
             AssemblyHook::<

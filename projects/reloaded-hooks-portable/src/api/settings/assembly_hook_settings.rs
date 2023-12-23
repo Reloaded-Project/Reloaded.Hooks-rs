@@ -3,7 +3,7 @@
 /// This is used for the allocation of wrappers and other native/interop components.
 /// It helps guide memory allocations to be closer to a specific target address.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct AssemblyHookSettings<'a, TRegister>
+pub struct AssemblyHookSettings<TRegister: Copy>
 where
     TRegister: Clone,
 {
@@ -11,7 +11,10 @@ where
     pub hook_address: usize,
 
     /// The assembly code to be emplaced at the hook address.
-    pub asm_code: &'a [u8],
+    pub asm_code_ptr: usize,
+
+    /// Length of the assembly code pointed to by [`AssemblyHookSettings::asm_code_ptr`].
+    pub asm_code_len: usize,
 
     /// The 'original' address of the assembly code contained in the [`AssemblyHookSettings::asm_code`] field.
     ///
@@ -44,9 +47,9 @@ where
     pub scratch_register: Option<TRegister>,
 }
 
-impl<'a, TRegister> AssemblyHookSettings<'a, TRegister>
+impl<'a, TRegister> AssemblyHookSettings<TRegister>
 where
-    TRegister: Clone,
+    TRegister: Clone + Copy,
 {
     /// Creates a new `AssemblyHookSettings` instance with the basic parameters.
     /// The assembly code will be executed before the original code at the hook address.
@@ -57,12 +60,14 @@ where
     /// - `max_permitted_bytes`: Maximum amount of bytes that a `jump` placed at the hook address can handle.
     pub fn new_minimal(
         hook_address: usize,
-        asm_code: &'a [u8],
+        asm_code_ptr: usize,
+        asm_code_len: usize,
         max_permitted_bytes: usize,
     ) -> Self {
         AssemblyHookSettings {
             hook_address,
-            asm_code,
+            asm_code_ptr,
+            asm_code_len,
             asm_code_address: 0, // Default value for optional field
             max_permitted_bytes,
             behaviour: AsmHookBehaviour::ExecuteFirst,
@@ -80,13 +85,15 @@ where
     /// - `behaviour`: Defines when the assembly code will be executed in relation to the original code.
     pub fn new_with_behaviour(
         hook_address: usize,
-        asm_code: &'a [u8],
+        asm_code_ptr: usize,
+        asm_code_len: usize,
         max_permitted_bytes: usize,
         behaviour: AsmHookBehaviour,
     ) -> Self {
         AssemblyHookSettings {
             hook_address,
-            asm_code,
+            asm_code_ptr,
+            asm_code_len,
             asm_code_address: 0,
             max_permitted_bytes,
             behaviour,
@@ -104,13 +111,15 @@ where
     /// - `max_permitted_bytes`: Maximum amount of bytes that a `jump` placed at the hook address can handle.
     pub fn new_with_asm_code_address(
         hook_address: usize,
-        asm_code: &'a [u8],
+        asm_code_ptr: usize,
+        asm_code_len: usize,
         asm_code_address: usize,
         max_permitted_bytes: usize,
     ) -> Self {
         AssemblyHookSettings {
             hook_address,
-            asm_code,
+            asm_code_ptr,
+            asm_code_len,
             asm_code_address,
             max_permitted_bytes,
             behaviour: AsmHookBehaviour::ExecuteFirst,
@@ -129,14 +138,16 @@ where
     /// - `behaviour`: Defines when the assembly code will be executed in relation to the original code.
     pub fn new(
         hook_address: usize,
-        asm_code: &'a [u8],
+        asm_code_ptr: usize,
+        asm_code_len: usize,
         asm_code_address: usize,
         max_permitted_bytes: usize,
         behaviour: AsmHookBehaviour,
     ) -> Self {
         AssemblyHookSettings {
             hook_address,
-            asm_code,
+            asm_code_ptr,
+            asm_code_len,
             asm_code_address,
             max_permitted_bytes,
             behaviour,

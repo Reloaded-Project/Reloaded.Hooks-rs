@@ -8,6 +8,7 @@ pub mod api {
     /// The errors that can occur when generating a wrapper.
     pub mod errors {
         pub mod assembly_hook_error;
+        pub mod hook_builder_error;
         pub mod inline_branch_error;
         pub mod wrapper_generation_error;
     }
@@ -110,6 +111,8 @@ pub mod api {
 
 pub(crate) mod internal {
     pub(crate) mod assembly_hook;
+    pub(crate) mod hook_builder;
+    pub(crate) mod hook_builder_settings;
 }
 
 /// Code for all the graph algorithms.

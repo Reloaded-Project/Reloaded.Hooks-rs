@@ -40,7 +40,7 @@ pub struct AssemblyHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBuf
 where
     TBuffer: Buffer,
     TJit: Jit<TRegister>,
-    TRegister: RegisterInfo + Clone + Default,
+    TRegister: RegisterInfo + Clone + Default + Copy,
     TDisassembler: LengthDisassembler,
     TRewriter: CodeRewriter<TRegister>,
     TBufferFactory: BufferFactory<TBuffer>,
@@ -66,12 +66,12 @@ where
 impl<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
     AssemblyHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
 where
-    TBuffer: Buffer,
-    TJit: Jit<TRegister>,
-    TRegister: RegisterInfo + Clone + Default,
+    TBuffer: Buffer + 'static,
+    TJit: Jit<TRegister> + 'static,
+    TRegister: RegisterInfo + Clone + Default + Copy + 'static,
     TDisassembler: LengthDisassembler,
-    TRewriter: CodeRewriter<TRegister>,
-    TBufferFactory: BufferFactory<TBuffer>,
+    TRewriter: CodeRewriter<TRegister> + 'static,
+    TBufferFactory: BufferFactory<TBuffer> + 'static,
 {
     pub fn new(
         props: NonNull<StubPackedProps>,
@@ -111,7 +111,8 @@ where
     /// use reloaded_hooks_portable::api::hooks::assembly::assembly_hook::AssemblyHook;
     /// use reloaded_hooks_portable::api::settings::assembly_hook_settings::AssemblyHookSettings;
     ///
-    /// let settings = AssemblyHookSettings::new_minimal(0x12345678, &[0x90, 0x90], 128);
+    /// let code = &[0x90, 0x90];
+    /// let settings = AssemblyHookSettings::new_minimal(0x12345678, code.as_ptr() as usize, code.len(), 128);
     /// AssemblyHook::new(&settings, /* AssemblyHookDependencies */);
     /// ```
     ///
@@ -183,7 +184,7 @@ impl<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory> Drop
 where
     TBuffer: Buffer,
     TJit: Jit<TRegister>,
-    TRegister: RegisterInfo + Clone + Default,
+    TRegister: RegisterInfo + Clone + Default + Copy,
     TDisassembler: LengthDisassembler,
     TRewriter: CodeRewriter<TRegister>,
     TBufferFactory: BufferFactory<TBuffer>,
