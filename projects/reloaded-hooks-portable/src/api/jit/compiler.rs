@@ -1,6 +1,9 @@
 extern crate alloc;
 
-use super::{jump_relative_operation::JumpRelativeOperation, operation::Operation};
+use super::{
+    call_relative_operation::CallRelativeOperation, jump_relative_operation::JumpRelativeOperation,
+    operation::Operation,
+};
 use crate::api::traits::register_info::RegisterInfo;
 use alloc::{string::String, vec::Vec};
 use bitflags::bitflags;
@@ -72,11 +75,13 @@ pub trait Jit<TRegister: RegisterInfo> {
         &[]
     }
 
+    // TODO: Consider moving these things to 'JITUtils' or something.
+
     /// Fills an array with NOP instructions.
     fn fill_nops(arr: &mut [u8]);
 
     /// Assembles a 'jmp'/'branch' instruction directly, bypassing the whole compilation step.
-    /// This is used to speed up single instruction com
+    /// This is used to speed up single instruction computation.
     ///
     /// # Parameters
     /// - `x` - The jump instruction to encode.
@@ -87,6 +92,32 @@ pub trait Jit<TRegister: RegisterInfo> {
         pc: &mut usize,
         buf: &mut Vec<u8>,
     ) -> Result<(), JitError<TRegister>>;
+
+    /// Assembles a 'call'/'branch link' instruction directly, bypassing the whole compilation step.
+    /// This is used to speed up single instruction computation.
+    ///
+    /// # Parameters
+    /// - `x` - The call instruction to encode.
+    /// - `pc` - The current program counter.
+    /// - `buf` - The buffer to write the instruction to.
+    fn encode_call(
+        x: &CallRelativeOperation,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<TRegister>>;
+
+    /// Decodes the target address of a 'call instruction', i.e. the address where the 'call'
+    /// instruction will branch to.
+    ///
+    /// # Parameters
+    /// - `ins_address` - The address of the 'call' instruction.
+    /// - `ins_length` - The length of the 'call' instruction at 'ins_address'.
+    ///
+    /// # Returns
+    ///
+    /// Returns the target address of the call instruction.
+    /// Otherwise an error.
+    fn decode_call_target(ins_address: usize, ins_length: usize) -> Result<usize, &'static str>;
 
     /// Maximum number of bytes required to perform a relative jump.
     /// This is the max amount of bytes that can be returned by [`self::encode_jump`].

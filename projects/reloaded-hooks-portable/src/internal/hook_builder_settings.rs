@@ -9,10 +9,7 @@ use derive_new::new;
 /// This is used for the allocation of wrappers and other native/interop components.
 /// It helps guide memory allocations to be closer to a specific target address.
 #[derive(new)]
-pub struct HookBuilderSettings<TRegister>
-where
-    TRegister: Clone,
-{
+pub struct HookBuilderSettings {
     // 👆 boxed to save some code space, not much to gain here perf wise.
     /// The 'source address' used to allocate the stub buffer within proximity of the original code.
     pub source_address: usize,
@@ -37,13 +34,6 @@ where
     /// When this is set to `false`, the hook will still be 'activated' i.e. the original code will be
     /// overwritten (for thread safety), but the hook will be activated in the disabled state.
     pub auto_activate: bool,
-
-    /// An optional 'scratch register' that can be used to re-encode the original code to a new location.
-    /// This is not required for x86, others require it.
-    ///
-    /// This is only required if platform does not support 'Targeted Memory Allocation', i.e. more
-    /// esoteric platforms.
-    pub scratch_register: Option<TRegister>,
 }
 
 /// Mixin trait for HookBuilder accompanying [`HookBuilderSettings`] that provides

@@ -5,13 +5,17 @@ use crate::common::jit_common::encode_instruction;
 use crate::common::jit_conversions_common::{
     map_allregisters_to_x64, map_register_x64_to_allregisters,
 };
+use crate::common::jit_instructions::decode_relative_call_target::decode_call_target;
+use crate::common::jit_instructions::encode_relative_call::encode_call_relative;
 use crate::common::jit_instructions::encode_relative_jump::encode_jump_relative;
 use crate::x64::register::Register;
 use alloc::{string::ToString, vec::Vec};
 use iced_x86::code_asm::CodeAssembler;
+use reloaded_hooks_portable::api::jit::call_relative_operation::CallRelativeOperation;
+use reloaded_hooks_portable::api::jit::compiler::Jit;
 use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
 use reloaded_hooks_portable::api::jit::{
-    compiler::{transform_err, Jit, JitCapabilities, JitError},
+    compiler::{transform_err, JitCapabilities, JitError},
     operation::{transform_op, Operation},
 };
 
@@ -99,6 +103,18 @@ impl Jit<Register> for JitX64 {
 
     fn max_relative_jump_bytes() -> usize {
         5
+    }
+
+    fn encode_call(
+        x: &CallRelativeOperation,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<Register>> {
+        encode_call_relative(x, pc, buf)
+    }
+
+    fn decode_call_target(ins_address: usize, ins_length: usize) -> Result<usize, &'static str> {
+        decode_call_target(ins_address, ins_length)
     }
 }
 

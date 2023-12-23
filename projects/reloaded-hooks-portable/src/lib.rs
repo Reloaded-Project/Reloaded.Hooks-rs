@@ -23,6 +23,8 @@ pub mod api {
     /// Settings passed to other methodss
     pub mod settings {
         pub mod assembly_hook_settings;
+        pub mod basic_hook_settings;
+        pub mod common_hook_settings;
         pub mod proximity_target;
     }
 
@@ -32,8 +34,11 @@ pub mod api {
             pub mod assembly_hook;
         }
 
+        pub mod basic {}
+
         pub mod branch {
             pub mod branch_hook;
+            pub mod branch_hook_fast;
         }
 
         /// Contains the memory layout of various stubs used throughout the hooks.
@@ -111,6 +116,7 @@ pub mod api {
 
 pub(crate) mod internal {
     pub(crate) mod assembly_hook;
+    pub(crate) mod basic_hook;
     pub(crate) mod hook_builder;
     pub(crate) mod hook_builder_settings;
 }

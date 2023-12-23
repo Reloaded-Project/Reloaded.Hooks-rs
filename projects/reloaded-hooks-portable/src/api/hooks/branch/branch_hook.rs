@@ -1,19 +1,34 @@
 extern crate alloc;
 
 /*
-use crate::{
-    api::{
-        buffers::buffer_abstractions::{Buffer, BufferFactory},
-        jit::compiler::Jit,
-        length_disassembler::LengthDisassembler,
-        rewriter::code_rewriter::CodeRewriter,
-        traits::register_info::RegisterInfo,
-    },
-    helpers::make_inline_rel_branch::INLINE_BRANCH_LEN,
+use crate::api::{
+    buffers::buffer_abstractions::{Buffer, BufferFactory},
+    jit::compiler::Jit,
+    length_disassembler::LengthDisassembler,
+    rewriter::code_rewriter::CodeRewriter,
+    traits::register_info::RegisterInfo,
 };
+use core::{marker::PhantomData, ptr::NonNull};
 
-use bitfield::bitfield;
-use core::marker::PhantomData;
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "riscv32",
+    target_arch = "riscv64"
+))]
+use super::super::stub::stub_props_4byteins::*;
+
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "riscv32",
+    target_arch = "riscv64"
+)))]
+use super::super::stub::stub_props_other::*;
 
 /// Represents an assembly hook.
 #[repr(C)] // Not 'packed' because this is not in array and malloc in practice will align this.
@@ -30,18 +45,10 @@ where
     /// The address of the stub containing custom code.
     stub_address: usize, // 0
 
-    /// Stores sizes of 'branch_to_orig_opcode' and 'branch_to_hook_opcode'.
-    props: BranchHookPackedProps, // 4/8
+    /// Address of 'props' structure
+    props: NonNull<StubPackedProps>, // 4/8
 
-    /// The code to branch to 'orig' segment in the buffer, when disabling the hook.
-    branch_to_orig_opcode: [u8; INLINE_BRANCH_LEN], // 5/9
-
-    /// The code to restore previous functionality from before `branch_to_orig_opcode` was written.
-    restore_hook_opcode: [u8; INLINE_BRANCH_LEN], // 10/14
-
-    // ~1 byte left
-    // 15/19 (x86/x64)
-    // 17 (AArch64)
+    // Struct size: 8/16 bytes.
 
     // Dummy type parameters for Rust compiler to comply.
     _unused_buf: PhantomData<TBuffer>,
@@ -62,52 +69,87 @@ where
     TRewriter: CodeRewriter<TRegister>,
     TBufferFactory: BufferFactory<TBuffer>,
 {
-    /// Writes the hook to memory, either enabling or disabling it based on the provided parameters.
-    fn write_hook(&self, branch_opcode: &[u8], code: &[u8], num_bytes: usize) {
-        // Write the branch first, as per docs
-        // This also overwrites some extra code afterwards, but that's a-ok for now.
-        unsafe {
-            atomic_write_masked::<TBuffer>(self.stub_address, branch_opcode, num_bytes);
-        }
-
-        // Now write the remaining code
-        TBuffer::overwrite(self.stub_address + num_bytes, &code[num_bytes..]);
-
-        // And now re-insert the code we temp overwrote with the branch
-        unsafe {
-            atomic_write_masked::<TBuffer>(self.stub_address, code, num_bytes);
-        }
+    /// Creates a branch hook at a specified location in memory.
+    ///
+    /// # Overview
+    ///
+    /// This function replaces an existing 'call' or 'jmp' instruction with a new one, in place.
+    /// This requires that the current platform supports 'Targeted Memory Allocation' (TMA).
+    ///
+    /// # Arguments
+    /// - `settings`: A reference to `AssemblyHookSettings` containing configuration for the hook, including
+    ///   the hook address, the assembly code to be executed, and other parameters.
+    ///
+    /// # Error Handling
+    ///
+    /// Errors are propagated via `Result`.
+    /// If the hook cannot be created within the constraints specified in `settings`, an error is thrown.
+    ///
+    /// # Examples
+    /// Basic usage involves creating an `AssemblyHookSettings` instance and passing it to this function.
+    /// ```compile_fail
+    /// use reloaded_hooks_portable::api::hooks::assembly::assembly_hook::AssemblyHook;
+    /// use reloaded_hooks_portable::api::settings::assembly_hook_settings::AssemblyHookSettings;
+    ///
+    /// let code = &[0x90, 0x90];
+    /// let settings = AssemblyHookSettings::new_minimal(0x12345678, code.as_ptr() as usize, code.len(), 128);
+    /// AssemblyHook::new(&settings, /* AssemblyHookDependencies */);
+    /// ```
+    ///
+    /// # Hook Lengths
+    ///
+    /// Standard hook lengths for each platform.
+    ///
+    /// TMA == Targeted Memory Allocation
+    ///
+    /// | Architecture   | Relative            | TMA          | Worst Case      |
+    /// |----------------|---------------------|--------------|-----------------|
+    /// | x86            | 5 bytes (+- 2GiB)   | 5 bytes      | 5 bytes         |
+    /// | x86_64         | 5 bytes (+- 2GiB)   | 6 bytes      | 13 bytes        |
+    /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 13 bytes     | 13 bytes        |
+    /// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
+    /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
+    ///
+    /// Note: 12/13 bytes worst case on x86 depending on register number used.
+    ///
+    /// If you are on Windows/Linux/macOS, expect the relative length to be used basically every time
+    /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.
+    ///
+    /// # Safety
+    ///
+    /// This function is unsafe because it reads from raw memory. Make sure the passed pointers and
+    /// lengths are correct.
+    #[allow(clippy::type_complexity)]
+    pub unsafe fn create(
+        settings: &AssemblyHookSettings<TRegister>,
+    ) -> Result<
+        AssemblyHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>,
+        AssemblyHookError<TRegister>,
+    > {
+        create_assembly_hook::<TJit, TRegister, TDisassembler, TRewriter, TBuffer, TBufferFactory>(
+            settings,
+        )
     }
 
-    /// Enables the hook.
-    /// This will cause the hook to be written to memory.
+    /// Enables the hook at `stub_address`.
+    ///
     /// If the hook is already enabled, this function does nothing.
-    /// If the hook is disabled, this function will write the hook to memory.
+    /// If the hook is disabled, this function will perform a thread safe enabling of the hook.
     pub fn enable(&self) {
         unsafe {
-            let props = self.props.as_ref();
-            let num_bytes = props.get_branch_to_hook_len();
-            self.write_hook(
-                props.get_branch_to_hook_slice(),
-                props.get_enabled_code(),
-                num_bytes,
-            );
+            (*self.props.as_ptr())
+                .enable::<TRegister, TJit, TBufferFactory, TBuffer>(self.stub_address);
         }
     }
 
-    /// Disables the hook.
-    /// This will cause the hook to be no-opped.
+    /// Disables the hook at `stub_address`.
+    ///
     /// If the hook is already disabled, this function does nothing.
-    /// If the hook is enabled, this function will no-op the hook.
+    /// If the hook is enabled, this function will perform a thread safe disabling of the hook.
     pub fn disable(&self) {
         unsafe {
-            let props = self.props.as_ref();
-            let num_bytes = props.get_branch_to_orig_len();
-            self.write_hook(
-                props.get_branch_to_orig_slice(),
-                props.get_disabled_code(),
-                num_bytes,
-            );
+            (*self.props.as_ptr())
+                .disable::<TRegister, TJit, TBufferFactory, TBuffer>(self.stub_address);
         }
     }
 

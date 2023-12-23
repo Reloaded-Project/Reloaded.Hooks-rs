@@ -52,6 +52,8 @@ pub(crate) mod common {
     }
 
     pub mod jit_instructions {
+        pub mod decode_relative_call_target;
+        pub mod encode_relative_call;
         pub mod encode_relative_jump;
     }
 

@@ -1,8 +1,6 @@
 extern crate alloc;
-use super::{
-    hook_builder::{create_hook_stub, create_hook_stub_buffer, get_relocated_code_length},
-    hook_builder_settings::{HookBuilderSettings, HookBuilderSettingsMixin},
-};
+
+/*
 use crate::{
     api::{
         buffers::buffer_abstractions::{Buffer, BufferFactory},
@@ -15,12 +13,19 @@ use crate::{
         length_disassembler::LengthDisassembler,
         platforms::platform_functions::MUTUAL_EXCLUSOR,
         rewriter::code_rewriter::{CodeRewriter, CodeRewriterError},
-        settings::assembly_hook_settings::{AsmHookBehaviour, AssemblyHookSettings},
+        settings::{
+            assembly_hook_settings::{AsmHookBehaviour, AssemblyHookSettings},
+            hook_basic_settings::HookBasicSettings,
+        },
         traits::register_info::RegisterInfo,
     },
     helpers::{jit_jump_operation::create_jump_operation, overwrite_code::overwrite_code},
-    internal::assembly_hook::RewriteErrorSource::{CustomCode, OriginalCode},
+    internal::{
+        hook_builder::{create_hook_stub, create_hook_stub_buffer, get_relocated_code_length},
+        hook_builder_settings::{HookBuilderSettings, HookBuilderSettingsMixin},
+    },
 };
+
 use alloc::vec::Vec;
 use alloca::with_alloca;
 use core::{
@@ -30,7 +35,7 @@ use core::{
 };
 use derive_new::new;
 
-/// Creates an assembly hook at a specified location in memory.
+/// Creates a 'branch hook'
 ///
 /// # Overview
 ///
@@ -68,7 +73,7 @@ pub unsafe fn create_assembly_hook<
     TBuffer: Buffer + 'static,
     TBufferFactory: BufferFactory<TBuffer> + 'static,
 >(
-    settings: &AssemblyHookSettings<TRegister>,
+    settings: &HookBasicSettings<TRegister>,
 ) -> Result<
     AssemblyHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>,
     AssemblyHookError<TRegister>,
@@ -344,3 +349,4 @@ fn new_rewrite_error<TRegister>(
         e,
     )
 }
+*/

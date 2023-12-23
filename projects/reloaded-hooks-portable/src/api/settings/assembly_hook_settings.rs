@@ -47,7 +47,7 @@ where
     pub scratch_register: Option<TRegister>,
 }
 
-impl<'a, TRegister> AssemblyHookSettings<TRegister>
+impl<TRegister> AssemblyHookSettings<TRegister>
 where
     TRegister: Clone + Copy,
 {

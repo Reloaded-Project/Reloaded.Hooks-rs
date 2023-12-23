@@ -1,8 +1,6 @@
 extern crate alloc;
-use super::{
-    hook_builder::{create_hook_stub, create_hook_stub_buffer, get_relocated_code_length},
-    hook_builder_settings::{HookBuilderSettings, HookBuilderSettingsMixin},
-};
+
+/*
 use crate::{
     api::{
         buffers::buffer_abstractions::{Buffer, BufferFactory},
@@ -19,8 +17,12 @@ use crate::{
         traits::register_info::RegisterInfo,
     },
     helpers::{jit_jump_operation::create_jump_operation, overwrite_code::overwrite_code},
-    internal::assembly_hook::RewriteErrorSource::{CustomCode, OriginalCode},
+    internal::{
+        hook_builder::{create_hook_stub, create_hook_stub_buffer, get_relocated_code_length},
+        hook_builder_settings::{HookBuilderSettings, HookBuilderSettingsMixin},
+    },
 };
+
 use alloc::vec::Vec;
 use alloca::with_alloca;
 use core::{
@@ -30,7 +32,7 @@ use core::{
 };
 use derive_new::new;
 
-/// Creates an assembly hook at a specified location in memory.
+/// Creates a 'branch hook'
 ///
 /// # Overview
 ///
@@ -344,3 +346,4 @@ fn new_rewrite_error<TRegister>(
         e,
     )
 }
+*/

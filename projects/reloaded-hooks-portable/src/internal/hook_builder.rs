@@ -47,7 +47,6 @@ use crate::api::hooks::stub::stub_props_other::*;
 /// the event that it iis not possible to install the hook.
 #[allow(clippy::type_complexity)]
 pub unsafe fn create_hook_stub_buffer<
-    'a,
     TJit,
     TRegister: Clone + Default,
     TBuffer: Buffer,
@@ -96,9 +95,9 @@ where
 /// If the hook cannot be created within the constraints specified in `settings`, an error is thrown.
 #[allow(clippy::type_complexity)]
 pub unsafe fn create_hook_stub<TRegister: Clone + Default, TBuffer: Buffer>(
-    settings: &mut HookBuilderSettings<TRegister>,
+    settings: &mut HookBuilderSettings,
     alloc: &mut HookBuilderStubAllocation<TBuffer>,
-    mixin: &mut Box<dyn HookBuilderSettingsMixin<TRegister>>,
+    mixin: &mut dyn HookBuilderSettingsMixin<TRegister>,
 ) -> Result<HookBuilderResult, HookBuilderError<TRegister>>
 where
     TRegister: RegisterInfo,

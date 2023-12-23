@@ -72,7 +72,7 @@ flowchart TD
 
 This option allows for a small performance improvement, saving 1 instruction and some instruction prefetching load. 
 
-This is on by default (can be disabled), and will take into effect when no conversion between calling conventions is needed and target is within 'Relative Jump' range for your CPU architecture. 
+This is on by default (can be disabled), and will take into effect when no conversion between calling conventions is needed.
 
 ### When Activated (with Calling Convention Conversion)
 
