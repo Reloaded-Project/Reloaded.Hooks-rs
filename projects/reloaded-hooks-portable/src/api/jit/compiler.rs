@@ -1,8 +1,8 @@
 extern crate alloc;
 
 use super::{
-    call_relative_operation::CallRelativeOperation, jump_relative_operation::JumpRelativeOperation,
-    operation::Operation,
+    call_relative_operation::CallRelativeOperation, jump_absolute_operation::JumpAbsoluteOperation,
+    jump_relative_operation::JumpRelativeOperation, operation::Operation,
 };
 use crate::api::traits::register_info::RegisterInfo;
 use alloc::{string::String, vec::Vec};
@@ -89,6 +89,19 @@ pub trait Jit<TRegister: RegisterInfo> {
     /// - `buf` - The buffer to write the instruction to.
     fn encode_jump(
         x: &JumpRelativeOperation<TRegister>,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<TRegister>>;
+
+    /// Assembles a 'jmp'/'branch' instruction to an absolute address, bypassing
+    /// the whole compilation step. This is used to speed up single instruction computation.
+    ///
+    /// # Parameters
+    /// - `x` - The jump instruction to encode.
+    /// - `pc` - The current program counter.
+    /// - `buf` - The buffer to write the instruction to.
+    fn encode_abs_jump(
+        x: &JumpAbsoluteOperation<TRegister>,
         pc: &mut usize,
         buf: &mut Vec<u8>,
     ) -> Result<(), JitError<TRegister>>;

@@ -30,6 +30,7 @@ use core::{
 use reloaded_hooks_portable::api::jit::{
     call_relative_operation::CallRelativeOperation,
     compiler::{Jit, JitCapabilities, JitError},
+    jump_absolute_operation::JumpAbsoluteOperation,
     jump_relative_operation::JumpRelativeOperation,
     operation::Operation,
 };
@@ -142,6 +143,17 @@ impl Jit<AllRegisters> for JitAarch64 {
         }
 
         Ok((ins_address as isize).wrapping_add(instruction.offset() as isize) as usize)
+    }
+
+    fn encode_abs_jump(
+        x: &JumpAbsoluteOperation<AllRegisters>,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<AllRegisters>> {
+        let mut buf_i32 = vec_u8_to_i32(mem::take(buf));
+        let result = encode_jump_absolute(x, pc, &mut buf_i32);
+        *buf = vec_i32_to_u8(buf_i32);
+        result
     }
 }
 
