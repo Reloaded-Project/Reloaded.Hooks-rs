@@ -107,7 +107,7 @@ impl StubPackedProps {
         }
     }
 
-    pub fn get_swap_buffer<'a>(&self) -> &'a mut [u8] {
+    pub fn get_swap_buffer<'a>(&mut self) -> &'a mut [u8] {
         let start_addr = self as *const Self as *const u8;
         let offset = size_of::<Self>();
         unsafe { from_raw_parts_mut(start_addr.add(offset) as *mut u8, self.get_swap_size()) }
@@ -120,7 +120,7 @@ impl StubPackedProps {
         TBufferFactory: BufferFactory<TBuffer>,
         TBuffer: Buffer,
     >(
-        &self,
+        &mut self,
         temp_branch_offset: usize,
         stub_address: usize,
     ) {
