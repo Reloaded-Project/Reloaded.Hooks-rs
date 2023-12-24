@@ -30,7 +30,7 @@ use core::{
 };
 use reloaded_hooks_portable::api::jit::{
     call_relative_operation::CallRelativeOperation,
-    compiler::{Jit, JitCapabilities, JitError},
+    compiler::{DecodeCallTargetResult, Jit, JitCapabilities, JitError},
     jump_absolute_operation::JumpAbsoluteOperation,
     jump_relative_operation::JumpRelativeOperation,
     operation::Operation,
@@ -127,7 +127,10 @@ impl Jit<AllRegisters> for JitAarch64 {
         result
     }
 
-    fn decode_call_target(ins_address: usize, ins_length: usize) -> Result<usize, &'static str> {
+    fn decode_call_target(
+        ins_address: usize,
+        ins_length: usize,
+    ) -> Result<DecodeCallTargetResult, &'static str> {
         if ins_length < 4 {
             return Err("[ARM64: decode_call_target] Instruction is too short.");
         }
@@ -140,11 +143,8 @@ impl Jit<AllRegisters> for JitAarch64 {
             return Err("[ARM64: decode_call_target] This is not a branch instruction.");
         }
 
-        if !instruction.is_link() {
-            return Err("[ARM64: decode_call_target] This is a branch, but not 'branch with link' instruction.");
-        }
-
-        Ok((ins_address as isize).wrapping_add(instruction.offset() as isize) as usize)
+        let addr = (ins_address as isize).wrapping_add(instruction.offset() as isize) as usize;
+        Ok(DecodeCallTargetResult::new(addr, instruction.is_link()))
     }
 
     fn encode_abs_jump(

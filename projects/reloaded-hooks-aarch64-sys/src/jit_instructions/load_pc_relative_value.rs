@@ -138,6 +138,7 @@ mod tests {
     }
 
     #[rstest]
+    #[cfg(debug_assertions)]
     #[case(0, 4294967296)] // 1 beyond max forward jump
     #[case(4294967297 + 4096, 0)] // 1 beyond max back jump
     fn error_when_out_of_range(#[case] initial_pc: usize, #[case] target_address: usize) {

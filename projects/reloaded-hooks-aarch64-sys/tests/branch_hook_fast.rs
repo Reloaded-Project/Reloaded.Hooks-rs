@@ -19,8 +19,8 @@ mod tests {
     use reloaded_hooks_aarch64_sys::{
         length_disassembler::LengthDisassemblerAarch64, rewriter::CodeRewriterAarch64,
     };
-    use reloaded_hooks_portable::api::buffers::default_buffer::LockedBuffer;
-    use reloaded_hooks_portable::api::buffers::default_buffer_factory::DefaultBufferFactory;
+    use reloaded_hooks_buffers_common::buffer::StaticLinkedBuffer;
+    use reloaded_hooks_buffers_common::buffer_factory::BuffersFactory;
     use reloaded_hooks_portable::api::hooks::branch::branch_hook_fast::create_branch_hook_fast_with_pointer;
     use reloaded_hooks_portable::api::settings::basic_hook_settings::BasicHookSettings;
 
@@ -32,8 +32,6 @@ mod tests {
 
     #[test]
     fn hook_calculator_branch_fast_aarch64_with_call_abs() {
-        use reloaded_hooks_aarch64_sys::all_registers::AllRegisters;
-
         unsafe {
             // Allocate the function.
             let add_addr = alloc_function(&CALL_CALCULATOR_ADD).unwrap();
@@ -53,8 +51,8 @@ mod tests {
                 AllRegisters,
                 LengthDisassemblerAarch64,
                 CodeRewriterAarch64,
-                LockedBuffer,
-                DefaultBufferFactory,
+                StaticLinkedBuffer,
+                BuffersFactory,
             >(&settings, test_addr_ptr)
             .unwrap();
 
@@ -89,8 +87,8 @@ mod tests {
                 AllRegisters,
                 LengthDisassemblerAarch64,
                 CodeRewriterAarch64,
-                LockedBuffer,
-                DefaultBufferFactory,
+                StaticLinkedBuffer,
+                BuffersFactory,
             >(&settings, test_addr_ptr)
             .unwrap();
 

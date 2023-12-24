@@ -14,8 +14,8 @@ mod tests {
     use crate::asm::calculator::CALL_CALCULATOR_ADD_CDECL_X86_TARGET_FUNCTION_OFFSET;
     use asm::assemble_function::alloc_function;
     use core::mem::transmute;
-    use reloaded_hooks_portable::api::buffers::default_buffer::LockedBuffer;
-    use reloaded_hooks_portable::api::buffers::default_buffer_factory::DefaultBufferFactory;
+    use reloaded_hooks_buffers_common::buffer::StaticLinkedBuffer;
+    use reloaded_hooks_buffers_common::buffer_factory::BuffersFactory;
     use reloaded_hooks_portable::api::hooks::branch::branch_hook_fast::create_branch_hook_fast_with_pointer;
     use reloaded_hooks_portable::api::settings::basic_hook_settings::BasicHookSettings;
     use reloaded_hooks_x86_sys::x86::{
@@ -29,7 +29,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_arch = "x86")]
     fn hook_calculator_branch_fast_x86_with_call_abs() {
         unsafe {
             // Allocate the function.
@@ -50,8 +49,8 @@ mod tests {
                 x86::Register,
                 LengthDisassemblerX86,
                 CodeRewriterX86,
-                LockedBuffer,
-                DefaultBufferFactory,
+                StaticLinkedBuffer,
+                BuffersFactory,
             >(&settings, test_addr_ptr)
             .unwrap();
 
@@ -65,7 +64,6 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_arch = "x86")]
     fn hook_calculator_branch_fast_x86_with_rel_branch() {
         unsafe {
             // Allocate the function.
@@ -87,8 +85,8 @@ mod tests {
                 x86::Register,
                 LengthDisassemblerX86,
                 CodeRewriterX86,
-                LockedBuffer,
-                DefaultBufferFactory,
+                StaticLinkedBuffer,
+                BuffersFactory,
             >(&settings, test_addr_ptr)
             .unwrap();
 

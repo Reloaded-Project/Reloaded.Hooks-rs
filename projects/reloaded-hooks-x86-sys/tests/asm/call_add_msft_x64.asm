@@ -9,47 +9,19 @@ use64
 add_fn:
     mov rax, rcx ; Move num1 into RAX
     add rax, rdx ; Add num2 to RAX (RAX = RAX + RDX)
-
-    ; Nop slide in case 
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
     ret
 
 ; Wrapper function calling 'add'
 add_wrapper:
     ; Call the 'add' function
     ; Since add uses rcx and rdx, no need to move arguments
+    sub rsp, 40h
     call add_fn
+    add rsp, 40h
     ret
-
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
 
 target_function:
     mov rax, rcx ; Move num1 into RAX
     add rax, rdx ; Add num2 to RAX (RAX = RAX + RDX)
     inc rax ; Add 1 for the test.
- 
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
-    nop
     ret

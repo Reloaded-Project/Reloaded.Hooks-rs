@@ -13,7 +13,7 @@ use crate::x64::register::Register;
 use alloc::{string::ToString, vec::Vec};
 use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::call_relative_operation::CallRelativeOperation;
-use reloaded_hooks_portable::api::jit::compiler::Jit;
+use reloaded_hooks_portable::api::jit::compiler::{DecodeCallTargetResult, Jit};
 use reloaded_hooks_portable::api::jit::jump_absolute_operation::JumpAbsoluteOperation;
 use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
 use reloaded_hooks_portable::api::jit::{
@@ -115,7 +115,10 @@ impl Jit<Register> for JitX64 {
         encode_call_relative(x, pc, buf)
     }
 
-    fn decode_call_target(ins_address: usize, ins_length: usize) -> Result<usize, &'static str> {
+    fn decode_call_target(
+        ins_address: usize,
+        ins_length: usize,
+    ) -> Result<DecodeCallTargetResult, &'static str> {
         decode_call_target(ins_address, ins_length)
     }
 

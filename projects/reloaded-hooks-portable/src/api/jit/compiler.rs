@@ -8,6 +8,7 @@ use crate::api::traits::register_info::RegisterInfo;
 use alloc::{string::String, vec::Vec};
 use bitflags::bitflags;
 use core::fmt::Debug;
+use derive_new::new;
 use thiserror_no_std::Error;
 
 bitflags! {
@@ -136,7 +137,10 @@ pub trait Jit<TRegister: RegisterInfo> {
     ///
     /// Returns the target address of the call instruction.
     /// Otherwise an error.
-    fn decode_call_target(ins_address: usize, ins_length: usize) -> Result<usize, &'static str>;
+    fn decode_call_target(
+        ins_address: usize,
+        ins_length: usize,
+    ) -> Result<DecodeCallTargetResult, &'static str>;
 
     /// Maximum number of bytes required to perform a relative jump.
     /// This is the max amount of bytes that can be returned by [`self::encode_jump`].
@@ -207,4 +211,15 @@ where
             JitError::InvalidRegisterCombination3(f(a), f(b), f(c))
         }
     }
+}
+
+/// Contains the result of decoding a 'call' instruction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
+pub struct DecodeCallTargetResult {
+    /// The target address of the call instruction.
+    pub target_address: usize,
+
+    /// True if the instruction is a 'call' (branch+link) instruction.
+    /// False if the instruction is a 'jump' (branch) instruction.
+    pub is_call: bool,
 }

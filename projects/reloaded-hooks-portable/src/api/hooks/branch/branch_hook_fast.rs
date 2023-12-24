@@ -97,9 +97,10 @@ pub unsafe fn create_branch_hook_fast_with_callback<
     let _guard = MUTUAL_EXCLUSOR.lock();
 
     // Decode the existing branch to be modified.
+    // Assumption: 'on supported architectures jmp and call have the same length'
     let target =
         TJit::decode_call_target(settings.hook_address, TJit::standard_relative_call_bytes())?;
-    original_val_receiver(target);
+    original_val_receiver(target.target_address);
 
     // Determine if we are in range for a direct branch to target.
     // If not, we will need to use a stub.
@@ -117,7 +118,11 @@ pub unsafe fn create_branch_hook_fast_with_callback<
         // This is the most optimal solution.
         // No stub needed, and best performance.
         let mut pc = settings.hook_address;
-        TJit::encode_call(&CallRel::new(settings.new_target), &mut pc, &mut code).unwrap();
+        if target.is_call {
+            TJit::encode_call(&CallRel::new(settings.new_target), &mut pc, &mut code)?;
+        } else {
+            TJit::encode_jump(&JumpRel::new(settings.new_target), &mut pc, &mut code)?;
+        }
 
         overwrite_code(settings.hook_address, &code);
         return Ok(());
@@ -131,6 +136,7 @@ pub unsafe fn create_branch_hook_fast_with_callback<
         MAX_BRANCH_LENGTH,
     );
 
+    debug_assert!(alloc.can_relative_jump);
     let buf_ptr = alloc.buf.get_address() as usize;
     let is_direct_branch = can_direct_branch(
         buf_ptr,
@@ -141,11 +147,25 @@ pub unsafe fn create_branch_hook_fast_with_callback<
 
     let mut pc = buf_ptr;
     if is_direct_branch {
-        TJit::encode_jump(&JumpRel::new(settings.new_target), &mut pc, &mut code)?;
+        if target.is_call {
+            TJit::encode_call(&CallRel::new(settings.new_target), &mut pc, &mut code)?;
+        } else {
+            TJit::encode_jump(&JumpRel::new(settings.new_target), &mut pc, &mut code)?;
+        }
 
         TBuffer::overwrite(buf_ptr, &code);
         alloc.buf.advance(code.len());
+
+        // And now make a branch to it at hook address.
+        code.clear();
+        pc = settings.hook_address;
+        if target.is_call {
+            TJit::encode_call(&CallRel::new(buf_ptr), &mut pc, &mut code)?;
+        } else {
+            TJit::encode_jump(&JumpRel::new(buf_ptr), &mut pc, &mut code)?;
+        }
         overwrite_code(settings.hook_address, &code);
+
         return Ok(());
     }
 
@@ -153,6 +173,7 @@ pub unsafe fn create_branch_hook_fast_with_callback<
         "Scratch register is required for create_branch_hook_fast_with_callback",
     ))?;
 
+    // Encode absolute jump on heap.
     TJit::encode_abs_jump(
         &JumpAbs::new_with_reg(settings.new_target, reg),
         &mut pc,
@@ -162,7 +183,15 @@ pub unsafe fn create_branch_hook_fast_with_callback<
     debug_assert!(code.len() <= MAX_BRANCH_LENGTH);
     TBuffer::overwrite(buf_ptr, &code);
     alloc.buf.advance(code.len());
-    overwrite_code(settings.hook_address, &code);
 
+    // And now make a branch to it at hook address.
+    code.clear();
+    pc = settings.hook_address;
+    if target.is_call {
+        TJit::encode_call(&CallRel::new(buf_ptr), &mut pc, &mut code)?;
+    } else {
+        TJit::encode_jump(&JumpRel::new(buf_ptr), &mut pc, &mut code)?;
+    }
+    overwrite_code(settings.hook_address, &code);
     Ok(())
 }

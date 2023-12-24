@@ -10,11 +10,12 @@ mod tests {
     use crate::asm::calculator::Add;
     use crate::asm::calculator::CALL_CALCULATOR_ADD_MSFT_X64;
     use crate::asm::calculator::CALL_CALCULATOR_ADD_MSFT_X64_CALL_OFFSET;
+    use crate::asm::calculator::CALL_CALCULATOR_ADD_MSFT_X64_FUN_OFFSET;
     use crate::asm::calculator::CALL_CALCULATOR_ADD_MSFT_X64_TARGET_FUNCTION_OFFSET;
     use asm::assemble_function::alloc_function;
     use core::mem::transmute;
-    use reloaded_hooks_portable::api::buffers::default_buffer::LockedBuffer;
-    use reloaded_hooks_portable::api::buffers::default_buffer_factory::DefaultBufferFactory;
+    use reloaded_hooks_buffers_common::buffer::StaticLinkedBuffer;
+    use reloaded_hooks_buffers_common::buffer_factory::BuffersFactory;
     use reloaded_hooks_portable::api::hooks::branch::branch_hook_fast::create_branch_hook_fast_with_pointer;
     use reloaded_hooks_portable::api::settings::basic_hook_settings::BasicHookSettings;
     use reloaded_hooks_x86_sys::x64::{
@@ -28,12 +29,11 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_arch = "x86_64")]
     fn hook_calculator_branch_fast_x64_with_call_abs() {
         unsafe {
             // Allocate the function.
             let add_addr = alloc_function(&CALL_CALCULATOR_ADD_MSFT_X64).unwrap();
-            let add: Add = transmute(add_addr + CALL_CALCULATOR_ADD_MSFT_X64_CALL_OFFSET);
+            let add: Add = transmute(add_addr + CALL_CALCULATOR_ADD_MSFT_X64_FUN_OFFSET);
             let hook_addr = add_addr + CALL_CALCULATOR_ADD_MSFT_X64_CALL_OFFSET;
             let hook_target: usize = add_hook_impl as *const () as usize;
 
@@ -49,8 +49,8 @@ mod tests {
                 x64::Register,
                 LengthDisassemblerX64,
                 CodeRewriterX64,
-                LockedBuffer,
-                DefaultBufferFactory,
+                StaticLinkedBuffer,
+                BuffersFactory,
             >(&settings, test_addr_ptr)
             .unwrap();
 
@@ -64,12 +64,11 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_arch = "x86_64")]
     fn hook_calculator_branch_fast_x64_with_rel_branch() {
         unsafe {
             // Allocate the function.
             let add_addr = alloc_function(&CALL_CALCULATOR_ADD_MSFT_X64).unwrap();
-            let add: Add = transmute(add_addr + CALL_CALCULATOR_ADD_MSFT_X64_CALL_OFFSET);
+            let add: Add = transmute(add_addr + CALL_CALCULATOR_ADD_MSFT_X64_FUN_OFFSET);
             let hook_addr = add_addr + CALL_CALCULATOR_ADD_MSFT_X64_CALL_OFFSET;
             let hook_target: usize =
                 transmute(add_addr + CALL_CALCULATOR_ADD_MSFT_X64_TARGET_FUNCTION_OFFSET);
@@ -86,8 +85,8 @@ mod tests {
                 x64::Register,
                 LengthDisassemblerX64,
                 CodeRewriterX64,
-                LockedBuffer,
-                DefaultBufferFactory,
+                StaticLinkedBuffer,
+                BuffersFactory,
             >(&settings, test_addr_ptr)
             .unwrap();
 

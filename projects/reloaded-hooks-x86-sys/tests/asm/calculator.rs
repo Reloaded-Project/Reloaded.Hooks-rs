@@ -7,19 +7,27 @@ pub const CALCULATOR_ADD_MSFT_X64: [u8; 14] = [
 ];
 
 // call_add_msft_x64.asm
-pub const CALL_CALCULATOR_ADD_MSFT_X64: [u8; 49] = [
-    0x48, 0x89, 0xC8, 0x48, 0x01, 0xD0, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0xC3, 0xE8, 0xED,
-    0xFF, 0xFF, 0xFF, 0xC3, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90,
-    0x48, 0x89, 0xC8, 0x48, 0x01, 0xD0, 0x48, 0xFF, 0xC0, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90,
-    0xC3,
+pub const CALL_CALCULATOR_ADD_MSFT_X64: [u8; 31] = [
+    // add_fn:
+    0x48, 0x89, 0xC8, // mov rax, rcx
+    0x48, 0x01, 0xD0, // add rax, rdx
+    0xC3, // ret
+    // add_wrapper:
+    0x48, 0x83, 0xEC, 0x40, // sub rsp, 40h
+    0xE8, 0xF0, 0xFF, 0xFF, 0xFF, // call add_fn (Placeholder offset)
+    0x48, 0x83, 0xC4, 0x40, // add rsp, 40h
+    0xC3, // ret
+    // target_function:
+    0x48, 0x89, 0xC8, // mov rax, rcx
+    0x48, 0x01, 0xD0, // add rax, rdx
+    0x48, 0xFF, 0xC0, // inc rax
+    0xC3, // ret
 ];
 
-// Offset of the call instruction in CALL_CALCULATOR_ADD_MSFT_X64 to be hooked.
-pub const CALL_CALCULATOR_ADD_MSFT_X64_CALL_OFFSET: usize = 14;
-
-// Offset of the target function in CALL_CALCULATOR_ADD_MSFT_X64 to replace the original branch with.
-// Used for testing .
-pub const CALL_CALCULATOR_ADD_MSFT_X64_TARGET_FUNCTION_OFFSET: usize = 32;
+// Update the offsets according to the new array layout
+pub const CALL_CALCULATOR_ADD_MSFT_X64_FUN_OFFSET: usize = 7; // Start of add_wrapper
+pub const CALL_CALCULATOR_ADD_MSFT_X64_CALL_OFFSET: usize = 11; // Offset of 'call add_fn' in add_wrapper
+pub const CALL_CALCULATOR_ADD_MSFT_X64_TARGET_FUNCTION_OFFSET: usize = 21; // Start of target_function
 
 //////////////////// X86 ////////////////////
 
