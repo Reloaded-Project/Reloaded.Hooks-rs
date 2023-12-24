@@ -15,9 +15,9 @@ add_fn:
 add_wrapper:
     ; Call the 'add' function
     ; Since add uses rcx and rdx, no need to move arguments
-    sub rsp, 40h
+    sub rsp, 0x28
     call add_fn
-    add rsp, 40h
+    add rsp, 0x28
     ret
 
 target_function:
