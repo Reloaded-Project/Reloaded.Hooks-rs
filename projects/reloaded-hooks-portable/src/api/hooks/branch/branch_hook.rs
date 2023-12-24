@@ -1,161 +1,168 @@
 extern crate alloc;
 
-/*
-use crate::api::{
-    buffers::buffer_abstractions::{Buffer, BufferFactory},
-    jit::compiler::Jit,
-    length_disassembler::LengthDisassembler,
-    rewriter::code_rewriter::CodeRewriter,
-    traits::register_info::RegisterInfo,
+use crate::{
+    api::{
+        buffers::buffer_abstractions::{Buffer, BufferFactory},
+        errors::fast_hook_error::FastHookError,
+        jit::{
+            compiler::Jit,
+            operation_aliases::{CallRel, JumpAbs, JumpRel},
+        },
+        length_disassembler::LengthDisassembler,
+        platforms::platform_functions::MUTUAL_EXCLUSOR,
+        rewriter::code_rewriter::CodeRewriter,
+        settings::basic_hook_settings::BasicHookSettings,
+        traits::register_info::RegisterInfo,
+    },
+    helpers::{overwrite_code::overwrite_code, relative_branch_range_check::can_direct_branch},
+    internal::hook_builder::create_hook_stub_buffer,
 };
-use core::{marker::PhantomData, ptr::NonNull};
+use alloc::vec::Vec;
+use core::fmt::Debug;
 
-#[cfg(any(
-    target_arch = "aarch64",
-    target_arch = "arm",
-    target_arch = "mips",
-    target_arch = "powerpc",
-    target_arch = "riscv32",
-    target_arch = "riscv64"
-))]
-use super::super::stub::stub_props_4byteins::*;
-
-#[cfg(not(any(
-    target_arch = "aarch64",
-    target_arch = "arm",
-    target_arch = "mips",
-    target_arch = "powerpc",
-    target_arch = "riscv32",
-    target_arch = "riscv64"
-)))]
-use super::super::stub::stub_props_other::*;
-
-/// Represents an assembly hook.
-#[repr(C)] // Not 'packed' because this is not in array and malloc in practice will align this.
-pub struct BranchHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
-where
-    TBuffer: Buffer,
+/// Creates a 'fast branch hook'
+///
+/// # Overview
+///
+/// Creates a variant of the 'branch hook' which cannot be disabled and cannot support calling
+/// convention conversion.
+///
+/// Use this hook variant if you have no intent to disable the hook and use the same calling convention.
+///
+/// # Safety
+///
+/// Wrong hook can of course crash the process :)
+///
+/// # Returns
+///
+/// Either address of the old method via `Ok` or an error via `Err`.
+#[allow(clippy::type_complexity)]
+pub unsafe fn create_branch_hook_with_pointer<
     TJit: Jit<TRegister>,
-    TRegister: RegisterInfo + Clone + Default,
+    TRegister: RegisterInfo + Clone + Default + Copy + Debug,
     TDisassembler: LengthDisassembler,
     TRewriter: CodeRewriter<TRegister>,
+    TBuffer: Buffer,
     TBufferFactory: BufferFactory<TBuffer>,
-{
-    // docs/dev/design/branch-hooks/overview.md
-    /// The address of the stub containing custom code.
-    stub_address: usize, // 0
-
-    /// Address of 'props' structure
-    props: NonNull<StubPackedProps>, // 4/8
-
-    // Struct size: 8/16 bytes.
-
-    // Dummy type parameters for Rust compiler to comply.
-    _unused_buf: PhantomData<TBuffer>,
-    _unused_tj: PhantomData<TJit>,
-    _unused_tr: PhantomData<TRegister>,
-    _unused_td: PhantomData<TDisassembler>,
-    _unused_rwr: PhantomData<TRewriter>,
-    _unused_fac: PhantomData<TBufferFactory>,
+>(
+    settings: &BasicHookSettings<TRegister>,
+    original_fn_address: *mut usize,
+) -> Result<(), FastHookError<TRegister>> {
+    create_branch_hook_with_callback::<
+        TJit,
+        TRegister,
+        TDisassembler,
+        TRewriter,
+        TBuffer,
+        TBufferFactory,
+    >(settings, &|val| {
+        *original_fn_address = val;
+    })
 }
 
-impl<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
-    BranchHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
-where
-    TBuffer: Buffer,
+/// Creates a 'fast branch hook'
+///
+/// # Overview
+///
+/// Creates a variant of the 'branch hook' which cannot be disabled and cannot support calling
+/// convention conversion.
+///
+/// Use this hook variant if you have no intent to disable the hook and use the same calling convention.
+///
+/// # Safety
+///
+/// Wrong hook can of course crash the process :)
+///
+/// # Returns
+///
+/// Either `Ok` or an error via `Err`.
+#[allow(clippy::type_complexity)]
+pub unsafe fn create_branch_hook_with_callback<
     TJit: Jit<TRegister>,
-    TRegister: RegisterInfo + Clone + Default,
+    TRegister: RegisterInfo + Clone + Default + Copy + Debug,
     TDisassembler: LengthDisassembler,
     TRewriter: CodeRewriter<TRegister>,
+    TBuffer: Buffer,
     TBufferFactory: BufferFactory<TBuffer>,
-{
-    /// Creates a branch hook at a specified location in memory.
-    ///
-    /// # Overview
-    ///
-    /// This function replaces an existing 'call' or 'jmp' instruction with a new one, in place.
-    /// This requires that the current platform supports 'Targeted Memory Allocation' (TMA).
-    ///
-    /// # Arguments
-    /// - `settings`: A reference to `AssemblyHookSettings` containing configuration for the hook, including
-    ///   the hook address, the assembly code to be executed, and other parameters.
-    ///
-    /// # Error Handling
-    ///
-    /// Errors are propagated via `Result`.
-    /// If the hook cannot be created within the constraints specified in `settings`, an error is thrown.
-    ///
-    /// # Examples
-    /// Basic usage involves creating an `AssemblyHookSettings` instance and passing it to this function.
-    /// ```compile_fail
-    /// use reloaded_hooks_portable::api::hooks::assembly::assembly_hook::AssemblyHook;
-    /// use reloaded_hooks_portable::api::settings::assembly_hook_settings::AssemblyHookSettings;
-    ///
-    /// let code = &[0x90, 0x90];
-    /// let settings = AssemblyHookSettings::new_minimal(0x12345678, code.as_ptr() as usize, code.len(), 128);
-    /// AssemblyHook::new(&settings, /* AssemblyHookDependencies */);
-    /// ```
-    ///
-    /// # Hook Lengths
-    ///
-    /// Standard hook lengths for each platform.
-    ///
-    /// TMA == Targeted Memory Allocation
-    ///
-    /// | Architecture   | Relative            | TMA          | Worst Case      |
-    /// |----------------|---------------------|--------------|-----------------|
-    /// | x86            | 5 bytes (+- 2GiB)   | 5 bytes      | 5 bytes         |
-    /// | x86_64         | 5 bytes (+- 2GiB)   | 6 bytes      | 13 bytes        |
-    /// | x86_64 (macOS) | 5 bytes (+- 2GiB)   | 13 bytes     | 13 bytes        |
-    /// | ARM64          | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
-    /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 12 bytes     | 24 bytes        |
-    ///
-    /// Note: 12/13 bytes worst case on x86 depending on register number used.
-    ///
-    /// If you are on Windows/Linux/macOS, expect the relative length to be used basically every time
-    /// in practice. However, do feel free to use the worst case length inside settings if you are unsure.
-    ///
-    /// # Safety
-    ///
-    /// This function is unsafe because it reads from raw memory. Make sure the passed pointers and
-    /// lengths are correct.
-    #[allow(clippy::type_complexity)]
-    pub unsafe fn create(
-        settings: &AssemblyHookSettings<TRegister>,
-    ) -> Result<
-        AssemblyHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>,
-        AssemblyHookError<TRegister>,
-    > {
-        create_assembly_hook::<TJit, TRegister, TDisassembler, TRewriter, TBuffer, TBufferFactory>(
-            settings,
-        )
+>(
+    settings: &BasicHookSettings<TRegister>,
+    original_val_receiver: impl FnOnce(usize),
+) -> Result<(), FastHookError<TRegister>> {
+    // Documented in docs/dev/design/assembly-hooks/overview.md
+    const MAX_BRANCH_LENGTH: usize = 24; // sufficient for relative/absolute jmp/call in any architecture
+
+    // Lock native function memory, to ensure we get accurate info at hook address.
+    // This should make hooking operation thread safe provided no presence of 3rd party
+    // library instances, which is a-ok for Reloaded3.
+    let _guard = MUTUAL_EXCLUSOR.lock();
+
+    // Decode the existing branch to be modified.
+    let target =
+        TJit::decode_call_target(settings.hook_address, TJit::standard_relative_call_bytes())?;
+    original_val_receiver(target);
+
+    // Determine if we are in range for a direct branch to target.
+    // If not, we will need to use a stub.
+    // We subtract branch length for those architectures that jump relative to the start of the next instruction.
+    let is_direct_branch = can_direct_branch(
+        settings.hook_address,
+        settings.new_target,
+        TJit::max_standard_relative_call_distance(),
+        TJit::standard_relative_call_bytes(),
+    );
+
+    let mut code = Vec::<u8>::with_capacity(24); // sufficient for relative/absolute jmp in any architecture
+    if is_direct_branch {
+        // We can branch directly to the target.
+        // This is the most optimal solution.
+        // No stub needed, and best performance.
+        let mut pc = settings.hook_address;
+        TJit::encode_call(&CallRel::new(settings.new_target), &mut pc, &mut code).unwrap();
+
+        overwrite_code(settings.hook_address, &code);
+        return Ok(());
     }
 
-    /// Enables the hook at `stub_address`.
-    ///
-    /// If the hook is already enabled, this function does nothing.
-    /// If the hook is disabled, this function will perform a thread safe enabling of the hook.
-    pub fn enable(&self) {
-        unsafe {
-            (*self.props.as_ptr())
-                .enable::<TRegister, TJit, TBufferFactory, TBuffer>(self.stub_address);
-        }
+    // We cannot branch directly to the target. We need to use a stub.
+
+    // Get intermediary buffer we will be using
+    let mut alloc = create_hook_stub_buffer::<TJit, TRegister, TBuffer, TBufferFactory>(
+        settings.hook_address,
+        MAX_BRANCH_LENGTH,
+    );
+
+    let buf_ptr = alloc.buf.get_address() as usize;
+    let is_direct_branch = can_direct_branch(
+        buf_ptr,
+        settings.new_target,
+        TJit::max_standard_relative_call_distance(),
+        TJit::standard_relative_call_bytes(),
+    );
+
+    let mut pc = buf_ptr;
+    if is_direct_branch {
+        TJit::encode_jump(&JumpRel::new(settings.new_target), &mut pc, &mut code)?;
+
+        TBuffer::overwrite(buf_ptr, &code);
+        alloc.buf.advance(code.len());
+        overwrite_code(settings.hook_address, &code);
+        return Ok(());
     }
 
-    /// Disables the hook at `stub_address`.
-    ///
-    /// If the hook is already disabled, this function does nothing.
-    /// If the hook is enabled, this function will perform a thread safe disabling of the hook.
-    pub fn disable(&self) {
-        unsafe {
-            (*self.props.as_ptr())
-                .disable::<TRegister, TJit, TBufferFactory, TBuffer>(self.stub_address);
-        }
-    }
+    let reg = settings.scratch_register.ok_or(FastHookError::StringError(
+        "Scratch register is required for create_branch_hook_with_callback",
+    ))?;
 
-    /// Returns true if the hook is enabled, else false.
-    pub fn get_is_enabled(&self) -> bool {
-        unsafe { self.props.as_ref().is_enabled() }
-    }
+    TJit::encode_abs_jump(
+        &JumpAbs::new_with_reg(settings.new_target, reg),
+        &mut pc,
+        &mut code,
+    )?;
+
+    debug_assert!(code.len() <= MAX_BRANCH_LENGTH);
+    TBuffer::overwrite(buf_ptr, &code);
+    alloc.buf.advance(code.len());
+    overwrite_code(settings.hook_address, &code);
+
+    Ok(())
 }
-*/

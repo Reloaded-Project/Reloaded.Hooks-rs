@@ -15,7 +15,7 @@ mod tests {
     use core::mem::transmute;
     use reloaded_hooks_portable::api::buffers::default_buffer::LockedBuffer;
     use reloaded_hooks_portable::api::buffers::default_buffer_factory::DefaultBufferFactory;
-    use reloaded_hooks_portable::api::hooks::branch::branch_hook_fast::create_branch_hook_with_pointer;
+    use reloaded_hooks_portable::api::hooks::branch::branch_hook_fast::create_branch_hook_fast_with_pointer;
     use reloaded_hooks_portable::api::settings::basic_hook_settings::BasicHookSettings;
     use reloaded_hooks_x86_sys::x64::{
         self, jit::JitX64, length_disassembler::LengthDisassemblerX64, rewriter::CodeRewriterX64,
@@ -44,7 +44,7 @@ mod tests {
             );
 
             let test_addr_ptr: *mut usize = transmute(&MAIN_TEST_ADDR);
-            create_branch_hook_with_pointer::<
+            create_branch_hook_fast_with_pointer::<
                 JitX64,
                 x64::Register,
                 LengthDisassemblerX64,
@@ -81,7 +81,7 @@ mod tests {
             );
 
             let test_addr_ptr: *mut usize = transmute(&MAIN_TEST_ADDR);
-            create_branch_hook_with_pointer::<
+            create_branch_hook_fast_with_pointer::<
                 JitX64,
                 x64::Register,
                 LengthDisassemblerX64,

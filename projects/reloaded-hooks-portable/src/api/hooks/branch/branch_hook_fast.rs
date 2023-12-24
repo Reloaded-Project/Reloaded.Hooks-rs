@@ -37,7 +37,7 @@ use core::fmt::Debug;
 ///
 /// Either address of the old method via `Ok` or an error via `Err`.
 #[allow(clippy::type_complexity)]
-pub unsafe fn create_branch_hook_with_pointer<
+pub unsafe fn create_branch_hook_fast_with_pointer<
     TJit: Jit<TRegister>,
     TRegister: RegisterInfo + Clone + Default + Copy + Debug,
     TDisassembler: LengthDisassembler,
@@ -48,7 +48,7 @@ pub unsafe fn create_branch_hook_with_pointer<
     settings: &BasicHookSettings<TRegister>,
     original_fn_address: *mut usize,
 ) -> Result<(), FastHookError<TRegister>> {
-    create_branch_hook_with_callback::<
+    create_branch_hook_fast_with_callback::<
         TJit,
         TRegister,
         TDisassembler,
@@ -77,7 +77,7 @@ pub unsafe fn create_branch_hook_with_pointer<
 ///
 /// Either `Ok` or an error via `Err`.
 #[allow(clippy::type_complexity)]
-pub unsafe fn create_branch_hook_with_callback<
+pub unsafe fn create_branch_hook_fast_with_callback<
     TJit: Jit<TRegister>,
     TRegister: RegisterInfo + Clone + Default + Copy + Debug,
     TDisassembler: LengthDisassembler,
@@ -150,7 +150,7 @@ pub unsafe fn create_branch_hook_with_callback<
     }
 
     let reg = settings.scratch_register.ok_or(FastHookError::StringError(
-        "Scratch register is required for create_branch_hook_with_callback",
+        "Scratch register is required for create_branch_hook_fast_with_callback",
     ))?;
 
     TJit::encode_abs_jump(
