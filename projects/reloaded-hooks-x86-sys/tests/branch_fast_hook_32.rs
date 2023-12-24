@@ -7,7 +7,6 @@ mod asm;
 #[cfg(target_arch = "x86")]
 mod tests {
     use crate::asm;
-    use crate::asm::assemble_function::alloc_function_with_settings;
     use crate::asm::calculator::Add;
     use crate::asm::calculator::CALL_CALCULATOR_ADD_CDECL_X86;
     use crate::asm::calculator::CALL_CALCULATOR_ADD_CDECL_X86_CALL_OFFSET;

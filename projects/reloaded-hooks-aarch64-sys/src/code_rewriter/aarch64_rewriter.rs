@@ -111,32 +111,37 @@ fn rewrite_instruction(
     }
 }
 
-fn is_adr(instruction: u32) -> bool {
+pub(crate) fn is_adr(instruction: u32) -> bool {
     (instruction & 0x1f000000) == 0x10000000
 }
 
-fn is_bcc(instruction: u32) -> bool {
+pub(crate) fn is_bcc(instruction: u32) -> bool {
     (instruction & 0xff000010) == 0x54000000
 }
 
-fn is_b_or_bl(instruction: u32) -> bool {
+pub(crate) fn is_b_or_bl(instruction: u32) -> bool {
     (instruction & 0x7c000000) == 0x14000000
 }
 
-fn is_cbz(instruction: u32) -> bool {
+pub(crate) fn is_cbz(instruction: u32) -> bool {
     (instruction & 0x7e000000) == 0x34000000
 }
 
-fn is_tbz(instruction: u32) -> bool {
+pub(crate) fn is_tbz(instruction: u32) -> bool {
     (instruction & 0x7e000000) == 0x36000000
 }
 
-fn is_ldr_literal(instruction: u32) -> bool {
+pub(crate) fn is_ldr_literal(instruction: u32) -> bool {
     (instruction & 0x3b000000) == 0x18000000
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::{
+        code_rewriter::aarch64_rewriter::rewrite_code_aarch64,
+        test_helpers::instruction_buffer_as_hex_u8,
+    };
+
     use super::{is_adr, is_b_or_bl, is_bcc, is_cbz, is_ldr_literal, is_tbz};
     use rstest::rstest;
 
@@ -390,5 +395,63 @@ mod tests {
         #[case] expected_instruction: InsType,
     ) {
         assert!(get_ins_type(instruction) == expected_instruction);
+    }
+
+    #[rstest]
+    #[case("00040014", 8192, 4096, "00080014", Some(17))]
+    #[case("00040014", 0x8000000, 0, "110004b020021fd6", Some(17))]
+    #[case("00040014", 0x8000512, 0, "110004b0314a149120021fd6", Some(17))]
+    #[case(
+        "00040014",
+        0x100000000,
+        0,
+        "110082d21100a0f23100c0f220021fd6",
+        Some(17)
+    )]
+    fn test_rewrite_b_cases(
+        #[case] old_instruction_hex: &str,
+        #[case] old_address: usize,
+        #[case] new_address: usize,
+        #[case] expected_hex: &str,
+        #[case] scratch_register: Option<u8>,
+    ) {
+        test_rewrite(
+            old_instruction_hex,
+            old_address,
+            new_address,
+            expected_hex,
+            scratch_register,
+        );
+    }
+
+    // Helper function to convert hex string to a byte vector.
+    fn hex_str_to_bytes(hex_str: &str) -> Vec<u8> {
+        hex::decode(hex_str).expect("Invalid hex string")
+    }
+
+    // Test helper to compare the rewritten code with the expected result.
+    fn test_rewrite(
+        old_instruction_hex: &str,
+        old_address: usize,
+        new_address: usize,
+        expected_hex: &str,
+        scratch_register: Option<u8>,
+    ) {
+        let old_instruction_bytes = hex_str_to_bytes(old_instruction_hex);
+        let mut new_code = Vec::new();
+        let _result = rewrite_code_aarch64(
+            old_instruction_bytes.as_ptr(),
+            old_instruction_bytes.len(),
+            old_address,
+            new_address,
+            scratch_register,
+            &mut new_code,
+        );
+
+        assert_eq!(
+            instruction_buffer_as_hex_u8(&new_code),
+            expected_hex,
+            "Rewritten instruction does not match expected result"
+        );
     }
 }

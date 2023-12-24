@@ -3,7 +3,6 @@ mod asm;
 #[cfg(target_arch = "x86")]
 mod tests {
     use crate::asm;
-    use crate::asm::calculator::CALL_CALCULATOR_ADD_CDECL_X86_FUN_OFFSET;
     use asm::assemble_function::alloc_function;
     use asm::calculator::{Add, CALCULATOR_ADD_CDECL_X86};
     use core::mem::transmute;
@@ -108,10 +107,9 @@ mod tests {
 
         // Overwrite the first bytes with hook
         let code = &[0xffu8, 0x44, 0x24, 0x08]; // inc dword ptr [esp + 4]
-        let settings = unsafe {
+        let settings =
             AssemblyHookSettings::new_minimal(add_addr, code.as_ptr() as usize, code.len(), 6)
-                .with_scratch_register(x86::Register::ecx)
-        };
+                .with_scratch_register(x86::Register::ecx);
 
         let _hook = unsafe {
             AssemblyHook::<

@@ -2,6 +2,7 @@ extern crate alloc;
 
 use crate::{
     all_registers::AllRegisters,
+    code_rewriter::aarch64_rewriter::is_b_or_bl,
     helpers::{vec_i32_to_u8, vec_u8_to_i32},
     instructions::b::B,
     jit_instructions::{
@@ -131,10 +132,11 @@ impl Jit<AllRegisters> for JitAarch64 {
             return Err("[ARM64: decode_call_target] Instruction is too short.");
         }
 
+        // Need to do from BE for some reason.
         let num: u32 = u32::from_le(unsafe { read_unaligned(ins_address as *const u32) });
         let instruction = B(num);
 
-        if (num & 0x7c000000) == 0x14000000 {
+        if !is_b_or_bl(instruction.0) {
             return Err("[ARM64: decode_call_target] This is not a branch instruction.");
         }
 

@@ -30,6 +30,14 @@ pub fn instruction_buffer_as_hex(buf: &[i32]) -> String {
     }
 }
 
+pub fn instruction_buffer_as_hex_u8(buf: &[u8]) -> String {
+    let ptr = buf.as_ptr();
+    unsafe {
+        let as_u8 = slice::from_raw_parts(ptr, size_of_val(buf));
+        hex::encode(as_u8)
+    }
+}
+
 pub fn assert_encode(expected_hex: &str, buf: &[i32], pc: usize) {
     assert_eq!(expected_hex, instruction_buffer_as_hex(buf));
     assert_eq!(buf.len() * size_of_val(&buf[0]), pc);

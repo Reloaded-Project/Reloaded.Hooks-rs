@@ -1,7 +1,5 @@
-#[cfg(target_arch = "aarch64")]
 pub type Add = extern "C" fn(i64, i64) -> i64;
 
-#[cfg(target_arch = "aarch64")]
 pub const CALCULATOR_ADD: [u8; 24] = [
     0x00, 0x00, 0x01, 0x8b, // add x0, x0, x1
     0x1f, 0x20, 0x03, 0xd5, // nop
@@ -10,3 +8,24 @@ pub const CALCULATOR_ADD: [u8; 24] = [
     0x1f, 0x20, 0x03, 0xd5, // nop
     0xc0, 0x03, 0x5f, 0xd6, // ret
 ];
+
+pub const CALL_CALCULATOR_ADD: [u8; 40] = [
+    // add_fn:
+    0x00, 0x00, 0x01, 0x8B, // add x0, x0, x1
+    0xC0, 0x03, 0x5F, 0xD6, // ret
+    // add_wrapper:
+    0xFD, 0x7B, 0xBF, 0xA9, // stp x29, x30, [sp, #-16]!
+    0xFD, 0x03, 0x00, 0x91, // mov x29, sp
+    0xFC, 0xFF, 0xFF, 0x97, // bl add_fn
+    0xFD, 0x7B, 0xC1, 0xA8, // ldp x29, x30, [sp], #16
+    0xC0, 0x03, 0x5F, 0xD6, // ret
+    // target_function:
+    0x00, 0x00, 0x01, 0x8B, // add x0, x0, x1
+    0x00, 0x04, 0x00, 0x91, // add x0, x0, 1
+    0xC0, 0x03, 0x5F, 0xD6, // ret
+];
+
+// Update the offsets according to the new array layout
+pub const CALL_CALCULATOR_ADD_FUN_OFFSET: usize = 8; // Start of add_wrapper
+pub const CALL_CALCULATOR_ADD_CALL_OFFSET: usize = 16; // Offset of 'bl add_fn' in add_wrapper
+pub const CALL_CALCULATOR_ADD_TARGET_FUNCTION_OFFSET: usize = 28; // Start of target_function

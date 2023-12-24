@@ -51,7 +51,9 @@ pub fn encode_absolute_jump_x64(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{x64::Register as X64Register, x86::Register as X86Register};
+    #[cfg(target_pointer_width = "64")]
+    use crate::x64::Register as X64Register;
+    use crate::x86::Register as X86Register;
     use rstest::rstest;
 
     // Test cases for x64 architecture
