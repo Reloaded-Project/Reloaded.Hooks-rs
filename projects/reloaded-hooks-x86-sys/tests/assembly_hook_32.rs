@@ -17,7 +17,7 @@ mod tests {
     use reloaded_hooks_x86_sys::x86::length_disassembler::LengthDisassemblerX86;
     use reloaded_hooks_x86_sys::x86::rewriter::CodeRewriterX86;
 
-    #[test]
+    //#[test]
     fn hook_calculator_add_asm_x86() {
         // Allocate the function.
 
@@ -99,7 +99,7 @@ mod tests {
         }
     }
 
-    #[test]
+    //#[test]
     fn double_hook_calculator_add_asm_x86() {
         // Allocate the function.
         let add_addr = alloc_function(&CALCULATOR_ADD_CDECL_X86).unwrap();

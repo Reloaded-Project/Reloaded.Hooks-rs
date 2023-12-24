@@ -9,9 +9,10 @@ use crate::{
         atomic_write_masked::atomic_write_masked, jit_jump_operation::create_jump_operation,
     },
 };
+use alloc::format;
 use alloc::vec::Vec;
 use core::{
-    mem::size_of,
+    mem::{size_of, transmute},
     ptr::{copy_nonoverlapping, NonNull},
     slice::from_raw_parts_mut,
 };
@@ -125,12 +126,16 @@ impl StubPackedProps {
         stub_address: usize,
     ) {
         // Backup current code from swap buffer.
-        let swap_buffer_real = self.get_swap_buffer();
-        let swap_buffer_copy = swap_buffer_real.to_vec();
+        let buf_swap = self.get_swap_buffer();
+        let buf_swap_copy = buf_swap.to_vec();
 
         // Copy current code into swap buffer
-        let buf_buffer_real = from_raw_parts_mut(stub_address as *mut u8, self.get_swap_size());
-        swap_buffer_real.copy_from_slice(buf_buffer_real);
+        let stub_swap = from_raw_parts_mut(stub_address as *mut u8, self.get_swap_size());
+        let buf_swap_str = format!("buf_swap: {:x}\n", buf_swap.as_ptr() as usize);
+        libc::printf(transmute(buf_swap_str.as_ptr()));
+        let stub_swap_str = format!("stub_swap: {:x}\n", stub_swap.as_ptr() as usize);
+        libc::printf(transmute(stub_swap_str.as_ptr()));
+        buf_swap.copy_from_slice(stub_swap);
 
         // JIT temp branch to hook/orig code.
         let mut vec = Vec::<u8>::with_capacity(8);
@@ -144,6 +149,8 @@ impl StubPackedProps {
         let branch_opcode = &vec;
         let branch_bytes = branch_opcode.len();
 
+        // Now write the swapped code into the stub.
+
         // Write the temp branch first, as per docs
         // This also overwrites some extra code afterwards, but that's a-ok for now.
         unsafe {
@@ -151,14 +158,11 @@ impl StubPackedProps {
         }
 
         // Now write the remaining code
-        TBuffer::overwrite(
-            stub_address + branch_bytes,
-            &swap_buffer_copy[branch_bytes..],
-        );
+        TBuffer::overwrite(stub_address + branch_bytes, &buf_swap_copy[branch_bytes..]);
 
         // And now re-insert the code we temp overwrote with the branch
         unsafe {
-            atomic_write_masked::<TBuffer>(stub_address, &swap_buffer_copy, branch_bytes);
+            atomic_write_masked::<TBuffer>(stub_address, &buf_swap_copy, branch_bytes);
         }
     }
 
