@@ -1,3 +1,4 @@
+/*
 extern crate alloc;
 
 use crate::{
@@ -166,3 +167,4 @@ pub unsafe fn create_branch_hook_with_callback<
 
     Ok(())
 }
+*/
