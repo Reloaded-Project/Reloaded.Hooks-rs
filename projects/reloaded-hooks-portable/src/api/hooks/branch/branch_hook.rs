@@ -150,7 +150,7 @@ pub unsafe fn create_branch_hook_with_callback<
     }
 
     let reg = settings.scratch_register.ok_or(FastHookError::StringError(
-        "Scratch register is required for create_branch_hook_with_callback",
+        "Scratch register is required for create_branch_hook_fast_with_callback",
     ))?;
 
     TJit::encode_abs_jump(
