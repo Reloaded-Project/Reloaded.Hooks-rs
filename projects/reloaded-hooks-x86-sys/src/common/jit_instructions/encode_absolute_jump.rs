@@ -55,6 +55,7 @@ mod tests {
     use rstest::rstest;
 
     // Test cases for x64 architecture
+    #[cfg(target_pointer_width = "64")]
     #[rstest]
     #[case(X64Register::rax, "48b8efbeaddeefbeaddeffe0")]
     #[case(X64Register::rcx, "48b9efbeaddeefbeaddeffe1")]

@@ -14,6 +14,7 @@ use alloc::string::ToString;
 use alloc::vec::Vec;
 
 /// Creates a jump operation for a given address.
+/// This creates a 'space' optimised operation, so will use indirect relative jumps where preferable.
 ///
 /// # Parameters
 /// - `mem_address` - The address of where the jump operation should be emplaced.

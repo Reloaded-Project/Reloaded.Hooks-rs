@@ -77,6 +77,12 @@ pub trait Jit<TRegister: RegisterInfo> {
 
     // TODO: Consider moving these things to 'JITUtils' or something.
 
+    /// Maximum distance of 'call' or 'branch and link' operation.
+    fn max_standard_relative_call_distance() -> usize;
+
+    /// Number of bytes used to encode a 'standard' relative call instruction. [`Self::max_standard_relative_call_distance`]
+    fn standard_relative_call_bytes() -> usize;
+
     /// Fills an array with NOP instructions.
     fn fill_nops(arr: &mut [u8]);
 

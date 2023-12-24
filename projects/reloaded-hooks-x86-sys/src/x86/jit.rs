@@ -120,6 +120,14 @@ impl Jit<Register> for JitX86 {
     ) -> Result<(), JitError<Register>> {
         encode_absolute_jump_x86(x, buf)
     }
+
+    fn max_standard_relative_call_distance() -> usize {
+        i32::MAX as usize
+    }
+
+    fn standard_relative_call_bytes() -> usize {
+        5
+    }
 }
 
 fn encode_instruction_x86(

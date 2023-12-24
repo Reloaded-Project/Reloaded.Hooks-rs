@@ -8,6 +8,7 @@ pub mod api {
     /// The errors that can occur when generating a wrapper.
     pub mod errors {
         pub mod assembly_hook_error;
+        pub mod fast_hook_error;
         pub mod hook_builder_error;
         pub mod inline_branch_error;
         pub mod wrapper_generation_error;
@@ -142,6 +143,7 @@ pub mod helpers {
     pub mod jit_jump_operation;
     pub mod make_inline_rel_branch;
     pub mod overwrite_code;
+    pub mod relative_branch_range_check;
 
     /// For Benchmarks and tests only. Do not use in production code.
     #[doc(hidden)]

@@ -40,4 +40,12 @@ impl<T: Default> JumpAbsoluteOperation<T> {
             target_address,
         }
     }
+
+    /// Creates a new relative jump operation.
+    pub fn new_with_reg(target_address: usize, scratch: T) -> Self {
+        JumpAbsoluteOperation {
+            scratch_register: scratch,
+            target_address,
+        }
+    }
 }

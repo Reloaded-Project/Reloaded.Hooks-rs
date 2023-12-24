@@ -3,6 +3,7 @@ mod asm;
 #[cfg(target_arch = "x86")]
 mod tests {
     use crate::asm;
+    use crate::asm::calculator::CALL_CALCULATOR_ADD_CDECL_X86_FUN_OFFSET;
     use asm::assemble_function::alloc_function;
     use asm::calculator::{Add, CALCULATOR_ADD_CDECL_X86};
     use core::mem::transmute;

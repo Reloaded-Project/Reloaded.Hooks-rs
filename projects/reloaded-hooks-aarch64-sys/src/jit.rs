@@ -155,6 +155,14 @@ impl Jit<AllRegisters> for JitAarch64 {
         *buf = vec_i32_to_u8(buf_i32);
         result
     }
+
+    fn max_standard_relative_call_distance() -> usize {
+        (1024 * 1024 * 128) - 4
+    }
+
+    fn standard_relative_call_bytes() -> usize {
+        4
+    }
 }
 
 fn encode_instruction_aarch64(
