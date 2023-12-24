@@ -66,12 +66,12 @@ where
 impl<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
     AssemblyHook<TBuffer, TJit, TRegister, TDisassembler, TRewriter, TBufferFactory>
 where
-    TBuffer: Buffer + 'static,
-    TJit: Jit<TRegister> + 'static,
-    TRegister: RegisterInfo + Clone + Default + Copy + 'static,
+    TBuffer: Buffer,
+    TJit: Jit<TRegister>,
+    TRegister: RegisterInfo + Clone + Default + Copy,
     TDisassembler: LengthDisassembler,
-    TRewriter: CodeRewriter<TRegister> + 'static,
-    TBufferFactory: BufferFactory<TBuffer> + 'static,
+    TRewriter: CodeRewriter<TRegister>,
+    TBufferFactory: BufferFactory<TBuffer>,
 {
     pub fn new(
         props: NonNull<StubPackedProps>,

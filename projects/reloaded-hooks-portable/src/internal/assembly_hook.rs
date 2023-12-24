@@ -61,12 +61,12 @@ use derive_new::new;
 /// | ARM64 (macOS)  | 4 bytes (+- 128MiB) | 8 bytes      | 20 bytes        |
 #[allow(clippy::type_complexity)]
 pub unsafe fn create_assembly_hook<
-    TJit: Jit<TRegister> + 'static,
-    TRegister: RegisterInfo + Clone + Default + Copy + 'static,
+    TJit: Jit<TRegister>,
+    TRegister: RegisterInfo + Clone + Default + Copy,
     TDisassembler: LengthDisassembler,
-    TRewriter: CodeRewriter<TRegister> + 'static,
-    TBuffer: Buffer + 'static,
-    TBufferFactory: BufferFactory<TBuffer> + 'static,
+    TRewriter: CodeRewriter<TRegister>,
+    TBuffer: Buffer,
+    TBufferFactory: BufferFactory<TBuffer>,
 >(
     settings: &AssemblyHookSettings<TRegister>,
 ) -> Result<
