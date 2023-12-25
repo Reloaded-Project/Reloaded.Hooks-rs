@@ -1,7 +1,7 @@
 extern crate alloc;
 use super::{
-    hook_builder::{create_hook_stub, create_hook_stub_buffer, get_relocated_code_length},
-    hook_builder_settings::{HookBuilderSettings, HookBuilderSettingsMixin},
+    stub_builder::{create_hook_stub_buffer, create_stub, get_relocated_code_length},
+    stub_builder_settings::{HookBuilderSettings, HookBuilderSettingsMixin},
 };
 use crate::{
     api::{
@@ -143,7 +143,7 @@ pub unsafe fn create_assembly_hook<
         settings.auto_activate,
     );
 
-    let stub = create_hook_stub::<TRegister, TBuffer>(&mut builder_settings, &mut alloc, mixin)?;
+    let stub = create_stub::<TRegister, TBuffer>(&mut builder_settings, &mut alloc, mixin)?;
 
     // Write jump to custom code.
     overwrite_code(settings.hook_address, &code);

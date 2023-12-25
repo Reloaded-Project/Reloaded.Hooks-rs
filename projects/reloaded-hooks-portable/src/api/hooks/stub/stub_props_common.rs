@@ -6,7 +6,8 @@ use crate::{
         traits::register_info::RegisterInfo,
     },
     helpers::{
-        atomic_write_masked::atomic_write_masked, jit_jump_operation::create_jump_operation,
+        atomic_write::atomic_swap, atomic_write_masked::atomic_write_masked,
+        jit_jump_operation::create_jump_operation,
     },
 };
 use alloc::vec::Vec;
@@ -124,41 +125,49 @@ impl StubPackedProps {
         temp_branch_offset: usize,
         stub_address: usize,
     ) {
-        // Backup current code from swap buffer.
-        let swap_buffer_real = self.get_swap_buffer();
-        let swap_buffer_copy = swap_buffer_real.to_vec();
+        // Fast path for atomic swaps.
+        if self.is_swap_only() {
+            let heap_swap_slc = self.get_swap_buffer();
+            let heap_swap = heap_swap_slc.as_ptr() as *mut u8;
+            let stub_swap = stub_address as *mut u8;
+            atomic_swap::<TBuffer>(heap_swap, stub_swap, heap_swap_slc.len())
+        } else {
+            // Backup current code from swap buffer.
+            let swap_buffer_real = self.get_swap_buffer();
+            let swap_buffer_copy = swap_buffer_real.to_vec();
 
-        // Copy current code into swap buffer
-        let buf_buffer_real = from_raw_parts_mut(stub_address as *mut u8, self.get_swap_size());
-        swap_buffer_real.copy_from_slice(buf_buffer_real);
+            // Copy current code into swap buffer
+            let buf_buffer_real = from_raw_parts_mut(stub_address as *mut u8, self.get_swap_size());
+            swap_buffer_real.copy_from_slice(buf_buffer_real);
 
-        // JIT temp branch to hook/orig code.
-        let mut vec = Vec::<u8>::with_capacity(8);
-        _ = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
-            stub_address,
-            true,
-            stub_address + temp_branch_offset,
-            None,
-            &mut vec,
-        );
-        let branch_opcode = &vec;
-        let branch_bytes = branch_opcode.len();
+            // JIT temp branch to hook/orig code.
+            let mut vec = Vec::<u8>::with_capacity(8);
+            _ = create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
+                stub_address,
+                true,
+                stub_address + temp_branch_offset,
+                None,
+                &mut vec,
+            );
+            let branch_opcode = &vec;
+            let branch_bytes = branch_opcode.len();
 
-        // Write the temp branch first, as per docs
-        // This also overwrites some extra code afterwards, but that's a-ok for now.
-        unsafe {
-            atomic_write_masked::<TBuffer>(stub_address, branch_opcode, branch_bytes);
-        }
+            // Write the temp branch first, as per docs
+            // This also overwrites some extra code afterwards, but that's a-ok for now.
+            unsafe {
+                atomic_write_masked::<TBuffer>(stub_address, branch_opcode, branch_bytes);
+            }
 
-        // Now write the remaining code
-        TBuffer::overwrite(
-            stub_address + branch_bytes,
-            &swap_buffer_copy[branch_bytes..],
-        );
+            // Now write the remaining code
+            TBuffer::overwrite(
+                stub_address + branch_bytes,
+                &swap_buffer_copy[branch_bytes..],
+            );
 
-        // And now re-insert the code we temp overwrote with the branch
-        unsafe {
-            atomic_write_masked::<TBuffer>(stub_address, &swap_buffer_copy, branch_bytes);
+            // And now re-insert the code we temp overwrote with the branch
+            unsafe {
+                atomic_write_masked::<TBuffer>(stub_address, &swap_buffer_copy, branch_bytes);
+            }
         }
     }
 

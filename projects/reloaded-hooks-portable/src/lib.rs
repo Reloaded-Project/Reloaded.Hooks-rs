@@ -118,8 +118,8 @@ pub mod api {
 pub(crate) mod internal {
     pub(crate) mod assembly_hook;
     pub(crate) mod basic_hook;
-    pub(crate) mod hook_builder;
-    pub(crate) mod hook_builder_settings;
+    pub(crate) mod stub_builder;
+    pub(crate) mod stub_builder_settings;
 }
 
 /// Code for all the graph algorithms.

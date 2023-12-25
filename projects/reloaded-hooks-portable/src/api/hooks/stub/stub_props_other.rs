@@ -9,7 +9,13 @@ bitfield! {
     /// True if the hook is enabled, else false.
     pub is_enabled, set_is_enabled: 0;
 
-    reserved, _: 1;
+    /// This allocation contains only 'swap space', and no hook or original function.
+    ///
+    /// If this flag is true, the 'enable' and 'disable' functions will not place a temporary
+    /// branch.
+    ///
+    /// The 'swap' space is
+    pub is_swap_only, set_is_swap_only: 1;
 
     /// Size of the 'swap' space where hook function and original code are swapped out.
     u16, swap_size, set_swap_size_impl: 16, 2; // Max 32KiB.

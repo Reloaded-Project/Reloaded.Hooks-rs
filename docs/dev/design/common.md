@@ -41,18 +41,37 @@ pub struct Hook
 }
 ```
 
+Notably, there are two heap allocations. One at `stub_address`, which contains the executable code,
+and one at `props`, which contains packed info of the stub at `stub_address`.
+
+The hooks use a 'swapping' system. Both `stub_address` and `props` contains `swap space`. When you
+enable or disable a hook, the data in the two 'swap spaces' are swapped around. 
+
+In other words, when `stub_address`' 'swap space' contains the code for `HookFunction` (hook enabled), 
+the 'swap space' at `props`' contains the code for `Original Code`.
+
+Thread safety is ensured by making writes within the stub itself atomic, as well as making the emplacing
+of the jump to the stub in the original application code atomic.
+
 ### Stub Layout
 
 !!! info "The memory region containing the actual executed code."
 
+The stub has two possible layouts, if the `Swap Space` is small enough such that it can be atomically
+overwritten, it will look like this:
+
 ```text
-- [HookCode / OriginalCode]
+- 'Swap Space' [HookCode / OriginalCode]
+<pad to atomic register size>
+```
+
+Otherwise, if `Swap Space` cannot be atomically overwritten, it will look like:
+
+```text
+- 'Swap Space' [HookCode / OriginalCode]
 - HookCode
 - OriginalCode
 ```
-
-Emplacing the jump to the hook function itself, and patching within the hook function should be atomic
-whenever it is possible on the platform.
 
 !!! note "Some hooks may store, extra data after `OriginalCode`."
 
@@ -62,7 +81,7 @@ For example, if calling convention conversion is needed, the `HookCode` becomes 
 If calling convention conversion is needed, the layout looks like this:
 
 ```
-- [ReverseWrapper / OriginalCode]
+- 'Swap Space' [ReverseWrapper / OriginalCode]
 - ReverseWrapper
 - OriginalCode
 - Wrapper
@@ -89,7 +108,7 @@ mov x0, x2
 The memory would look like this when hook is enabled.
 
 ```asm
-entry: ; Currently Applied (Hook)
+swap: ; Currently Applied (Hook)
     mov x0, x1
     add x0, x2
     b back_to_code
@@ -105,27 +124,30 @@ original: ; OriginalCode
     b back_to_code
 ```
 
-### Heap Layout
+(When `sizeof(swap)` is larger than biggest possible atomic write.)
+
+### Heap (Props) Layout
 
 Each Assembly Hook contains a pointer to the heap stub (seen above) and a pointer to the heap.
 
 The heap contains all information required to perform operations on the stub.
 
 ```text
-- AssemblyHookPackedProps
+- StubPackedProps
     - Enabled Flag
-    - Offset of Hook Function (Also length of HookFunction/OriginalCode block)
-    - Offset of Original Code
+    - IsSwapOnly
+    - SwapSize
+    - HookSize
 - [Hook Function / Original Code]
 ```
 
-The data in the heap contains a short 'AssemblyHookPackedProps' struct, detailing the data that is required
-to make a temporary branch to the stub/hook function. After that is the either the `hook function` bytes or
-the `original code` bytes, depending on the state of the hook.
+The data in the heap contains a short `StubPackedProps`` struct, detailing the data stored over in the
+stub. 
 
-The hook uses a 'swapping' system, where the `[Hook Function / Original Code]` block in the stub is swapped
-with the `[Hook Function / Original Code]` block in the heap. When one contains the code for `Hook Function`,
-the other contains the code for `Original Code`. This is memory efficient.
+The `SwapSize` contains the length of the 'swap' info (and also consequently, offset of `HookCode`).  
+The `HookSize` contains the length of the 'hook' instructions (and consequently, offset of `OriginalCode`).  
+
+If the `IsSwapOnly` flag is set, then this data is to be atomically overwritten.
 
 ### The 'Enable' / 'Disable' Process
 
@@ -133,7 +155,7 @@ the other contains the code for `Original Code`. This is memory efficient.
 
 !!! info "Using ARM64 [Assembly Hook](./assembly-hooks/overview.md) as an example."
 
-We start the 'disable' process with:
+We start the 'disable' process with a temporary branch:
 
 ```asm
 entry: ; Currently Applied (Hook)

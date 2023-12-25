@@ -40,6 +40,7 @@ where
     }
 }
 
+/// Maximum amount of bytes that can be written atomically.
 pub const MAX_ATOMIC_WRITE_BYTES: u8 = 16;
 
 /// Overwrites bytes at the specified address with provided bytes using atomic operations.

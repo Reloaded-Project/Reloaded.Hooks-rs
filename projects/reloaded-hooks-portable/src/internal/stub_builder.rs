@@ -1,5 +1,5 @@
 extern crate alloc;
-use super::hook_builder_settings::{HookBuilderSettings, HookBuilderSettingsMixin};
+use super::stub_builder_settings::{HookBuilderSettings, HookBuilderSettingsMixin};
 use crate::{
     api::{
         buffers::buffer_abstractions::{Buffer, BufferFactory},
@@ -10,7 +10,10 @@ use crate::{
         rewriter::code_rewriter::CodeRewriter,
         traits::register_info::RegisterInfo,
     },
-    helpers::allocate_with_proximity::allocate_with_proximity,
+    helpers::{
+        allocate_with_proximity::allocate_with_proximity,
+        atomic_write_masked::MAX_ATOMIC_WRITE_BYTES,
+    },
 };
 use alloc::boxed::Box;
 use alloc::vec::Vec;
@@ -94,7 +97,7 @@ where
 /// Errors are propagated via `Result`.
 /// If the hook cannot be created within the constraints specified in `settings`, an error is thrown.
 #[allow(clippy::type_complexity)]
-pub unsafe fn create_hook_stub<TRegister: Clone + Default, TBuffer: Buffer>(
+pub unsafe fn create_stub<TRegister: Clone + Default, TBuffer: Buffer>(
     settings: &mut HookBuilderSettings,
     alloc: &mut HookBuilderStubAllocation<TBuffer>,
     mixin: &mut dyn HookBuilderSettingsMixin<TRegister>,
@@ -156,29 +159,42 @@ where
         props_buf.extend_from_slice(enabled_code);
     }
 
-    props_buf.set_len(old_len + swap_space_len);
-    code_buf_1.clear();
-    code_buf_2.clear();
     props.set_is_enabled(settings.auto_activate);
-    props.set_swap_size(swap_space_len);
-    props.set_hook_fn_size(enabled_len);
 
-    // Write the other 2 stubs.
-    let entry_end_ptr = buf_addr + swap_space_len;
+    // Small payload! We can atomic write over the whole thing.
+    if swap_space_len as u8 <= MAX_ATOMIC_WRITE_BYTES {
+        let padded_len = (swap_space_len as u8).next_power_of_two();
+        props.set_is_swap_only(true);
+        props_buf.set_len(old_len + padded_len as usize);
+        props.set_swap_size(padded_len as usize);
 
-    // 'Hook Function' @ hook
-    mixin.get_hook_function(entry_end_ptr, &mut code_buf_1)?;
+        // Advance the buffer to account for code written.
+        buf.advance(swap_space_len);
+    } else {
+        props.set_is_swap_only(false);
+        props_buf.set_len(old_len + swap_space_len);
+        props.set_swap_size(swap_space_len);
+        code_buf_1.clear();
+        code_buf_2.clear();
 
-    TBuffer::overwrite(entry_end_ptr, &code_buf_1);
-    let hook_at_hook_end = entry_end_ptr + code_buf_1.len();
-    code_buf_1.clear();
+        // Write the other 2 stubs.
+        let entry_end_ptr = buf_addr + swap_space_len;
 
-    // 'Original Code' @ orig
-    mixin.get_orig_function(hook_at_hook_end, &mut code_buf_1)?;
-    TBuffer::overwrite(hook_at_hook_end, &code_buf_1);
+        // 'Hook Function' @ hook
+        mixin.get_hook_function(entry_end_ptr, &mut code_buf_1)?;
 
-    // Advance the buffer to account for code written.
-    buf.advance(hook_at_hook_end.add(code_buf_1.len()).sub(buf_addr));
+        TBuffer::overwrite(entry_end_ptr, &code_buf_1);
+        props.set_hook_fn_size(code_buf_1.len());
+        let hook_at_hook_end = entry_end_ptr + code_buf_1.len();
+        code_buf_1.clear();
+
+        // 'Original Code' @ orig
+        mixin.get_orig_function(hook_at_hook_end, &mut code_buf_1)?;
+        TBuffer::overwrite(hook_at_hook_end, &code_buf_1);
+
+        // Advance the buffer to account for code written.
+        buf.advance(hook_at_hook_end.add(code_buf_1.len()).sub(buf_addr));
+    }
 
     // Populate remaining fields
     let props = alloc_and_copy_packed_props(&props_buf);

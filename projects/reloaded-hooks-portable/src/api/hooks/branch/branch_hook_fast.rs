@@ -15,7 +15,7 @@ use crate::{
         traits::register_info::RegisterInfo,
     },
     helpers::{overwrite_code::overwrite_code, relative_branch_range_check::can_direct_branch},
-    internal::hook_builder::create_hook_stub_buffer,
+    internal::stub_builder::create_hook_stub_buffer,
 };
 use alloc::vec::Vec;
 use core::fmt::Debug;
