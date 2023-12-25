@@ -18,7 +18,7 @@ alloca = "0.4.0"
 derive-enum-all-values = "0.1.0"
 smallvec = { version = "1.11.0", features = ["const_new"] }
 bitflags = "2.4.1"
-derive_more = { version = "0.99.17", default-features = false, features = ["from", "add", "iterator"] }
+derive_more = { version = "0.99.17", default-features = false, features = ["from", "add", "iterator", "deref", "deref_mut"] }
 derive-new = { version = "0.6.0", default-features = false }
 bitfield = "0.14.0"
 portable-atomic = "1.6.0"

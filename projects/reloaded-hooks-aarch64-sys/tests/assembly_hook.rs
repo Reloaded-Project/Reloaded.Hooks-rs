@@ -11,10 +11,10 @@ mod tests {
     use reloaded_hooks_aarch64_sys::length_disassembler::LengthDisassemblerAarch64;
     use reloaded_hooks_aarch64_sys::rewriter::CodeRewriterAarch64;
     use reloaded_hooks_portable::api::buffers::default_buffer::LockedBuffer;
+    use reloaded_hooks_portable::api::hooks::assembly::assembly_hook::create_assembly_hook;
 
     use reloaded_hooks_portable::api::{
         buffers::default_buffer_factory::DefaultBufferFactory,
-        hooks::assembly::assembly_hook::AssemblyHook,
         settings::assembly_hook_settings::AssemblyHookSettings,
     };
 
@@ -31,14 +31,14 @@ mod tests {
                 AssemblyHookSettings::new_minimal(add_addr, code.as_ptr() as usize, code.len(), 20)
                     .with_scratch_register(AllRegisters::x7);
 
-            AssemblyHook::<
-                LockedBuffer,
+            create_assembly_hook::<
                 JitAarch64,
                 AllRegisters,
                 LengthDisassemblerAarch64,
                 CodeRewriterAarch64,
+                LockedBuffer,
                 DefaultBufferFactory,
-            >::create(&settings)
+            >(&settings)
             .unwrap()
         };
 
@@ -65,14 +65,14 @@ mod tests {
                 AssemblyHookSettings::new_minimal(add_addr, code.as_ptr() as usize, code.len(), 20)
                     .with_scratch_register(AllRegisters::x7);
 
-            AssemblyHook::<
-                LockedBuffer,
+            create_assembly_hook::<
                 JitAarch64,
                 AllRegisters,
                 LengthDisassemblerAarch64,
                 CodeRewriterAarch64,
+                LockedBuffer,
                 DefaultBufferFactory,
-            >::create(&settings)
+            >(&settings)
             .unwrap()
         };
 
@@ -112,26 +112,26 @@ mod tests {
                 .with_scratch_register(AllRegisters::x7);
 
         let _hook = unsafe {
-            AssemblyHook::<
-                LockedBuffer,
+            create_assembly_hook::<
                 JitAarch64,
                 AllRegisters,
                 LengthDisassemblerAarch64,
                 CodeRewriterAarch64,
+                LockedBuffer,
                 DefaultBufferFactory,
-            >::create(&settings)
+            >(&settings)
             .unwrap()
         };
 
         let _hook2 = unsafe {
-            AssemblyHook::<
-                LockedBuffer,
+            create_assembly_hook::<
                 JitAarch64,
                 AllRegisters,
                 LengthDisassemblerAarch64,
                 CodeRewriterAarch64,
+                LockedBuffer,
                 DefaultBufferFactory,
-            >::create(&settings)
+            >(&settings)
             .unwrap()
         };
 

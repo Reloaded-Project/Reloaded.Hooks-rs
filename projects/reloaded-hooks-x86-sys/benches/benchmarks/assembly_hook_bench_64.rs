@@ -5,7 +5,7 @@ use criterion::Criterion;
 use reloaded_hooks_buffers_common::buffer::StaticLinkedBuffer;
 use reloaded_hooks_buffers_common::buffer_factory::BuffersFactory;
 use reloaded_hooks_portable::api::buffers::buffer_abstractions::BufferFactory;
-use reloaded_hooks_portable::api::hooks::assembly::assembly_hook::AssemblyHook;
+use reloaded_hooks_portable::api::hooks::assembly::assembly_hook::create_assembly_hook;
 use reloaded_hooks_portable::api::jit::compiler::Jit;
 use reloaded_hooks_portable::api::settings::assembly_hook_settings::AssemblyHookSettings;
 use reloaded_hooks_portable::api::settings::proximity_target::ProximityTarget;
@@ -38,14 +38,14 @@ pub(crate) fn benchmark_create_assembly_hook(c: &mut Criterion) {
     c.bench_function("assembly_hook_creation", |b| {
         b.iter(|| {
             let _hook = unsafe {
-                AssemblyHook::<
-                    StaticLinkedBuffer,
+                create_assembly_hook::<
                     JitX86,
                     x86::Register,
                     LengthDisassemblerX86,
                     CodeRewriterX86,
+                    StaticLinkedBuffer,
                     BuffersFactory,
-                >::create(&settings)
+                >(&settings)
                 .unwrap()
             };
         });

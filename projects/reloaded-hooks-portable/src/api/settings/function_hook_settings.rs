@@ -9,7 +9,7 @@ use crate::api::{
 /// This is used for the allocation of wrappers and other native/interop components.
 /// It helps guide memory allocations to be closer to a specific target address.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct CommonHookSettings<'a, TRegister, TFunctionInfo, TFunctionAttribute>
+pub struct FunctionHookSettings<'a, TRegister, TFunctionInfo, TFunctionAttribute>
 where
     TRegister: Clone + Copy + RegisterInfo + PartialEq + Eq + 'static,
     TFunctionInfo: FunctionInfo,
@@ -36,4 +36,31 @@ where
 
     /// Calling convention of the target method (hook function).
     pub conv_target: &'a TFunctionAttribute,
+
+    /// If this parameter is specified, the wrapper will inject an additional parameter
+    /// with the specified value into the target (called) function.
+    ///
+    /// # Remarks
+    ///
+    /// This is useful for example when the target function is your own method when hooking
+    /// and you want to inject a 'this' pointer.
+    pub injected_parameter: Option<usize>,
+}
+
+impl<'a, TRegister, TFunctionInfo, TFunctionAttribute>
+    FunctionHookSettings<'a, TRegister, TFunctionInfo, TFunctionAttribute>
+where
+    TRegister: Clone + Copy + RegisterInfo + PartialEq + Eq + 'static,
+    TFunctionInfo: FunctionInfo,
+    TFunctionAttribute: CallingConventionInfo<TRegister>,
+{
+    /// Determines if a calling convention wrapper is needed for the hook.
+    ///
+    /// # Returns
+    ///
+    /// `true` if the calling conventions of the source and target are different,
+    /// indicating that a wrapper is required. Otherwise, `false`.
+    pub fn needs_wrapper(&self) -> bool {
+        self.injected_parameter.is_some() || self.conv_source != self.conv_target
+    }
 }

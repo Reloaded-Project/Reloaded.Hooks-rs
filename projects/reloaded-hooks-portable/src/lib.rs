@@ -9,6 +9,7 @@ pub mod api {
     pub mod errors {
         pub mod assembly_hook_error;
         pub mod fast_hook_error;
+        pub mod function_hook_error;
         pub mod hook_builder_error;
         pub mod inline_branch_error;
         pub mod wrapper_generation_error;
@@ -25,7 +26,7 @@ pub mod api {
     pub mod settings {
         pub mod assembly_hook_settings;
         pub mod basic_hook_settings;
-        pub mod common_hook_settings;
+        pub mod function_hook_settings;
         pub mod proximity_target;
     }
 
@@ -34,8 +35,6 @@ pub mod api {
         pub mod assembly {
             pub mod assembly_hook;
         }
-
-        pub mod basic {}
 
         pub mod branch {
             pub mod branch_hook;
@@ -47,7 +46,14 @@ pub mod api {
             pub mod stub_props_4byteins;
             pub mod stub_props_common;
             pub mod stub_props_other;
+
+            pub mod mixins {
+                pub mod assembly_mixin;
+                pub mod stub_wrapper_mixin;
+            }
         }
+
+        pub mod common_hook;
     }
 
     /// Platform and architecture specific integrations
@@ -111,15 +117,12 @@ pub mod api {
 
     pub mod calling_convention_info;
     pub mod function_info;
-    pub mod wrapper_generator;
     pub mod wrapper_instruction_generator;
 }
 
 pub(crate) mod internal {
-    pub(crate) mod assembly_hook;
-    pub(crate) mod basic_hook;
-    pub(crate) mod stub_builder;
-    pub(crate) mod stub_builder_settings;
+    pub mod stub_builder;
+    pub mod stub_builder_settings;
 }
 
 /// Code for all the graph algorithms.

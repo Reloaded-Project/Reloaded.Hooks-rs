@@ -69,6 +69,10 @@ impl Jit<AllRegisters> for JitAarch64 {
         Ok(())
     }
 
+    fn stack_entry_misalignment() -> u32 {
+        0 // uses LR
+    }
+
     fn code_alignment() -> u32 {
         4
     }

@@ -10,21 +10,11 @@ use derive_new::new;
 /// It helps guide memory allocations to be closer to a specific target address.
 #[derive(new)]
 pub struct HookBuilderSettings {
-    // 👆 boxed to save some code space, not much to gain here perf wise.
     /// The 'source address' used to allocate the stub buffer within proximity of the original code.
     pub source_address: usize,
 
-    /// Retrieves the maximum possible length of the 'stub' buffer.
-    ///
-    /// # Safety
-    ///
-    /// This MUST be greater than the data that will be placed in the 'stub' buffer.
-    pub max_buf_length: usize,
-
-    /// Retrieves the maximum possible length of the 'swap' space
-    /// in the buffer.
-    ///
-    /// This is the maximum of the original code length and the hook code length.
+    /// The maximum possible length of the 'swap' space in the buffer.
+    /// This is a hint for pre-allocation, not a hard limit.
     pub max_swap_length: usize,
 
     /// Whether the hook should be activated automatically when it is created.

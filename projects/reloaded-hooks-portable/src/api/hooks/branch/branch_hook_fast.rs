@@ -112,7 +112,7 @@ pub unsafe fn create_branch_hook_fast_with_callback<
         TJit::standard_relative_call_bytes(),
     );
 
-    let mut code = Vec::<u8>::with_capacity(24); // sufficient for relative/absolute jmp in any architecture
+    let mut code = Vec::<u8>::with_capacity(MAX_BRANCH_LENGTH);
     if is_direct_branch {
         // We can branch directly to the target.
         // This is the most optimal solution.
@@ -147,12 +147,7 @@ pub unsafe fn create_branch_hook_fast_with_callback<
 
     let mut pc = buf_ptr;
     if is_direct_branch {
-        if target.is_call {
-            TJit::encode_call(&CallRel::new(settings.new_target), &mut pc, &mut code)?;
-        } else {
-            TJit::encode_jump(&JumpRel::new(settings.new_target), &mut pc, &mut code)?;
-        }
-
+        TJit::encode_jump(&JumpRel::new(settings.new_target), &mut pc, &mut code)?;
         TBuffer::overwrite(buf_ptr, &code);
         alloc.buf.advance(code.len());
 
@@ -173,7 +168,7 @@ pub unsafe fn create_branch_hook_fast_with_callback<
         "Scratch register is required for create_branch_hook_fast_with_callback",
     ))?;
 
-    // Encode absolute jump on heap.
+    // Encode absolute jump to target in out stub.
     TJit::encode_abs_jump(
         &JumpAbs::new_with_reg(settings.new_target, reg),
         &mut pc,

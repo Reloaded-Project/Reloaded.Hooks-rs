@@ -8,9 +8,9 @@ mod tests {
     use asm::calculator::CALCULATOR_ADD_MSFT_X64;
     use core::mem::transmute;
     use reloaded_hooks_portable::api::buffers::default_buffer::LockedBuffer;
+    use reloaded_hooks_portable::api::hooks::assembly::assembly_hook::create_assembly_hook;
     use reloaded_hooks_portable::api::{
         buffers::default_buffer_factory::DefaultBufferFactory,
-        hooks::assembly::assembly_hook::AssemblyHook,
         settings::assembly_hook_settings::AssemblyHookSettings,
     };
     use reloaded_hooks_x86_sys::x64::{
@@ -35,14 +35,14 @@ mod tests {
             )
             .with_scratch_register(x64::Register::r8);
 
-            AssemblyHook::<
-                LockedBuffer,
+            create_assembly_hook::<
                 JitX64,
                 x64::Register,
                 LengthDisassemblerX64,
                 CodeRewriterX64,
+                LockedBuffer,
                 DefaultBufferFactory,
-            >::create(&settings)
+            >(&settings)
             .unwrap()
         };
 
@@ -72,14 +72,14 @@ mod tests {
             )
             .with_scratch_register(x64::Register::r8);
 
-            AssemblyHook::<
-                LockedBuffer,
+            create_assembly_hook::<
                 JitX64,
                 x64::Register,
                 LengthDisassemblerX64,
                 CodeRewriterX64,
+                LockedBuffer,
                 DefaultBufferFactory,
-            >::create(&settings)
+            >(&settings)
             .unwrap()
         };
 
@@ -120,26 +120,26 @@ mod tests {
                 .with_scratch_register(x64::Register::r8);
 
         let _hook = unsafe {
-            AssemblyHook::<
-                LockedBuffer,
+            create_assembly_hook::<
                 JitX64,
                 x64::Register,
                 LengthDisassemblerX64,
                 CodeRewriterX64,
+                LockedBuffer,
                 DefaultBufferFactory,
-            >::create(&settings)
+            >(&settings)
             .unwrap()
         };
 
         let _hook2 = unsafe {
-            AssemblyHook::<
-                LockedBuffer,
+            create_assembly_hook::<
                 JitX64,
                 x64::Register,
                 LengthDisassemblerX64,
                 CodeRewriterX64,
+                LockedBuffer,
                 DefaultBufferFactory,
-            >::create(&settings)
+            >(&settings)
             .unwrap()
         };
 

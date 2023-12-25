@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 use alloc::{rc::Rc, string::ToString};
 use smallvec::SmallVec;
 
+use super::jit::compiler::Jit;
 use super::{
     calling_convention_info::CallingConventionInfo,
     function_info::{FunctionInfo, ParameterType},
@@ -24,6 +25,26 @@ use crate::{
         reorder_mov_sequence::reorder_mov_sequence,
     },
 };
+
+/// Overkill in practice, but just in case, any leftover memory at end of buffers will
+/// be swept up by other hooks which can better estimate a byte count than we can for wrapper generation.
+///
+/// # Rationale
+///
+/// Most space in generated code comes from re-pushing parameters if needed, or shifting them between
+/// registers. All the other instructions amount to roughly 12 bytes (x86) or 16 bytes (ARM) for most generated code.
+///
+/// The average length of instruction used to 'push' a parameter, is 4 bytes. (Note: x86 can be shorter
+/// when moving between registers).
+///
+/// Assuming we have left over space of a generous 160 bytes (for brevity), the maximum number of
+/// parameters we can push is 160 / 4 = 40 parameters.
+///
+/// This is very unlikely to be the case in practice, as functions with that many parameters would
+/// not require the generation of a wrapper, they would be inlined or use the default call convention.
+///
+/// Who would pass 40 parameters to a function anyway !?
+pub const MAX_WRAPPER_LENGTH: usize = 192;
 
 /// Options and additional context necessary for the wrapper generator.
 #[derive(Clone, Copy)]
@@ -64,6 +85,46 @@ where
     pub enable_optimizations: bool,
 }
 
+/// Creates a new instance of WrapperInstructionGeneratorOptions with the given parameters.
+///
+/// # Type Parameters
+///
+/// * `TFunctionInfo` - Information about the function for which the wrapper needs to be generated.
+/// * `TRegister` - Register information type.
+/// * `TJit` - Jit implementation type.
+///
+/// # Parameters
+///
+/// * `can_generate_relative_jumps` - Whether the code is within relative jump distance.
+/// * `target_address` - Address of the function to be called.
+/// * `function_info` - Reference to information about the function.
+/// * `injected_parameter` - Optional injected parameter value.
+///
+/// # Returns
+///
+/// A new instance of WrapperInstructionGeneratorOptions.
+pub fn new_wrapper_instruction_generator_options<'a, TFunctionInfo, TRegister, TJit>(
+    can_generate_relative_jumps: bool,
+    target_address: usize,
+    function_info: &'a TFunctionInfo,
+    injected_parameter: Option<usize>,
+) -> WrapperInstructionGeneratorOptions<'a, TFunctionInfo>
+where
+    TFunctionInfo: FunctionInfo,
+    TRegister: RegisterInfo,
+    TJit: Jit<TRegister>,
+{
+    WrapperInstructionGeneratorOptions {
+        stack_entry_alignment: TJit::stack_entry_misalignment() as usize,
+        jit_capabilities: TJit::get_jit_capabilities(),
+        enable_optimizations: true,
+        can_generate_relative_jumps,
+        target_address,
+        function_info,
+        injected_parameter,
+    }
+}
+
 /// Creates the instructions responsible for wrapping one object kind to another.
 ///
 /// # Parameters
@@ -83,7 +144,7 @@ pub fn generate_wrapper_instructions<
 >(
     conv_called: &TFunctionAttribute,
     conv_current: &TFunctionAttribute,
-    options: WrapperInstructionGeneratorOptions<TFunctionInfo>,
+    options: &WrapperInstructionGeneratorOptions<TFunctionInfo>,
 ) -> Result<Vec<Operation<TRegister>>, WrapperGenerationError> {
     let mut ops = Vec::<Operation<TRegister>>::with_capacity(32);
     let mut stack_pointer =
@@ -315,7 +376,11 @@ pub fn generate_wrapper_instructions<
     }
 
     // Call the Method
-    if options.can_generate_relative_jumps {
+    if options
+        .jit_capabilities
+        .contains(JitCapabilities::CAN_RELATIVE_JUMP_TO_ANY_ADDRESS)
+        || options.can_generate_relative_jumps
+    {
         ops.push(CallRel::new(options.target_address).into());
     } else {
         let abs_call_register =
@@ -612,7 +677,7 @@ pub mod tests {
             &mock_function,
             capabiltiies,
         );
-        generate_wrapper_instructions(conv_called, conv_current, options)
+        generate_wrapper_instructions(conv_called, conv_current, &options)
     }
 
     fn get_common_options(

@@ -24,7 +24,7 @@ pub enum HookBuilderError<TRegister> {
 
     /// JIT related error.
     #[error("Error in JIT: {0:?}")]
-    JitError(JitError<TRegister>),
+    JitError(#[from] JitError<TRegister>),
 }
 
 /// Errors that can occur during JIT compilation.

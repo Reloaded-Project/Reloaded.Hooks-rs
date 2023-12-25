@@ -7,7 +7,9 @@ extern crate alloc;
 ///
 /// # Generic Parameters
 /// - `TRegister`: The type of register used by the target architecture. (Enum)
-pub trait CallingConventionInfo<TRegister: Copy + RegisterInfo + PartialEq + 'static> {
+pub trait CallingConventionInfo<TRegister: Copy + RegisterInfo + PartialEq + 'static>:
+    PartialEq
+{
     /// Registers in left to right parameter order passed to the custom function.
     fn register_int_parameters(&self) -> &[TRegister];
 

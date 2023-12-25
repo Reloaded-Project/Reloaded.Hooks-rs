@@ -3,11 +3,11 @@ use super::stub_builder_settings::{HookBuilderSettings, HookBuilderSettingsMixin
 use crate::{
     api::{
         buffers::buffer_abstractions::{Buffer, BufferFactory},
-        errors::hook_builder_error::HookBuilderError,
+        errors::hook_builder_error::{HookBuilderError, RewriteErrorDetails, RewriteErrorSource},
         hooks::stub::stub_props_common::*,
         jit::compiler::Jit,
         length_disassembler::LengthDisassembler,
-        rewriter::code_rewriter::CodeRewriter,
+        rewriter::code_rewriter::{CodeRewriter, CodeRewriterError},
         traits::register_info::RegisterInfo,
     },
     helpers::{
@@ -230,4 +230,16 @@ where
     let len = TDisassembler::disassemble_length(code_address, min_length);
     let extra_length = len.1 * TRewriter::max_ins_size_increase();
     (len.0 + extra_length, len.0)
+}
+
+pub fn new_rewrite_error<TRegister>(
+    source: RewriteErrorSource,
+    old_location: usize,
+    new_location: usize,
+    e: CodeRewriterError,
+) -> HookBuilderError<TRegister> {
+    HookBuilderError::RewriteError(
+        RewriteErrorDetails::new(source, old_location, new_location),
+        e,
+    )
 }

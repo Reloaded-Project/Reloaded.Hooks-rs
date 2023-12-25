@@ -32,6 +32,9 @@ bitflags! {
         /// than an 'Absolute Jump'. This is used for Assembly Hooks to reduce number of bytes
         /// used.
         const PROFITABLE_ABSOLUTE_INDIRECT_JUMP = 1 << 3;
+
+        /// This JIT can perform a 'relative jump' operation to any address.
+        const CAN_RELATIVE_JUMP_TO_ANY_ADDRESS = 1 << 4;
     }
 }
 
@@ -59,6 +62,12 @@ pub trait Jit<TRegister: RegisterInfo> {
 
     /// Maximum number of bytes required to perform a branch (i.e. an absolute branch).
     fn max_branch_bytes() -> u32;
+
+    /// Stack offset upon entry into a method from desired value.
+    ///
+    /// This is 0 for architectures with a link register, or sizeof([usize]) for architectures which have
+    /// return addresses on stack.
+    fn stack_entry_misalignment() -> u32;
 
     /// Maximum distances of supported relative jump assembly instruction sequences.
     /// This affects wrapper generation, and parameters passed into JIT.

@@ -149,7 +149,7 @@ fn two_parameters(
         | JitCapabilities::CAN_MULTI_PUSH;
 
     let options = get_common_options(optimized, &MOCK_FUNCTION, capabiltiies);
-    generate_wrapper_instructions(from_convention, to_convention, options)
+    generate_wrapper_instructions(from_convention, to_convention, &options)
 }
 
 fn get_common_options(

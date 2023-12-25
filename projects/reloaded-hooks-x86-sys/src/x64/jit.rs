@@ -66,6 +66,10 @@ impl Jit<Register> for JitX64 {
         Ok(())
     }
 
+    fn stack_entry_misalignment() -> u32 {
+        8
+    }
+
     fn code_alignment() -> u32 {
         16
     }
