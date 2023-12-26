@@ -1,5 +1,4 @@
 use core::mem::transmute;
-
 use derive_enum_all_values::AllValues;
 use reloaded_hooks_portable::api::traits::register_info::{KnownRegisterType, RegisterInfo};
 

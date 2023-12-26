@@ -662,3 +662,11 @@ How ABIs and compilers deal with this isn't always well standardised; therefore 
 strategy to handle this.  
 
 [bijective]: https://www.mathsisfun.com/sets/injective-surjective-bijective.html
+
+
+### Wrappers (Currently) Don't understand how to split larger resigers.
+
+Some calling conventions, have rules where larger values (e.g. 128-bit values on x64) are split into
+2 registers.
+
+The wrapper generator cannot generate code for these functions currently.

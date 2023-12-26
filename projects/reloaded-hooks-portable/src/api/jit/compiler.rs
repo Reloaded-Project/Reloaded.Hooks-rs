@@ -185,10 +185,6 @@ pub enum JitError<TRegister> {
     )]
     InvalidRegisterCombination3(TRegister, TRegister, TRegister),
 
-    /// JIT of an unrecognised instruction was requested.
-    #[error("Invalid instruction provided: {0:?}")]
-    InvalidInstruction(Operation<TRegister>),
-
     #[error("Operand is out of range: {0:?}")]
     OperandOutOfRange(String),
 
@@ -207,9 +203,6 @@ where
         JitError::CannotInitializeAssembler(x) => JitError::CannotInitializeAssembler(x),
         JitError::ThirdPartyAssemblerError(x) => JitError::ThirdPartyAssemblerError(x),
         JitError::InvalidRegister(x) => JitError::InvalidRegister(f(x)),
-        JitError::InvalidInstruction(x) => {
-            JitError::InvalidInstruction(super::operation::transform_op(x, f))
-        }
         JitError::InvalidRegisterCombination(a, b) => {
             JitError::InvalidRegisterCombination(f(a), f(b))
         }

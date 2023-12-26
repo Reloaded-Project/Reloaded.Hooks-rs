@@ -141,6 +141,39 @@ pub enum StackParameterOrder {
     LeftToRight,
 }
 
+/// Base struct representing the calling convention of a function, detailing how
+/// parameters are passed, which registers are used, and how the stack is managed.
+///
+/// This struct is useful for defining different calling conventions in a way that
+/// can be easily referenced and utilized in various contexts, such as JIT compilation
+/// or function hooking.
+///
+/// # Fields
+///
+/// - `int_parameters`: A slice of registers used for passing integer parameters.
+/// - `float_parameters`: A slice of registers used for passing floating-point parameters.
+/// - `vector_parameters`: A slice of registers used for passing vector parameters.
+/// - `return_register`: The register used for the function return value.
+/// - `reserved_stack_space`: The amount of stack space reserved for the function.
+/// - `callee_saved_registers`: Registers that the callee is responsible for saving and restoring.
+/// - `always_saved_registers`: Registers that are always saved across function calls.
+/// - `stack_cleanup`: Specifies who cleans up the stack after the function call.
+/// - `stack_parameter_order`: The order in which parameters are pushed onto the stack.
+/// - `required_stack_alignment`: The required alignment of the stack pointer before the function call.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GenericCallingConvention<'a, TRegister: Copy> {
+    pub int_parameters: &'a [TRegister],
+    pub float_parameters: &'a [TRegister],
+    pub vector_parameters: &'a [TRegister],
+    pub return_register: TRegister,
+    pub reserved_stack_space: u32,
+    pub callee_saved_registers: &'a [TRegister],
+    pub always_saved_registers: &'a [TRegister],
+    pub stack_cleanup: StackCleanup,
+    pub stack_parameter_order: StackParameterOrder,
+    pub required_stack_alignment: u32,
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

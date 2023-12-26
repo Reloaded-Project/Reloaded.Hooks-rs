@@ -6,8 +6,9 @@ use crate::{
         calling_convention_info::CallingConventionInfo,
         errors::function_hook_error::FunctionHookError,
         function_info::FunctionInfo,
-        hooks::stub::mixins::{
-            assembly_mixin::AssemblyMixin, stub_wrapper_mixin::StubWrapperMixin,
+        hooks::{
+            common_hook::CommonHook,
+            stub::mixins::{assembly_mixin::AssemblyMixin, stub_wrapper_mixin::StubWrapperMixin},
         },
         jit::{
             compiler::Jit,
@@ -62,7 +63,7 @@ pub unsafe fn create_branch_hook_with_pointer<
 >(
     settings: &FunctionHookSettings<TRegister, TFunctionInfo, TFunctionAttribute>,
     original_fn_address: *mut usize,
-) -> Result<(), FunctionHookError<TRegister>> {
+) -> Result<CommonHook<TBuffer, TJit, TRegister, TBufferFactory>, FunctionHookError<TRegister>> {
     create_branch_hook_with_callback::<
         TJit,
         TRegister,
@@ -106,7 +107,7 @@ pub unsafe fn create_branch_hook_with_callback<
 >(
     settings: &FunctionHookSettings<TRegister, TFunctionInfo, TFunctionAttribute>,
     original_val_receiver: impl FnOnce(usize),
-) -> Result<(), FunctionHookError<TRegister>> {
+) -> Result<CommonHook<TBuffer, TJit, TRegister, TBufferFactory>, FunctionHookError<TRegister>> {
     // Sufficient for relative/absolute jmp/call in any architecture
     const MAX_BRANCH_LENGTH: usize = 24;
 
@@ -182,7 +183,7 @@ pub unsafe fn create_branch_hook_with_callback<
         overwrite_code(core_settings.hook_address, &code);
 
         // And return the good stuff.
-        Ok(())
+        Ok(CommonHook::new(stub.props, buf_ptr))
     } else {
         // Get stub buffer we will be using
         let mut alloc = create_hook_stub_buffer::<TJit, TRegister, TBuffer, TBufferFactory>(
@@ -246,6 +247,6 @@ pub unsafe fn create_branch_hook_with_callback<
         overwrite_code(core_settings.hook_address, &code);
 
         // And return the good stuff.
-        Ok(())
+        Ok(CommonHook::new(stub.props, buf_ptr))
     }
 }

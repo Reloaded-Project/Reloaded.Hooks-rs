@@ -22,6 +22,7 @@ derive-enum-all-values = "0.1.0"
 smallvec = { version = "1.11.0", features = ["const_new"] }
 reloaded-hooks-portable = { path = "../reloaded-hooks-portable" }
 hex = "0.4.3"
+derive_more = { version = "0.99.17", default-features = false, features = ["deref", "deref_mut"] }
 
 [dependencies.iced-x86]
 version = "=1.16.0" # due to bug https://github.com/icedland/iced/issues/498

@@ -13,6 +13,7 @@ smallvec = { version = "1.11.0", features = ["const_new"] }
 reloaded-hooks-portable = { version = "0.1.0", path = "../reloaded-hooks-portable" }
 derive-enum-all-values = "0.1.0"
 bitfield = "0.14.0"
+derive_more = { version = "0.99.17", default-features = false, features = ["deref", "deref_mut"] }
 
 [dev-dependencies]
 criterion = "0.5.1"

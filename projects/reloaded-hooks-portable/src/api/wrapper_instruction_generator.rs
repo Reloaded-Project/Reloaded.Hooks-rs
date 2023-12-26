@@ -1,4 +1,5 @@
 extern crate alloc;
+use core::cell::RefCell;
 use core::{hash::Hash, mem::size_of, slice};
 
 use alloc::vec::Vec;
@@ -103,12 +104,12 @@ where
 /// # Returns
 ///
 /// A new instance of WrapperInstructionGeneratorOptions.
-pub fn new_wrapper_instruction_generator_options<'a, TFunctionInfo, TRegister, TJit>(
+pub fn new_wrapper_instruction_generator_options<TFunctionInfo, TRegister, TJit>(
     can_generate_relative_jumps: bool,
     target_address: usize,
-    function_info: &'a TFunctionInfo,
+    function_info: &TFunctionInfo,
     injected_parameter: Option<usize>,
-) -> WrapperInstructionGeneratorOptions<'a, TFunctionInfo>
+) -> WrapperInstructionGeneratorOptions<'_, TFunctionInfo>
 where
     TFunctionInfo: FunctionInfo,
     TRegister: RegisterInfo,
@@ -227,7 +228,8 @@ pub fn generate_wrapper_instructions<
     //
     // In this case, we are calling `conv_called` from the wrapper we create which is still
     // `conv_current`. Therefore, we need to use the scratch registers of `conv_current`.
-    let scratch_registers = Rc::new(conv_current.caller_saved_registers());
+    let mut scratch_registers = Rc::new(RefCell::new(conv_current.caller_saved_registers()));
+    // Note: We still need to eliminate caller saved regs used as function parameters. This will be done later.
 
     // Backup Always Saved Registers (LR, etc.)
     for register in conv_current.always_saved_registers() {
@@ -281,6 +283,12 @@ pub fn generate_wrapper_instructions<
             &mut returned_reg_params_buf,
         );
 
+        // Eliminate caller saved regs from scratch which are used as function parameters
+        // To get our 'true' scratch registers.
+        (*scratch_registers)
+            .borrow_mut()
+            .retain(|&f| !fn_returned_params.1.iter().any(|reg| f == reg.1));
+
         /*
             Context [x64 as example].
 
@@ -320,7 +328,10 @@ pub fn generate_wrapper_instructions<
 
     // Inject parameter (if applicable)
     if let Some(injected_value) = options.injected_parameter {
-        let reg = find_register_with_category(RegisterCategory::GeneralPurpose, &scratch_registers);
+        let reg = find_register_with_category(
+            RegisterCategory::GeneralPurpose,
+            &scratch_registers.borrow(),
+        );
         setup_params_ops.push(PushConst::new(injected_value, reg).into());
         stack_pointer += size_of::<usize>();
     }
@@ -339,7 +350,7 @@ pub fn generate_wrapper_instructions<
     if options.enable_optimizations {
         optimized = optimize_push_pop_parameters(optimized);
 
-        let reordered = reorder_mov_sequence(optimized, &scratch_registers); // perf hit
+        let reordered = reorder_mov_sequence(optimized, &scratch_registers.borrow()); // perf hit
         if reordered.is_some() {
             new_optimized = unsafe { reordered.unwrap_unchecked() };
             optimized = &mut new_optimized[..];
@@ -383,8 +394,10 @@ pub fn generate_wrapper_instructions<
     {
         ops.push(CallRel::new(options.target_address).into());
     } else {
-        let abs_call_register =
-            find_register_with_category(RegisterCategory::GeneralPurpose, &scratch_registers);
+        let abs_call_register = find_register_with_category(
+            RegisterCategory::GeneralPurpose,
+            &scratch_registers.borrow(),
+        );
 
         if abs_call_register.is_none() {
             return Err(WrapperGenerationError::NoScratchRegister(

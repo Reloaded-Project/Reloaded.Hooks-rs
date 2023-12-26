@@ -8,8 +8,8 @@ pub mod all_registers;
 /// Contains the public namespaces for x86
 #[cfg(feature = "x86")]
 pub mod x86 {
+    pub mod calling_convention;
     pub mod length_disassembler;
-    pub mod preset_calling_convention;
     pub mod register;
     pub use register::Register;
     pub mod jit;
@@ -23,6 +23,7 @@ pub mod x64 {
     pub mod register;
     pub mod rewriter;
     pub use register::Register;
+    pub mod calling_convention;
     pub mod jit;
 }
 

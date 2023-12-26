@@ -1,6 +1,7 @@
 extern crate alloc;
-
 use alloc::rc::Rc;
+use alloc::vec::Vec;
+use core::cell::RefCell;
 use derive_more::From;
 use smallvec::SmallVec;
 
@@ -66,11 +67,17 @@ where
         Operation::Push(inner_op) => Operation::Push(PushOperation {
             register: f(inner_op.register),
         }),
-        Operation::PushStack(inner_op) => Operation::PushStack(PushStackOperation {
-            offset: inner_op.offset,
-            item_size: inner_op.item_size,
-            scratch: Rc::new(inner_op.scratch.iter().map(|x| f(*x)).collect()),
-        }),
+        Operation::PushStack(inner_op) => {
+            // TODO: This is slow, due to a full copy. However this is only hit in presence of external assemblers.
+            let borrowed_scratch = inner_op.scratch.borrow();
+            let mut new_vec = Vec::with_capacity(borrowed_scratch.len());
+            new_vec.extend(borrowed_scratch.iter().map(|x| f(*x)));
+            Operation::PushStack(PushStackOperation {
+                offset: inner_op.offset,
+                item_size: inner_op.item_size,
+                scratch: Rc::new(RefCell::new(new_vec)),
+            })
+        }
         Operation::StackAlloc(inner_op) => Operation::StackAlloc(StackAllocOperation {
             operand: inner_op.operand,
         }),

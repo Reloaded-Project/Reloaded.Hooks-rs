@@ -26,7 +26,7 @@ pub fn encode_push_stack(
 
     // A free vector register, let's go !
     let mut remaining_bytes = x.item_size;
-    if let Some(regs) = get_two_vector_one_scalar_register(&x.scratch) {
+    if let Some(regs) = get_two_vector_one_scalar_register(&x.scratch.borrow()) {
         // Vectorised variant (2 vector regs + 1 scalar reg)
         // Two register variant
         while remaining_bytes > 0 {
@@ -52,7 +52,7 @@ pub fn encode_push_stack(
                 remaining_bytes -= 4;
             }
         }
-    } else if let Some(two_reg) = get_two_64_bit_registers(&x.scratch) {
+    } else if let Some(two_reg) = get_two_64_bit_registers(&x.scratch.borrow()) {
         // Two register variant
         while remaining_bytes > 0 {
             if remaining_bytes >= 16 {
@@ -76,7 +76,7 @@ pub fn encode_push_stack(
                 remaining_bytes -= 4;
             }
         }
-    } else if let Some(reg) = x.scratch.iter().find(|reg| reg.is_64()) {
+    } else if let Some(reg) = x.scratch.borrow().iter().find(|reg| reg.is_64()) {
         // Single register fallback
         while remaining_bytes > 0 {
             if remaining_bytes >= 8 {
@@ -122,13 +122,13 @@ fn get_two_vector_one_scalar_register(
 mod tests {
 
     extern crate alloc;
-    use alloc::rc::Rc;
-    use alloc::vec::Vec;
-
     use crate::all_registers::AllRegisters;
     use crate::all_registers::AllRegisters::*;
     use crate::jit_instructions::push_stack::encode_push_stack;
     use crate::test_helpers::assert_encode;
+    use alloc::rc::Rc;
+    use alloc::vec::Vec;
+    use core::cell::RefCell;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use rstest::rstest;
 
@@ -165,7 +165,7 @@ mod tests {
     ) {
         let mut pc = 0;
         let mut buf = Vec::new();
-        let rc_vec = Rc::new(scratch);
+        let rc_vec = Rc::new(RefCell::new(scratch));
         let operation = PushStack::new(offset, item_size, rc_vec);
 
         assert!(encode_push_stack(&operation, &mut pc, &mut buf).is_ok());

@@ -32,8 +32,6 @@ use core::{
     marker::PhantomData,
     mem::{transmute, MaybeUninit},
 };
-use derive_more::Deref;
-use derive_more::DerefMut;
 use derive_new::new;
 
 /// Creates an assembly hook at a specified location in memory.
