@@ -36,7 +36,7 @@ static MICROSOFT_X64: CallingConvention = CallingConvention {
             xmm13, xmm14, xmm15,
         ],
         always_saved_registers: &[],
-        stack_cleanup: StackCleanup::Callee,
+        stack_cleanup: StackCleanup::Caller,
         stack_parameter_order: StackParameterOrder::RightToLeft,
         required_stack_alignment: 16,
     },
