@@ -165,8 +165,8 @@ where
     // BUT it MUST be aligned, because some architectures require that
     // writes be aligned to ensure atomicity. For example MOVDQU on x86 is not
     // atomic unless aligned.
-    let padded_len = (swap_space_len as u8).next_power_of_two();
-    if swap_space_len as u8 <= MAX_ATOMIC_WRITE_BYTES && (buf_addr % padded_len as usize) == 0 {
+    let padded_len = (swap_space_len).next_power_of_two();
+    if swap_space_len <= MAX_ATOMIC_WRITE_BYTES as usize && (buf_addr % padded_len) == 0 {
         // We could technically re-encode here, and handle misaligned code, but it's expensive for x86
         // to re-encode. So we only allow aligned for now.
         props.set_is_swap_only(true);

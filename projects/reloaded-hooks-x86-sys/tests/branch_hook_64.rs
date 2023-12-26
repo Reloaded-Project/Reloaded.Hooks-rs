@@ -43,7 +43,7 @@ mod tests {
     static ADD_INFO: BasicFunctionInfo =
         BasicFunctionInfo::new(&[ParameterType::i64, ParameterType::i64]);
 
-    //#[test]
+    #[test]
     fn hook_calculator_branch_x64_with_calling_convention_conversion() {
         unsafe {
             // Allocate the function.
@@ -67,7 +67,7 @@ mod tests {
                 true,
                 ADD_INFO,
                 CallingConvention::microsoft_x64(),
-                CallingConvention::system_v_amd64(),
+                CallingConvention::system_v(),
                 None,
             );
 

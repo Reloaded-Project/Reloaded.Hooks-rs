@@ -33,7 +33,7 @@ static CDECL: CallingConvention = CallingConvention {
         always_saved_registers: &[],
         stack_cleanup: StackCleanup::Caller,
         stack_parameter_order: StackParameterOrder::RightToLeft,
-        required_stack_alignment: 0,
+        required_stack_alignment: 1,
     },
 };
 
@@ -48,7 +48,7 @@ static STDCALL: CallingConvention = CallingConvention {
         always_saved_registers: &[],
         stack_cleanup: StackCleanup::Callee,
         stack_parameter_order: StackParameterOrder::RightToLeft,
-        required_stack_alignment: 0,
+        required_stack_alignment: 1,
     },
 };
 
@@ -63,7 +63,7 @@ static FASTCALL: CallingConvention = CallingConvention {
         always_saved_registers: &[],
         stack_cleanup: StackCleanup::Caller,
         stack_parameter_order: StackParameterOrder::RightToLeft,
-        required_stack_alignment: 0,
+        required_stack_alignment: 1,
     },
 };
 
@@ -78,7 +78,7 @@ static MICROSOFT_THISCALL: CallingConvention = CallingConvention {
         always_saved_registers: &[],
         stack_cleanup: StackCleanup::Callee,
         stack_parameter_order: StackParameterOrder::RightToLeft,
-        required_stack_alignment: 0,
+        required_stack_alignment: 1,
     },
 };
 
@@ -93,7 +93,7 @@ static CLRCALL: CallingConvention = CallingConvention {
         always_saved_registers: &[],
         stack_cleanup: StackCleanup::Callee,
         stack_parameter_order: StackParameterOrder::LeftToRight,
-        required_stack_alignment: 0,
+        required_stack_alignment: 1,
     },
 };
 

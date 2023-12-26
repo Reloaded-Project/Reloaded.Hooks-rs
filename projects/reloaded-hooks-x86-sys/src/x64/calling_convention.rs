@@ -42,50 +42,16 @@ static MICROSOFT_X64: CallingConvention = CallingConvention {
     },
 };
 
+// https://gitlab.com/x86-psABIs/x86-64-ABI/-/jobs/5301578287/artifacts/raw/x86-64-ABI/abi.pdf
+// Parameter passing section
 static SYSTEM_V_AMD64: CallingConvention = CallingConvention {
     convention: GenericCallingConvention::<Register> {
         int_parameters: &[rdi, rsi, rdx, rcx, r8, r9],
         float_parameters: &[xmm0, xmm1, xmm2, xmm3, xmm4, xmm5, xmm6, xmm7],
         vector_parameters: &[],
         return_register: rax,
-        reserved_stack_space: 128, // 'red zone'
-        callee_saved_registers: &[
-            rbp, rbx, r12, r13, r14, r15, xmm8, xmm9, xmm10, xmm11, xmm12, xmm13, xmm14, xmm15,
-        ],
-        always_saved_registers: &[],
-        stack_cleanup: StackCleanup::Caller,
-        stack_parameter_order: StackParameterOrder::RightToLeft,
-        required_stack_alignment: 16,
-    },
-};
-
-static SYSTEM_V_AMD64_YMM: CallingConvention = CallingConvention {
-    convention: GenericCallingConvention::<Register> {
-        int_parameters: &[rdi, rsi, rdx, rcx, r8, r9],
-        float_parameters: &[ymm0, ymm1, ymm2, ymm3, ymm4, ymm5, ymm6, ymm7],
-        vector_parameters: &[],
-        return_register: rax,
-        reserved_stack_space: 128, // 'red zone'
-        callee_saved_registers: &[
-            rbp, rbx, r12, r13, r14, r15, ymm8, ymm9, ymm10, ymm11, ymm12, ymm13, ymm14, ymm15,
-        ],
-        always_saved_registers: &[],
-        stack_cleanup: StackCleanup::Caller,
-        stack_parameter_order: StackParameterOrder::RightToLeft,
-        required_stack_alignment: 16,
-    },
-};
-
-static SYSTEM_V_AMD64_ZMM: CallingConvention = CallingConvention {
-    convention: GenericCallingConvention::<Register> {
-        int_parameters: &[rdi, rsi, rdx, rcx, r8, r9],
-        float_parameters: &[zmm0, zmm1, zmm2, zmm3, zmm4, zmm5, zmm6, zmm7],
-        vector_parameters: &[],
-        return_register: rax,
-        reserved_stack_space: 128, // 'red zone'
-        callee_saved_registers: &[
-            rbp, rbx, r12, r13, r14, r15, zmm8, zmm9, zmm10, zmm11, zmm12, zmm13, zmm14, zmm15,
-        ],
+        reserved_stack_space: 0, // 'red zone' is on the other side of the stack pointer, as opposed to 'shadow space'.
+        callee_saved_registers: &[rbp, rbx, r12, r13, r14, r15],
         always_saved_registers: &[],
         stack_cleanup: StackCleanup::Caller,
         stack_parameter_order: StackParameterOrder::RightToLeft,
@@ -102,29 +68,15 @@ impl<'a> CallingConvention<'a> {
 
     /// Returns an instance of the CallingConvention struct configured for the
     /// System V AMD64 calling convention, commonly used in Unix-like systems.
-    pub fn system_v_amd64() -> &'a Self {
+    pub fn system_v() -> &'a Self {
         &SYSTEM_V_AMD64
-    }
-
-    /// Returns an instance of the CallingConvention struct configured for the
-    /// System V AMD64 calling convention, commonly used in Unix-like systems.
-    pub fn system_v_amd64_ymm() -> &'a Self {
-        &SYSTEM_V_AMD64_YMM
-    }
-
-    /// Returns an instance of the CallingConvention struct configured for the
-    /// System V AMD64 calling convention, commonly used in Unix-like systems.
-    pub fn system_v_amd64_zmm() -> &'a Self {
-        &SYSTEM_V_AMD64_ZMM
     }
 
     /// Returns a [`CallingConvention`] based on the provided [`PresetCallingConvention`].
     pub fn from_preset(convention_type: PresetCallingConvention) -> &'a Self {
         match convention_type {
             PresetCallingConvention::MicrosoftX64 => Self::microsoft_x64(),
-            PresetCallingConvention::SystemVAMD64 => Self::system_v_amd64(),
-            PresetCallingConvention::SystemVAMD64Ymm => Self::system_v_amd64_ymm(),
-            PresetCallingConvention::SystemVAMD64Zmm => Self::system_v_amd64_zmm(),
+            PresetCallingConvention::SystemV => Self::system_v(),
         }
     }
 
@@ -139,7 +91,7 @@ impl<'a> CallingConvention<'a> {
 
         #[cfg(not(windows))]
         {
-            Self::system_v_amd64()
+            Self::system_v()
         }
     }
 }
@@ -162,25 +114,5 @@ pub enum PresetCallingConvention {
     /// - Additional parameters: Pushed onto stack right to left
     /// - Return register:    RAX (integer), XMM0 (float)
     /// - Cleanup:            Caller
-    SystemVAMD64,
-
-    /// System V AMD64 ABI calling convention (used in Unix-like systems).
-    /// This variant uses the YMM registers.
-    ///
-    /// - Integer parameters: RDI, RSI, RDX, RCX, R8, R9 (in order, left to right)
-    /// - Float parameters:   YMM0 to YMM7 (in order, left to right)
-    /// - Additional parameters: Pushed onto stack right to left
-    /// - Return register:    RAX (integer), YMM0 (float)
-    /// - Cleanup:            Caller
-    SystemVAMD64Ymm,
-
-    /// System V AMD64 ABI calling convention (used in Unix-like systems).
-    /// This variant uses the ZMM registers.
-    ///
-    /// - Integer parameters: RDI, RSI, RDX, RCX, R8, R9 (in order, left to right)
-    /// - Float parameters:   ZMM0 to ZMM7 (in order, left to right)
-    /// - Additional parameters: Pushed onto stack right to left
-    /// - Return register:    RAX (integer), ZMM0 (float)
-    /// - Cleanup:            Caller
-    SystemVAMD64Zmm,
+    SystemV,
 }
