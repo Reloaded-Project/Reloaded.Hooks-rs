@@ -1,3 +1,5 @@
+use derive_new::new;
+
 use super::basic_hook_settings::BasicHookSettings;
 use crate::api::{
     calling_convention_info::CallingConventionInfo, function_info::FunctionInfo,
@@ -8,7 +10,7 @@ use crate::api::{
 ///
 /// This is used for the allocation of wrappers and other native/interop components.
 /// It helps guide memory allocations to be closer to a specific target address.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct FunctionHookSettings<'a, TRegister, TFunctionInfo, TFunctionAttribute>
 where
     TRegister: Clone + Copy + RegisterInfo + PartialEq + Eq + 'static,

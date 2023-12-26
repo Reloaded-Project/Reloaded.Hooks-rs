@@ -162,8 +162,13 @@ where
     props.set_is_enabled(settings.auto_activate);
 
     // Small payload! We can atomic write over the whole thing.
-    if swap_space_len as u8 <= MAX_ATOMIC_WRITE_BYTES {
-        let padded_len = (swap_space_len as u8).next_power_of_two();
+    // BUT it MUST be aligned, because some architectures require that
+    // writes be aligned to ensure atomicity. For example MOVDQU on x86 is not
+    // atomic unless aligned.
+    let padded_len = (swap_space_len as u8).next_power_of_two();
+    if swap_space_len as u8 <= MAX_ATOMIC_WRITE_BYTES && (buf_addr % padded_len as usize) == 0 {
+        // We could technically re-encode here, and handle misaligned code, but it's expensive for x86
+        // to re-encode. So we only allow aligned for now.
         props.set_is_swap_only(true);
         props_buf.set_len(old_len + padded_len as usize);
         props.set_swap_size(padded_len as usize);

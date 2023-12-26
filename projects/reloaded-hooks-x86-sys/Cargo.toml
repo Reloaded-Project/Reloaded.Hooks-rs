@@ -34,7 +34,7 @@ features = ["no_std", "code_asm", "decoder"]
 criterion = "0.5.1"
 rstest = "0.18.2"
 reloaded-hooks-buffers-common = { path = "../reloaded-hooks-buffers-common" }
-reloaded-memory-buffers = "4.0.1"
+reloaded-memory-buffers = "4.0.3"
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.12", features = ["flamegraph", "criterion"] }

@@ -16,7 +16,7 @@ use reloaded_hooks_portable::api::calling_convention_info::{
 /// # Examples
 ///
 /// ```rust
-/// use reloaded_hooks_x86_sys::x64::calling_conventions::CallingConvention;
+/// use reloaded_hooks_x86_sys::x64::calling_convention::CallingConvention;
 /// let microsoft_x64_convention = CallingConvention::microsoft_x64();
 /// ```
 #[derive(Debug, Clone, PartialEq, DerefMut, Deref)]

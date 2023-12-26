@@ -12,6 +12,7 @@ use crate::{
         },
         jit::{
             compiler::Jit,
+            jump_relative_operation::JumpRelativeOperation,
             operation_aliases::{CallRel, JumpAbs, JumpRel},
         },
         length_disassembler::LengthDisassembler,
@@ -24,7 +25,10 @@ use crate::{
             MAX_WRAPPER_LENGTH,
         },
     },
-    helpers::{overwrite_code::overwrite_code, relative_branch_range_check::can_direct_branch},
+    helpers::{
+        atomic_write_masked::MAX_ATOMIC_WRITE_BYTES, overwrite_code::overwrite_code,
+        relative_branch_range_check::can_direct_branch,
+    },
     internal::{
         stub_builder::{create_hook_stub_buffer, create_stub},
         stub_builder_settings::{HookBuilderSettings, HookBuilderSettingsMixin},
@@ -124,22 +128,25 @@ pub unsafe fn create_branch_hook_with_callback<
         TJit::standard_relative_call_bytes(),
     )?;
 
-    // Get the original call, we will have this as the 'original code' in the stub.
-    let orig_code = from_raw_parts(
-        core_settings.hook_address as *const u8,
-        TJit::standard_relative_call_bytes(),
-    );
+    // Make a 'jump' to original target. We will have this as the 'original code' in the stub.
+    let mut branch_to_target = Vec::<u8>::with_capacity(TJit::standard_relative_call_bytes());
+    let mut pc = core_settings.hook_address;
+    TJit::encode_jump(
+        &JumpRelativeOperation::new(target.target_address),
+        &mut pc,
+        &mut branch_to_target,
+    )?;
 
+    let orig_code = from_raw_parts(branch_to_target.as_ptr(), branch_to_target.len());
     original_val_receiver(target.target_address);
 
     // Generate wrapper if needed.
     let mut code = Vec::<u8>::with_capacity(MAX_BRANCH_LENGTH);
-
     if settings.needs_wrapper() {
         // Get stub buffer we will be using
         let mut alloc = create_hook_stub_buffer::<TJit, TRegister, TBuffer, TBufferFactory>(
             core_settings.hook_address,
-            (MAX_WRAPPER_LENGTH * 2) + MAX_BRANCH_LENGTH,
+            (MAX_WRAPPER_LENGTH * 2) + MAX_BRANCH_LENGTH + (MAX_ATOMIC_WRITE_BYTES as usize - 1),
         );
         debug_assert!(alloc.can_relative_jump);
 
@@ -173,22 +180,21 @@ pub unsafe fn create_branch_hook_with_callback<
 
         // Lastly, write the branch to the buffer.
         let mut pc = core_settings.hook_address;
-        let buf_ptr = alloc.buf.get_address() as usize;
         if target.is_call {
-            TJit::encode_call(&CallRel::new(buf_ptr), &mut pc, &mut code)?;
+            TJit::encode_call(&CallRel::new(stub.stub), &mut pc, &mut code)?;
         } else {
-            TJit::encode_jump(&JumpRel::new(buf_ptr), &mut pc, &mut code)?;
+            TJit::encode_jump(&JumpRel::new(stub.stub), &mut pc, &mut code)?;
         }
 
         overwrite_code(core_settings.hook_address, &code);
 
         // And return the good stuff.
-        Ok(CommonHook::new(stub.props, buf_ptr))
+        Ok(CommonHook::new(stub.props, stub.stub))
     } else {
         // Get stub buffer we will be using
         let mut alloc = create_hook_stub_buffer::<TJit, TRegister, TBuffer, TBufferFactory>(
             core_settings.hook_address,
-            MAX_BRANCH_LENGTH * 3,
+            (MAX_BRANCH_LENGTH * 3) + (MAX_ATOMIC_WRITE_BYTES as usize - 1),
         );
         debug_assert!(alloc.can_relative_jump);
 
@@ -197,7 +203,7 @@ pub unsafe fn create_branch_hook_with_callback<
         let is_direct_branch = can_direct_branch(
             buf_ptr,
             core_settings.new_target,
-            TJit::max_standard_relative_call_distance(),
+            TJit::max_standard_relative_call_distance() - (MAX_ATOMIC_WRITE_BYTES as usize - 1),
             TJit::standard_relative_call_bytes(),
         );
 
@@ -236,12 +242,12 @@ pub unsafe fn create_branch_hook_with_callback<
         let stub = create_stub::<TRegister, TBuffer>(&mut builder_settings, &mut alloc, mixin)?;
 
         // Lastly, write the branch to the buffer.
+        code.clear();
         let mut pc = core_settings.hook_address;
-        let buf_ptr = alloc.buf.get_address() as usize;
         if target.is_call {
-            TJit::encode_call(&CallRel::new(buf_ptr), &mut pc, &mut code)?;
+            TJit::encode_call(&CallRel::new(stub.stub), &mut pc, &mut code)?;
         } else {
-            TJit::encode_jump(&JumpRel::new(buf_ptr), &mut pc, &mut code)?;
+            TJit::encode_jump(&JumpRel::new(stub.stub), &mut pc, &mut code)?;
         }
 
         overwrite_code(core_settings.hook_address, &code);

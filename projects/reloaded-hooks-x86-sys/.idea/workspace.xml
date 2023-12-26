@@ -8,7 +8,19 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="65a67985-6886-4465-9b2e-7519418cbd22" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/hooks/assembly/assembly_hook_impl.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/hooks/assembly/assembly_hook_impl.rs" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/tests/branch_hook_64.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-aarch64-sys/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-aarch64-sys/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-buffers-common/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-buffers-common/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/calling_convention_info.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/calling_convention_info.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/function_info.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/function_info.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/hooks/assembly/assembly_hook.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/hooks/assembly/assembly_hook.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/hooks/branch/branch_hook.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/hooks/branch/branch_hook.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/settings/function_hook_settings.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-portable/src/api/settings/function_hook_settings.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../reloaded-hooks-portable/src/internal/stub_builder.rs" beforeDir="false" afterPath="$PROJECT_DIR$/../reloaded-hooks-portable/src/internal/stub_builder.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/common/rewriter/code_rewriter.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/common/rewriter/code_rewriter.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/x64/calling_convention.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/x64/calling_convention.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,12 +58,14 @@
     "Cargo.Test disasm::tests.executor": "Run",
     "Cargo.Test instructions::call_absolute::tests::call_absolute_x64.executor": "Run",
     "Cargo.Test instructions::call_absolute::tests::call_absolute_x86.executor": "Run",
+    "Cargo.Test tests::hook_calculator_branch_x64_with_calling_convention_conversion.executor": "Debug",
+    "Cargo.Test tests::hook_calculator_branch_x64_with_enable_disable.executor": "Debug",
     "Cargo.test.executor": "Run",
     "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "code.cleanup.on.save": "true",
     "deletionFromPopupRequiresConfirmation": "false",
-    "git-widget-placeholder": "assembly-hooks",
+    "git-widget-placeholder": "branch-hooks",
     "last_opened_file_path": "/mnt/BTRFSSharedData/Projects/Reloaded.Hooks-rs/projects/reloaded-hooks-portable/Cargo.toml",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
@@ -59,7 +73,7 @@
     "node.js.selected.package.tslint": "(autodetect)",
     "nodejs_package_manager_path": "npm",
     "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
-    "settings.editor.selected.configurable": "preferences.pluginManager",
+    "settings.editor.selected.configurable": "language.rust.build.tool.cargo",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -71,7 +85,7 @@
       <command value="cargo test" />
     </option>
   </component>
-  <component name="RunManager" selected="Cargo.Test disasm::tests">
+  <component name="RunManager" selected="Cargo.Test tests::hook_calculator_branch_x64_with_enable_disable">
     <configuration name="Test common::disasm::tests::relocate_64b" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test --package reloaded-hooks-x86-sys --lib common::disasm::tests::relocate_64b -- --exact" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -106,6 +120,40 @@
         <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
       </method>
     </configuration>
+    <configuration name="Test tests::hook_calculator_branch_x64_with_calling_convention_conversion" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package reloaded-hooks-x86-sys --test branch_hook_64 tests::hook_calculator_branch_x64_with_calling_convention_conversion -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="Test tests::hook_calculator_branch_x64_with_enable_disable" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
+      <option name="command" value="test --package reloaded-hooks-x86-sys --test branch_hook_64 tests::hook_calculator_branch_x64_with_enable_disable -- --exact" />
+      <option name="workingDirectory" value="file://$PROJECT_DIR$" />
+      <option name="emulateTerminal" value="true" />
+      <option name="channel" value="DEFAULT" />
+      <option name="requiredFeatures" value="true" />
+      <option name="allFeatures" value="false" />
+      <option name="withSudo" value="false" />
+      <option name="buildTarget" value="REMOTE" />
+      <option name="backtrace" value="SHORT" />
+      <envs />
+      <option name="isRedirectInput" value="false" />
+      <option name="redirectInputPath" value="" />
+      <method v="2">
+        <option name="CARGO.BUILD_TASK_PROVIDER" enabled="true" />
+      </method>
+    </configuration>
     <configuration name="test" type="CargoCommandRunConfiguration" factoryName="Cargo Command" temporary="true">
       <option name="command" value="test" />
       <option name="workingDirectory" value="file://$PROJECT_DIR$" />
@@ -124,12 +172,16 @@
       </method>
     </configuration>
     <list>
+      <item itemvalue="Cargo.Test tests::hook_calculator_branch_x64_with_calling_convention_conversion" />
+      <item itemvalue="Cargo.Test tests::hook_calculator_branch_x64_with_enable_disable" />
       <item itemvalue="Cargo.Test common::disasm::tests::relocate_64b" />
       <item itemvalue="Cargo.Test disasm::tests" />
       <item itemvalue="Cargo.test" />
     </list>
     <recent_temporary>
       <list>
+        <item itemvalue="Cargo.Test tests::hook_calculator_branch_x64_with_enable_disable" />
+        <item itemvalue="Cargo.Test tests::hook_calculator_branch_x64_with_calling_convention_conversion" />
         <item itemvalue="Cargo.Test disasm::tests" />
         <item itemvalue="Cargo.Test common::disasm::tests::relocate_64b" />
         <item itemvalue="Cargo.test" />
@@ -164,6 +216,7 @@
       <workItem from="1699131630676" duration="3195000" />
       <workItem from="1699136308170" duration="53000" />
       <workItem from="1700795521714" duration="11000" />
+      <workItem from="1703569490414" duration="2703000" />
     </task>
     <servers />
   </component>
@@ -187,6 +240,11 @@
           <url>file://$PROJECT_DIR$/src/common/disasm.rs</url>
           <line>188</line>
           <option name="timeStamp" value="4" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" type="com.jetbrains.cidr.execution.debugger.OCBreakpointType">
+          <url>file://$PROJECT_DIR$/tests/branch_hook_64.rs</url>
+          <line>124</line>
+          <option name="timeStamp" value="5" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

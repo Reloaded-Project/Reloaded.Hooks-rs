@@ -156,7 +156,7 @@ pub(crate) fn append_if_can_encode_relative(
     // If the branch offset is within 2GiB, do no action
     // because Iced will handle it for us on re-encode.
     let target = instruction.near_branch_target();
-    let delta = (target - *current_new_pc as u64) as i64;
+    let delta = (target.wrapping_sub(*current_new_pc as u64)) as i64;
     if (-0x80000000..=0x7FFFFFFF).contains(&delta) {
         append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
         return true;
@@ -169,7 +169,7 @@ pub(crate) fn can_encode_relative(current_new_pc: &mut usize, instruction: &Inst
     // If the branch offset is within 2GiB, do no action
     // because Iced will handle it for us on re-encode.
     let target = instruction.near_branch_target();
-    let delta = (target - *current_new_pc as u64) as i64;
+    let delta = (target.wrapping_sub(*current_new_pc as u64)) as i64;
     if (-0x80000000..=0x7FFFFFFF).contains(&delta) {
         return true;
     }
@@ -287,7 +287,6 @@ mod tests {
         0x8000000000000000,
         "50e102eb05e9f30f0000"
     )] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x8000000080000ffd
-
     fn relocate_64b_branch(
         #[case] instructions: String,
         #[case] old_address: usize,

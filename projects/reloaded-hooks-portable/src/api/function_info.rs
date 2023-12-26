@@ -3,7 +3,6 @@ extern crate alloc;
 use super::{calling_convention_info::CallingConventionInfo, traits::register_info::RegisterInfo};
 use alloc::vec::Vec;
 use core::mem::size_of;
-use derive_new::new;
 
 /// This trait defines the information about the function for which a wrapper is being generated.
 pub trait FunctionInfo {
@@ -157,9 +156,15 @@ pub trait FunctionInfo {
 }
 
 /// Basic reference implementation of [`FunctionInfo`]
-#[derive(new)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub struct BasicFunctionInfo<'a> {
     params: &'a [ParameterType],
+}
+
+impl<'a> BasicFunctionInfo<'a> {
+    pub const fn new(params: &'a [ParameterType]) -> Self {
+        Self { params }
+    }
 }
 
 impl<'a> FunctionInfo for BasicFunctionInfo<'a> {

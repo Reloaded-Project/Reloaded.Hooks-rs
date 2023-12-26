@@ -10,7 +10,7 @@ for your architecture!!
 I am putting this not here, because you will likely run into compiler error, thus need to edit this file.
 */
 use core::{
-    ptr::read_unaligned,
+    ptr::{read_unaligned, write_unaligned},
     sync::atomic::{AtomicU16, AtomicU32, AtomicU64, AtomicU8, Ordering},
 };
 use portable_atomic::AtomicU128;
@@ -59,44 +59,39 @@ pub unsafe fn atomic_write(src: *const u8, tgt: *mut u8, size: usize) {
 ///
 /// # Parameters
 ///
-/// * `src` - The source memory location to swap with `tgt`.
-/// * `buf_tgt` - The target memory location to swap with `src`. Must belong to TBuffer.
+/// * `heap_src` - The source memory location on heap to swap with `tgt` (unaligned).
+/// * `buf_tgt` - The target memory location to swap with `src`. Must belong to TBuffer. Aligned.
 /// * `size` - The size of the swap. Must be 1/2/4/8/16 bytes.
 ///
 /// # Safety
 ///
 /// Function assumes that `src` and `tgt` are valid pointers to a memory location with at least `size` bytes.
 #[inline(always)]
-pub unsafe fn atomic_swap<TBuffer: Buffer>(src: *mut u8, buf_tgt: *mut u8, size: usize) {
+pub unsafe fn atomic_swap<TBuffer: Buffer>(heap_src: *mut u8, buf_tgt: *mut u8, size: usize) {
     match size {
         1 => {
-            let src_atomic = (src as *mut AtomicU8).as_ref().unwrap_unchecked();
-            let src_val = src_atomic.load(Ordering::Relaxed);
-            src_atomic.store(read_unaligned(buf_tgt as *const u8), Ordering::Relaxed);
+            let src_val = read_unaligned(heap_src);
+            write_unaligned(heap_src, read_unaligned(buf_tgt));
             TBuffer::overwrite_atomic(buf_tgt as usize, src_val);
         }
         2 => {
-            let src_atomic = (src as *mut AtomicU16).as_ref().unwrap_unchecked();
-            let src_val = src_atomic.load(Ordering::Relaxed);
-            src_atomic.store(read_unaligned(buf_tgt as *const u16), Ordering::Relaxed);
+            let src_val = read_unaligned(heap_src as *mut u16);
+            write_unaligned(heap_src as *mut u16, read_unaligned(buf_tgt as *mut u16));
             TBuffer::overwrite_atomic(buf_tgt as usize, src_val);
         }
         4 => {
-            let src_atomic = (src as *mut AtomicU32).as_ref().unwrap_unchecked();
-            let src_val = src_atomic.load(Ordering::Relaxed);
-            src_atomic.store(read_unaligned(buf_tgt as *const u32), Ordering::Relaxed);
+            let src_val = read_unaligned(heap_src as *mut u32);
+            write_unaligned(heap_src as *mut u32, read_unaligned(buf_tgt as *mut u32));
             TBuffer::overwrite_atomic(buf_tgt as usize, src_val);
         }
         8 => {
-            let src_atomic = (src as *mut AtomicU64).as_ref().unwrap_unchecked();
-            let src_val = src_atomic.load(Ordering::Relaxed);
-            src_atomic.store(read_unaligned(buf_tgt as *const u64), Ordering::Relaxed);
+            let src_val = read_unaligned(heap_src as *mut u64);
+            write_unaligned(heap_src as *mut u64, read_unaligned(buf_tgt as *mut u64));
             TBuffer::overwrite_atomic(buf_tgt as usize, src_val);
         }
         16 => {
-            let src_atomic = (src as *mut AtomicU128).as_ref().unwrap_unchecked();
-            let src_val = src_atomic.load(Ordering::Relaxed);
-            src_atomic.store(read_unaligned(buf_tgt as *const u128), Ordering::Relaxed);
+            let src_val = read_unaligned(heap_src as *mut u128);
+            write_unaligned(heap_src as *mut u128, read_unaligned(buf_tgt as *mut u128));
             TBuffer::overwrite_atomic(buf_tgt as usize, src_val);
         }
         _ => panic!("Unsupported size for atomic swap."),

@@ -20,7 +20,7 @@ criterion = "0.5.1"
 rstest = "0.18.2"
 hex = "0.4.3"
 reloaded-hooks-buffers-common = { path = "../reloaded-hooks-buffers-common" }
-reloaded-memory-buffers = "4.0.1"
+reloaded-memory-buffers = "4.0.3"
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.12", features = ["flamegraph", "criterion"] }

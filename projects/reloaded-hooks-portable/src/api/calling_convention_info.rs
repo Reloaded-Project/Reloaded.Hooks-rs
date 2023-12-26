@@ -174,6 +174,50 @@ pub struct GenericCallingConvention<'a, TRegister: Copy> {
     pub required_stack_alignment: u32,
 }
 
+impl<'a, TRegister: Copy + RegisterInfo + PartialEq + 'static> CallingConventionInfo<TRegister>
+    for GenericCallingConvention<'a, TRegister>
+{
+    fn register_int_parameters(&self) -> &[TRegister] {
+        self.int_parameters
+    }
+
+    fn register_float_parameters(&self) -> &[TRegister] {
+        self.float_parameters
+    }
+
+    fn register_vector_parameters(&self) -> &[TRegister] {
+        self.vector_parameters
+    }
+
+    fn return_register(&self) -> TRegister {
+        self.return_register
+    }
+
+    fn reserved_stack_space(&self) -> u32 {
+        self.reserved_stack_space
+    }
+
+    fn callee_saved_registers(&self) -> &[TRegister] {
+        self.callee_saved_registers
+    }
+
+    fn always_saved_registers(&self) -> &[TRegister] {
+        self.always_saved_registers
+    }
+
+    fn stack_cleanup_behaviour(&self) -> StackCleanup {
+        self.stack_cleanup
+    }
+
+    fn stack_parameter_order(&self) -> StackParameterOrder {
+        self.stack_parameter_order
+    }
+
+    fn required_stack_alignment(&self) -> u32 {
+        self.required_stack_alignment
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{

@@ -17,7 +17,10 @@ use crate::{
         settings::assembly_hook_settings::{AsmHookBehaviour, AssemblyHookSettings},
         traits::register_info::RegisterInfo,
     },
-    helpers::{jit_jump_operation::create_jump_operation, overwrite_code::overwrite_code},
+    helpers::{
+        atomic_write_masked::MAX_ATOMIC_WRITE_BYTES, jit_jump_operation::create_jump_operation,
+        overwrite_code::overwrite_code,
+    },
     internal::{
         stub_builder::{
             create_hook_stub_buffer, create_stub, get_relocated_code_length, new_rewrite_error,
@@ -121,7 +124,10 @@ pub unsafe fn create_assembly_hook<
 
     // Setup the stub builder.
     let max_swap_length = max(stub_hook_max_len, stub_orig_max_len);
-    let max_buf_length = max_swap_length + stub_hook_max_len + stub_orig_max_len;
+    let max_buf_length = max_swap_length
+        + stub_hook_max_len
+        + stub_orig_max_len
+        + (MAX_ATOMIC_WRITE_BYTES as usize - 1);
 
     // Get stub buffer we will be using.
     let mut alloc = create_hook_stub_buffer::<TJit, TRegister, TBuffer, TBufferFactory>(
@@ -130,25 +136,6 @@ pub unsafe fn create_assembly_hook<
     );
 
     let buf_addr = alloc.buf.get_address() as usize;
-
-    // Make jump to new buffer
-    let mut code = Vec::<u8>::with_capacity(orig_code_length);
-    create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
-        settings.hook_address,
-        alloc.can_relative_jump,
-        buf_addr,
-        settings.scratch_register,
-        &mut code,
-    )
-    .map_err(|e| AssemblyHookError::JitError(e))?;
-
-    // Bail out if the jump to buffer is greater than expected.
-    if orig_code_length > settings.max_permitted_bytes {
-        return Err(AssemblyHookError::TooManyBytes(
-            orig_code_length,
-            settings.max_permitted_bytes,
-        ));
-    }
 
     let mixin: &mut dyn HookBuilderSettingsMixin<TRegister> =
         &mut AssemblyHookMixin::<TRegister, TJit, TBuffer, TRewriter, TBufferFactory>::new(
@@ -165,6 +152,28 @@ pub unsafe fn create_assembly_hook<
     );
 
     let stub = create_stub::<TRegister, TBuffer>(&mut builder_settings, &mut alloc, mixin)?;
+
+    // Make jump to new buffer
+    let mut code = Vec::<u8>::with_capacity(orig_code_length);
+    create_jump_operation::<TRegister, TJit, TBufferFactory, TBuffer>(
+        settings.hook_address,
+        alloc.can_relative_jump,
+        stub.stub,
+        settings.scratch_register,
+        &mut code,
+    )
+    .map_err(|e| AssemblyHookError::JitError(e))?;
+
+    // Bail out if the jump to buffer is greater than expected.
+    // This path is considered 'rare' and should never be thrown, if it is thrown, mod author should
+    // change their code to accomodate a longer length. Therefore, the unused memory in the stub is
+    // acceptable as this should never be thrown.
+    if orig_code_length > settings.max_permitted_bytes {
+        return Err(AssemblyHookError::TooManyBytes(
+            orig_code_length,
+            settings.max_permitted_bytes,
+        ));
+    }
 
     // Write jump to custom code.
     overwrite_code(settings.hook_address, &code);
