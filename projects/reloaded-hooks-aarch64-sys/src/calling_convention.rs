@@ -22,6 +22,37 @@ pub struct CallingConvention<'a> {
     convention: GenericCallingConvention<'a, AllRegisters>,
 }
 
+static AAPCS64: CallingConvention = CallingConvention {
+    convention: GenericCallingConvention::<AllRegisters> {
+        int_parameters: &[x0, x1, x2, x3, x4, x5, x6, x7],
+        float_parameters: &[v0, v1, v2, v3, v4, v5, v6, v7],
+        vector_parameters: &[],
+        return_register: x0, // Assuming x0 is for integers and v0 for floats
+        reserved_stack_space: 0,
+        callee_saved_registers: &[x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29],
+        always_saved_registers: &[LR],
+        stack_cleanup: StackCleanup::Caller,
+        stack_parameter_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 16, // mandated by hardware
+    },
+};
+
+// https://learn.microsoft.com/en-us/cpp/build/arm64-windows-abi-conventions?view=msvc-170
+static MICROSOFT_ARM64: CallingConvention = CallingConvention {
+    convention: GenericCallingConvention::<AllRegisters> {
+        int_parameters: &[x0, x1, x2, x3, x4, x5, x6, x7, x8], // not a typo, has x8
+        float_parameters: &[v0, v1, v2, v3, v4, v5, v6, v7],
+        vector_parameters: &[],
+        return_register: x0,
+        reserved_stack_space: 16, // Documented as 'Red zone'
+        callee_saved_registers: &[x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29],
+        always_saved_registers: &[LR],
+        stack_cleanup: StackCleanup::Caller,
+        stack_parameter_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 16, // mandated by hardware
+    },
+};
+
 impl<'a> CallingConvention<'a> {
     /// ARM64 AAPCS64 calling convention.
     /// - Integer parameters: X0 to X7 for the first eight integer or pointer arguments.
@@ -29,41 +60,41 @@ impl<'a> CallingConvention<'a> {
     /// - Additional parameters: Passed on the stack.
     /// - Return register:    X0 (integer), V0 (float)
     /// - Cleanup:            Caller
-    pub fn aapcs64() -> Self {
-        static INT_PARAMS: [AllRegisters; 8] = [x0, x1, x2, x3, x4, x5, x6, x7];
-        static FLOAT_PARAMS: [AllRegisters; 8] = [v0, v1, v2, v3, v4, v5, v6, v7];
-        static CALLEE_SAVED: [AllRegisters; 11] =
-            [x19, x20, x21, x22, x23, x24, x25, x26, x27, x28, x29];
-        static ALWAYS_SAVED: [AllRegisters; 1] = [LR];
+    pub fn aapcs64() -> &'a Self {
+        &AAPCS64
+    }
 
-        CallingConvention {
-            convention: GenericCallingConvention::<AllRegisters> {
-                int_parameters: &INT_PARAMS,
-                float_parameters: &FLOAT_PARAMS,
-                vector_parameters: &[],
-                return_register: x0,
-                reserved_stack_space: 0,
-                callee_saved_registers: &CALLEE_SAVED,
-                always_saved_registers: &ALWAYS_SAVED,
-                stack_cleanup: StackCleanup::Caller,
-                stack_parameter_order: StackParameterOrder::RightToLeft,
-                required_stack_alignment: 16,
-            },
-        }
+    /// Microsoft ARM64 calling convention.
+    /// - Integer parameters: X0 to X8 for the first eight integer or pointer arguments.
+    /// - Float parameters:   V0 to V7 for the first eight floating-point arguments.
+    /// - Additional parameters: Passed on the stack.
+    /// - Return register:    X0 (integer), V0 (float)
+    /// - Cleanup:            Caller
+    ///
+    /// Has 16 bytes of 'red zone'
+    pub fn microsoft() -> &'a Self {
+        &MICROSOFT_ARM64
     }
 
     // Add a method to select ARM64 calling convention based on PresetCallingConvention
-    pub fn from_preset(convention_type: PresetCallingConvention) -> Self {
+    pub fn from_preset(convention_type: PresetCallingConvention) -> &'a Self {
         match convention_type {
             PresetCallingConvention::AAPCS64 => Self::aapcs64(),
-            _ => unimplemented!(),
+            PresetCallingConvention::Microsoft => Self::microsoft(),
         }
     }
-}
 
-impl Default for CallingConvention<'_> {
-    fn default() -> Self {
-        Self::aapcs64()
+    // Retrieves the default calling convention for the currently running machine.
+    pub fn default_for_current_platform() -> &'a Self {
+        #[cfg(windows)]
+        {
+            Self::microsoft()
+        }
+
+        #[cfg(not(windows))]
+        {
+            Self::aapcs64()
+        }
     }
 }
 
@@ -76,4 +107,14 @@ pub enum PresetCallingConvention {
     /// - Return register:    X0 (integer), V0 (float)
     /// - Cleanup:            Caller
     AAPCS64,
+
+    /// Microsoft ARM64 calling convention.
+    /// - Integer parameters: X0 to X8 for the first eight integer or pointer arguments.
+    /// - Float parameters:   V0 to V7 for the first eight floating-point arguments.
+    /// - Additional parameters: Passed on the stack.
+    /// - Return register:    X0 (integer), V0 (float)
+    /// - Cleanup:            Caller
+    ///
+    /// Has 16 bytes of 'red zone'
+    Microsoft,
 }

@@ -22,57 +22,96 @@ pub struct CallingConvention<'a> {
     convention: GenericCallingConvention<'a, Register>,
 }
 
+static CDECL: CallingConvention = CallingConvention {
+    convention: GenericCallingConvention::<Register> {
+        int_parameters: &[],
+        float_parameters: &[],
+        vector_parameters: &[],
+        return_register: eax,
+        reserved_stack_space: 0,
+        callee_saved_registers: &[ebx, esi, edi, ebp],
+        always_saved_registers: &[],
+        stack_cleanup: StackCleanup::Caller,
+        stack_parameter_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 0,
+    },
+};
+
+static STDCALL: CallingConvention = CallingConvention {
+    convention: GenericCallingConvention::<Register> {
+        int_parameters: &[],
+        float_parameters: &[],
+        vector_parameters: &[],
+        return_register: eax,
+        reserved_stack_space: 0,
+        callee_saved_registers: &[ebx, esi, edi, ebp],
+        always_saved_registers: &[],
+        stack_cleanup: StackCleanup::Callee,
+        stack_parameter_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 0,
+    },
+};
+
+static FASTCALL: CallingConvention = CallingConvention {
+    convention: GenericCallingConvention::<Register> {
+        int_parameters: &[ecx, edx],
+        float_parameters: &[],
+        vector_parameters: &[],
+        return_register: eax,
+        reserved_stack_space: 0,
+        callee_saved_registers: &[ebx, esi, edi, ebp],
+        always_saved_registers: &[],
+        stack_cleanup: StackCleanup::Caller,
+        stack_parameter_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 0,
+    },
+};
+
+static MICROSOFT_THISCALL: CallingConvention = CallingConvention {
+    convention: GenericCallingConvention::<Register> {
+        int_parameters: &[ecx],
+        float_parameters: &[],
+        vector_parameters: &[],
+        return_register: eax,
+        reserved_stack_space: 0,
+        callee_saved_registers: &[ebx, esi, edi, ebp],
+        always_saved_registers: &[],
+        stack_cleanup: StackCleanup::Callee,
+        stack_parameter_order: StackParameterOrder::RightToLeft,
+        required_stack_alignment: 0,
+    },
+};
+
+static CLRCALL: CallingConvention = CallingConvention {
+    convention: GenericCallingConvention::<Register> {
+        int_parameters: &[ecx, edx],
+        float_parameters: &[],
+        vector_parameters: &[],
+        return_register: eax,
+        reserved_stack_space: 0,
+        callee_saved_registers: &[ebx, esi, edi, ebp],
+        always_saved_registers: &[],
+        stack_cleanup: StackCleanup::Callee,
+        stack_parameter_order: StackParameterOrder::LeftToRight,
+        required_stack_alignment: 0,
+    },
+};
+
 impl<'a> CallingConvention<'a> {
     /// C declaration calling convention (Cdecl).
     /// - Parameters are passed on the stack right to left.
     /// - Floating-point parameters are typically on the stack.
     /// - Caller is responsible for stack cleanup.
-    pub fn cdecl() -> Self {
-        static INT_PARAMS: [Register; 0] = []; // In cdecl, parameters are pushed onto the stack
-        static FLOAT_PARAMS: [Register; 0] = []; // Floating-point parameters are typically on the stack
-        static CALLEE_SAVED: [Register; 4] = [ebx, esi, edi, ebp];
-        static ALWAYS_SAVED: [Register; 0] = [];
-
-        CallingConvention {
-            convention: GenericCallingConvention::<Register> {
-                int_parameters: &INT_PARAMS,
-                float_parameters: &FLOAT_PARAMS,
-                vector_parameters: &[],
-                return_register: eax,
-                reserved_stack_space: 0,
-                callee_saved_registers: &CALLEE_SAVED,
-                always_saved_registers: &ALWAYS_SAVED,
-                stack_cleanup: StackCleanup::Caller,
-                stack_parameter_order: StackParameterOrder::RightToLeft,
-                required_stack_alignment: 0,
-            },
-        }
+    pub fn cdecl() -> &'a Self {
+        &CDECL
     }
 
     /// Standard calling convention (Stdcall).
     /// - Parameters are passed on the stack right to left.
     /// - Floating-point parameters are typically on the stack.
     /// - Callee is responsible for stack cleanup.
-    pub fn stdcall() -> Self {
-        static INT_PARAMS: [Register; 0] = []; // In stdcall, parameters are pushed onto the stack
-        static FLOAT_PARAMS: [Register; 0] = []; // Floating-point parameters are typically on the stack
-        static CALLEE_SAVED: [Register; 4] = [ebx, esi, edi, ebp];
-        static ALWAYS_SAVED: [Register; 0] = [];
-
-        CallingConvention {
-            convention: GenericCallingConvention::<Register> {
-                int_parameters: &INT_PARAMS,
-                float_parameters: &FLOAT_PARAMS,
-                vector_parameters: &[],
-                return_register: eax,
-                reserved_stack_space: 0,
-                callee_saved_registers: &CALLEE_SAVED,
-                always_saved_registers: &ALWAYS_SAVED,
-                stack_cleanup: StackCleanup::Callee,
-                stack_parameter_order: StackParameterOrder::RightToLeft,
-                required_stack_alignment: 0,
-            },
-        }
+    pub fn stdcall() -> &'a Self {
+        &STDCALL
     }
 
     /// Fastcall calling convention.
@@ -80,106 +119,50 @@ impl<'a> CallingConvention<'a> {
     /// - Remaining parameters are passed on the stack right to left.
     /// - Floating-point parameters are typically on the stack.
     /// - Caller is responsible for stack cleanup.
-    pub fn fastcall() -> Self {
-        static INT_PARAMS: [Register; 2] = [ecx, edx]; // First two parameters in ECX and EDX
-        static FLOAT_PARAMS: [Register; 0] = []; // Floating-point parameters on the stack
-        static CALLEE_SAVED: [Register; 4] = [ebx, esi, edi, ebp];
-        static ALWAYS_SAVED: [Register; 0] = [];
-
-        CallingConvention {
-            convention: GenericCallingConvention::<Register> {
-                int_parameters: &INT_PARAMS,
-                float_parameters: &FLOAT_PARAMS,
-                vector_parameters: &[],
-                return_register: eax,
-                reserved_stack_space: 0,
-                callee_saved_registers: &CALLEE_SAVED,
-                always_saved_registers: &ALWAYS_SAVED,
-                stack_cleanup: StackCleanup::Caller,
-                stack_parameter_order: StackParameterOrder::RightToLeft,
-                required_stack_alignment: 0,
-            },
-        }
+    pub fn fastcall() -> &'a Self {
+        &FASTCALL
     }
 
     /// Microsoft thiscall convention.
     /// - Used for C++ member functions.
     /// - 'this' pointer passed in ECX, other parameters on the stack right to left.
     /// - Callee is responsible for stack cleanup.
-    pub fn microsoft_thiscall() -> Self {
-        static INT_PARAMS: [Register; 1] = [ecx]; // 'this' pointer in ECX
-        static FLOAT_PARAMS: [Register; 0] = []; // Floating-point parameters on the stack
-        static CALLEE_SAVED: [Register; 4] = [ebx, esi, edi, ebp];
-        static ALWAYS_SAVED: [Register; 0] = [];
-
-        CallingConvention {
-            convention: GenericCallingConvention::<Register> {
-                int_parameters: &INT_PARAMS,
-                float_parameters: &FLOAT_PARAMS,
-                vector_parameters: &[],
-                return_register: eax,
-                reserved_stack_space: 0,
-                callee_saved_registers: &CALLEE_SAVED,
-                always_saved_registers: &ALWAYS_SAVED,
-                stack_cleanup: StackCleanup::Callee,
-                stack_parameter_order: StackParameterOrder::RightToLeft,
-                required_stack_alignment: 0,
-            },
-        }
+    pub fn microsoft_thiscall() -> &'a Self {
+        &MICROSOFT_THISCALL
     }
 
     /// GCC thiscall convention.
     /// - Similar to Microsoft thiscall but used in GCC for C++ member functions.
     /// - 'this' pointer as the first stack parameter, other parameters on the stack right to left.
     /// - Caller is responsible for stack cleanup.
-    pub fn gcc_thiscall() -> Self {
-        // Similar to cdecl but 'this' pointer is the first parameter
-        CallingConvention::cdecl()
+    pub fn gcc_thiscall() -> &'a Self {
+        // Cdecl but 'this' pointer is the first parameter
+        &CDECL
     }
 
     /// .NET runtime calling convention (ClrCall).
     /// - Arguments are pushed onto the stack left to right.
     /// - Callee is responsible for stack cleanup.
-    pub fn clr_call() -> Self {
-        static INT_PARAMS: [Register; 2] = [ecx, edx]; // First two parameters in ECX and EDX
-        static FLOAT_PARAMS: [Register; 0] = []; // Floating-point parameters on the stack
-        static CALLEE_SAVED: [Register; 4] = [ebx, esi, edi, ebp];
-        static ALWAYS_SAVED: [Register; 0] = [];
-
-        CallingConvention {
-            convention: GenericCallingConvention::<Register> {
-                int_parameters: &INT_PARAMS,
-                float_parameters: &FLOAT_PARAMS,
-                vector_parameters: &[],
-                return_register: eax,
-                reserved_stack_space: 0,
-                callee_saved_registers: &CALLEE_SAVED,
-                always_saved_registers: &ALWAYS_SAVED,
-                stack_cleanup: StackCleanup::Callee,
-                stack_parameter_order: StackParameterOrder::LeftToRight,
-                required_stack_alignment: 0,
-            },
-        }
+    pub fn clrcall() -> &'a Self {
+        &CLRCALL
     }
 
     /// Returns a [`CallingConvention`] based on the provided [`PresetCallingConvention`].
-    pub fn from_preset(convention_type: PresetCallingConvention) -> Self {
+    pub fn from_preset(convention_type: PresetCallingConvention) -> &'a Self {
         match convention_type {
             PresetCallingConvention::Cdecl => Self::cdecl(),
             PresetCallingConvention::Stdcall => Self::stdcall(),
             PresetCallingConvention::Fastcall => Self::fastcall(),
             PresetCallingConvention::MicrosoftThiscall => Self::microsoft_thiscall(),
             PresetCallingConvention::GCCThiscall => Self::gcc_thiscall(),
-            PresetCallingConvention::ClrCall => Self::clr_call(),
+            PresetCallingConvention::ClrCall => Self::clrcall(),
         }
     }
-}
 
-impl Default for CallingConvention<'_> {
     /// Returns the default calling convention for the current platform.
     /// This method uses conditional compilation to determine the appropriate
     /// convention based on the target architecture and operating system.
-    fn default() -> Self {
+    pub fn default_for_current_platform() -> &'a Self {
         #[cfg(windows)]
         {
             Self::stdcall()

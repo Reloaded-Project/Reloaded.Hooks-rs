@@ -1,14 +1,11 @@
 extern crate alloc;
 
-use core::mem::size_of;
-
 use super::{calling_convention_info::CallingConventionInfo, traits::register_info::RegisterInfo};
 use alloc::vec::Vec;
+use core::mem::size_of;
+use derive_new::new;
 
 /// This trait defines the information about the function for which a wrapper is being generated.
-///
-/// # Generic Parameters
-/// - `TRegister`: The type of register used by the target architecture. (Enum)
 pub trait FunctionInfo {
     /// Types of parameters in left-right order.
     fn parameters(&self) -> &[ParameterType];
@@ -156,6 +153,18 @@ pub trait FunctionInfo {
         reg_params.truncate(filled_reg_len);
 
         (stack_params, reg_params)
+    }
+}
+
+/// Basic reference implementation of [`FunctionInfo`]
+#[derive(new)]
+pub struct BasicFunctionInfo<'a> {
+    params: &'a [ParameterType],
+}
+
+impl<'a> FunctionInfo for BasicFunctionInfo<'a> {
+    fn parameters(&self) -> &[ParameterType] {
+        self.params
     }
 }
 
