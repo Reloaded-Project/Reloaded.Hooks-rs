@@ -21,7 +21,7 @@ pub mod tests {
 
     #[test]
     fn ms_thiscall_to_cdecl_unoptimized_with_call_absolute() {
-        let nint = size_of::<isize>() as isize;
+        let nint = size_of::<u32>() as isize;
         let result = two_parameters_with_address(
             CallingConvention::microsoft_thiscall(),
             CallingConvention::cdecl(),
@@ -41,7 +41,7 @@ pub mod tests {
 
     #[test]
     fn ms_thiscall_to_cdecl_unoptimized() {
-        let nint = size_of::<isize>() as isize;
+        let nint = size_of::<u32>() as isize;
         let result = two_parameters(
             CallingConvention::microsoft_thiscall(),
             CallingConvention::cdecl(),
@@ -61,7 +61,7 @@ pub mod tests {
 
     #[test]
     fn ms_thiscall_to_cdecl_optimized() {
-        let nint = size_of::<isize>() as isize;
+        let nint = size_of::<u32>() as isize;
         let result = two_parameters(
             CallingConvention::microsoft_thiscall(),
             CallingConvention::cdecl(),
@@ -79,7 +79,7 @@ pub mod tests {
 
     #[test]
     fn ms_cdecl_to_thiscall_unoptimized() {
-        let nint = size_of::<isize>() as isize;
+        let nint = size_of::<u32>() as isize;
         let result = two_parameters(
             CallingConvention::cdecl(),
             CallingConvention::microsoft_thiscall(),
@@ -98,7 +98,7 @@ pub mod tests {
 
     #[test]
     fn ms_cdecl_to_thiscall_optimized() {
-        let nint = size_of::<isize>() as isize;
+        let nint = size_of::<u32>() as isize;
         let result = two_parameters(
             CallingConvention::cdecl(),
             CallingConvention::microsoft_thiscall(),
@@ -119,7 +119,7 @@ pub mod tests {
 
     #[test]
     fn ms_cdecl_to_fastcall_unoptimized() {
-        let nint = size_of::<isize>() as isize;
+        let nint = size_of::<u32>() as isize;
         let result = two_parameters(
             CallingConvention::cdecl(),
             CallingConvention::fastcall(),
@@ -138,7 +138,7 @@ pub mod tests {
 
     #[test]
     fn ms_cdecl_to_fastcall_optimized() {
-        let nint = size_of::<isize>() as isize;
+        let nint = size_of::<u32>() as isize;
         let result = two_parameters(
             CallingConvention::cdecl(),
             CallingConvention::fastcall(),
@@ -157,7 +157,7 @@ pub mod tests {
 
     #[test]
     fn ms_stdcall_to_thiscall_optimized() {
-        let nint = size_of::<isize>() as isize;
+        let nint = size_of::<u32>() as isize;
         let result = two_parameters(
             CallingConvention::stdcall(),
             CallingConvention::microsoft_thiscall(),
@@ -175,7 +175,7 @@ pub mod tests {
 
     #[test]
     fn ms_thiscall_to_stdcall_optimized() {
-        let nint = size_of::<isize>() as isize;
+        let nint = size_of::<u32>() as isize;
         let result = two_parameters(
             CallingConvention::microsoft_thiscall(),
             CallingConvention::stdcall(),
@@ -220,8 +220,11 @@ pub mod tests {
         optimized: bool,
         target_address: usize,
     ) -> Result<Vec<Operation<Register>>, WrapperGenerationError> {
+        // Specifying i32 in case test is ran from 64-bit.
+        // Normally it's idiomatic to specify 'nint'.
+
         // Two parameters
-        let mock_function = BasicFunctionInfo::new(&[ParameterType::nint, ParameterType::nint]);
+        let mock_function = BasicFunctionInfo::new(&[ParameterType::i32, ParameterType::i32]);
 
         let options = get_common_options(
             optimized,
@@ -244,8 +247,8 @@ pub mod tests {
         mock_function: &'a BasicFunctionInfo,
     ) -> WrapperInstructionGeneratorOptions<'a, BasicFunctionInfo<'a>> {
         WrapperInstructionGeneratorOptions {
-            stack_entry_alignment: size_of::<isize>(), // no_alignment
-            target_address,                            // some arbitrary address
+            stack_entry_alignment: size_of::<u32>(), // no_alignment
+            target_address,                          // some arbitrary address
             function_info: mock_function,
             injected_parameter: None,
             jit_capabilities: JitX86::get_jit_capabilities(),
