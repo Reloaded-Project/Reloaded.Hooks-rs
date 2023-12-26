@@ -259,7 +259,7 @@ pub fn generate_wrapper_instructions<
     let returned_stack_params_size = (size_of::<ParameterType>() * num_params);
     let returned_reg_params_size = (size_of::<(ParameterType, TRegister)>() * num_params);
     let mut setup_params_ops = SmallVec::<[Operation<TRegister>; 32]>::new_const();
-    let mut callee_cleanup_return_size = stack_pointer - options.stack_entry_alignment;
+    let mut callee_cleanup_return_size = 0;
 
     // Note: Allocating on stack to avoid heap allocations.
     alloca::with_alloca(returned_stack_params_size + returned_reg_params_size, |f| {
