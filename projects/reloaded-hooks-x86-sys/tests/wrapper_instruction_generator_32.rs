@@ -2,7 +2,9 @@
 pub mod tests {
     use core::mem::size_of;
 
-    use reloaded_hooks_portable::api::calling_convention_info::GenericCallingConvention;
+    use reloaded_hooks_portable::api::calling_convention_info::{
+        GenericCallingConvention, StackCleanup, StackParameterOrder,
+    };
     use reloaded_hooks_portable::api::errors::wrapper_generation_error::WrapperGenerationError;
     use reloaded_hooks_portable::api::function_info::{BasicFunctionInfo, ParameterType};
     use reloaded_hooks_portable::api::jit::compiler::Jit;
@@ -191,6 +193,29 @@ pub mod tests {
         assert_eq!(vec[3], Return::new((nint * 2) as usize).into()); // caller cleanup, so no offset here
     }
 
+    // CUSTOM FUNCTION TESTS //
+
+    #[test]
+    fn ms_cdecl_to_cdecl_with_stack_optimized() {
+        let nint = size_of::<u32>() as isize;
+        let result = two_parameters(&CDECL_WITH_STACK, CallingConvention::cdecl(), true);
+
+        assert!(result.is_ok());
+        let vec: Vec<Operation<Register>> = result.unwrap();
+        assert_eq!(vec.len(), 5);
+        assert_push_stack(&vec[0], 4, 4); // push left param
+        assert_push_stack(&vec[1], 12, 4); // push right param
+        assert_eq!(
+            vec[2],
+            StackAlloc::new(CDECL_WITH_STACK_EXTRA_SPACE as i32).into()
+        );
+        assert_eq!(vec[3], CallRel::new(4096).into());
+        assert_eq!(
+            vec[4],
+            Return::new((nint * 2) as usize + CDECL_WITH_STACK_EXTRA_SPACE as usize).into()
+        ); // caller stack cleanup (2 cdecl parameters) + extra space
+    }
+
     /// Creates the instructions responsible for wrapping one object kind to another.
     ///
     /// # Parameters
@@ -262,4 +287,20 @@ pub mod tests {
             assert!(x.has_offset_and_size(offset as i32, item_size as u32));
         }
     }
+
+    const CDECL_WITH_STACK_EXTRA_SPACE: u32 = 32;
+    static CDECL_WITH_STACK: CallingConvention = CallingConvention {
+        convention: GenericCallingConvention::<Register> {
+            int_parameters: &[],
+            float_parameters: &[],
+            vector_parameters: &[],
+            return_register: eax,
+            reserved_stack_space: CDECL_WITH_STACK_EXTRA_SPACE,
+            callee_saved_registers: &[ebx, esi, edi, ebp],
+            always_saved_registers: &[],
+            stack_cleanup: StackCleanup::Caller,
+            stack_parameter_order: StackParameterOrder::RightToLeft,
+            required_stack_alignment: 1,
+        },
+    };
 }

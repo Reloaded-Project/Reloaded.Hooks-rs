@@ -19,7 +19,7 @@ use reloaded_hooks_portable::api::calling_convention_info::{
 /// ```
 #[derive(Debug, Clone, PartialEq, DerefMut, Deref)]
 pub struct CallingConvention<'a> {
-    convention: GenericCallingConvention<'a, Register>,
+    pub convention: GenericCallingConvention<'a, Register>,
 }
 
 static CDECL: CallingConvention = CallingConvention {
