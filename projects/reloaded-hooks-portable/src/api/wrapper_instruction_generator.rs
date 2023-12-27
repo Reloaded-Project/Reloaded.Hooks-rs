@@ -84,6 +84,11 @@ where
     /// Enables optimization of wrappers.
     /// This should only ever be disabled for debugging purposes.
     pub enable_optimizations: bool,
+
+    /// Size of the standard register. This is used to determine the size of the padding
+    /// required for the stack in case the last pushed item during callee save is larger
+    /// than the standard register size.
+    pub standard_register_size: usize,
 }
 
 /// Creates a new instance of WrapperInstructionGeneratorOptions with the given parameters.
@@ -117,6 +122,7 @@ where
 {
     WrapperInstructionGeneratorOptions {
         stack_entry_alignment: TJit::stack_entry_misalignment() as usize,
+        standard_register_size: TJit::standard_register_size(),
         jit_capabilities: TJit::get_jit_capabilities(),
         enable_optimizations: true,
         can_generate_relative_jumps,
@@ -244,12 +250,26 @@ pub fn generate_wrapper_instructions<
         conv_current.callee_saved_registers(),
     );
 
-    // Sort registers in descending order of size
-    callee_saved_regs.sort_by(|a, b| b.size_in_bytes().cmp(&a.size_in_bytes()));
+    // Sort registers in ascending order of size
+    callee_saved_regs.sort_by(|a, b| a.size_in_bytes().cmp(&b.size_in_bytes()));
 
     for register in &callee_saved_regs {
         ops.push(Push::new(*register).into());
         stack_pointer += register.size_in_bytes();
+    }
+
+    // Add extra padding space if last pushed item is greater than standard reg size
+    // this is required so any further pushes (e.g. re-pushed parameters) don't overwrite
+    // the upper bits of the last pushed larger than regular register.
+    let last = callee_saved_regs.last();
+    let mut callee_saved_reg_padding = 0;
+    if last.is_some() {
+        callee_saved_reg_padding = last.unwrap().size_in_bytes() - options.standard_register_size;
+        if callee_saved_reg_padding > 0 {
+            ops.push(StackAlloc::new(callee_saved_reg_padding as i32).into());
+        }
+
+        stack_pointer += callee_saved_reg_padding;
     }
 
     let after_backup_sp = stack_pointer as usize;
@@ -417,9 +437,14 @@ pub fn generate_wrapper_instructions<
 
     // Fix the stack
     let stack_ofs = if conv_called.stack_cleanup_behaviour() == StackCleanup::Callee {
-        stack_misalignment as isize - called_reserved_space as isize
+        stack_misalignment as isize
+            - called_reserved_space as isize
+            - callee_saved_reg_padding as isize
     } else {
-        after_backup_sp as isize - stack_pointer as isize - called_reserved_space as isize
+        after_backup_sp as isize
+            - stack_pointer as isize
+            - called_reserved_space as isize
+            - callee_saved_reg_padding as isize
     };
 
     if stack_ofs != 0 {
@@ -705,6 +730,7 @@ pub mod tests {
         WrapperInstructionGeneratorOptions {
             stack_entry_alignment: size_of::<isize>(), // no_alignment
             target_address,                            // some arbitrary address
+            standard_register_size: size_of::<isize>(),
             function_info: mock_function,
             injected_parameter: None,
             jit_capabilities: capabilties,

@@ -85,6 +85,9 @@ pub trait Jit<TRegister: RegisterInfo> {
         &[]
     }
 
+    /// Returns the size of a regular register in bytes.
+    fn standard_register_size() -> usize;
+
     // TODO: Consider moving these things to 'JITUtils' or something.
 
     /// Maximum distance of 'call' or 'branch and link' operation.

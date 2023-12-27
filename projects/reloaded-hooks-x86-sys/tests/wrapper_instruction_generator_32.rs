@@ -213,7 +213,25 @@ pub mod tests {
         assert_eq!(
             vec[4],
             Return::new((nint * 2) as usize + CDECL_WITH_STACK_EXTRA_SPACE as usize).into()
-        ); // caller stack cleanup (2 cdecl parameters) + extra space
+        ); // callee stack cleanup (2 cdecl parameters) + extra space
+    }
+
+    #[test]
+    fn ms_cdecl_to_cdecl_with_vector_reg_optimized() {
+        let nint = size_of::<u32>() as isize;
+        let result = two_parameters(&CDECL_WITH_VECTOR_REG, CallingConvention::cdecl(), true);
+
+        assert!(result.is_ok());
+        let vec: Vec<Operation<Register>> = result.unwrap();
+        assert_eq!(vec.len(), 8);
+        assert_eq!(vec[0], Push::new(xmm0).into()); // callee save xmm
+        assert_eq!(vec[1], StackAlloc::new(12).into()); // 16 (xmm) - 4 (reg size)
+        assert_push_stack(&vec[2], 32, 4); // push left param
+        assert_push_stack(&vec[3], 40, 4); // push right param
+        assert_eq!(vec[4], CallRel::new(4096).into());
+        assert_eq!(vec[5], StackAlloc::new(-(nint as i32 * 2) - 12).into()); // caller stack cleanup (2 cdecl parameters) + padding from xmm callee save
+        assert_eq!(vec[6], Pop::new(xmm0).into()); // callee restore xmm
+        assert_eq!(vec[7], Return::new(0).into());
     }
 
     /// Creates the instructions responsible for wrapping one object kind to another.
@@ -279,6 +297,7 @@ pub mod tests {
             jit_capabilities: JitX86::get_jit_capabilities(),
             can_generate_relative_jumps: can_generate_relative,
             enable_optimizations: optimized,
+            standard_register_size: size_of::<u32>(),
         }
     }
 
@@ -297,6 +316,21 @@ pub mod tests {
             return_register: eax,
             reserved_stack_space: CDECL_WITH_STACK_EXTRA_SPACE,
             callee_saved_registers: &[ebx, esi, edi, ebp],
+            always_saved_registers: &[],
+            stack_cleanup: StackCleanup::Caller,
+            stack_parameter_order: StackParameterOrder::RightToLeft,
+            required_stack_alignment: 1,
+        },
+    };
+
+    static CDECL_WITH_VECTOR_REG: CallingConvention = CallingConvention {
+        convention: GenericCallingConvention::<Register> {
+            int_parameters: &[],
+            float_parameters: &[],
+            vector_parameters: &[],
+            return_register: eax,
+            reserved_stack_space: 0,
+            callee_saved_registers: &[ebx, esi, edi, ebp, xmm0],
             always_saved_registers: &[],
             stack_cleanup: StackCleanup::Caller,
             stack_parameter_order: StackParameterOrder::RightToLeft,

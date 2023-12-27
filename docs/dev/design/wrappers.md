@@ -63,6 +63,9 @@ pop ebp
 
 !!! tip "The general implementation for 64-bit is the same, however the stack must be 16 byte aligned at method entry, and for MSFT convention, 32 bytes reserved on stack before call"
 
+There are also some very minor nuances, which the actual code has to handle, but this is the general
+jist of it.
+
 ## Optimization
 
 ### Align Wrappers to Architecture Recommended Alignment
@@ -632,9 +635,7 @@ For example, consider the following rule used by the RISC-V ABI.
 
 The wrappers cannot know or understand the intricate rules such as this that are imposed by an ABI.
 
-### Unoptimized Code may not Stack Allocate Mixed Size Registers Correct;y.
-
-!!! warning "Currently this only affects code compiled without optimizations."
+### Allocating Mixed Size Registers is Tricky.
 
 Optimized code does not suffer from this bug.
 
@@ -660,10 +661,18 @@ mov [rsp], rax
 ```
 
 This is invalid, because the contents of rax will now replace half of the `xmm0` register on the stack.  
-How ABIs and compilers deal with this isn't always well standardised; therefore there is not a good 
-strategy to handle this.  
+How ABIs and compilers deal with this isn't always well standardised; some only consider lower bits volatile,
+(Microsoft x64) while others don't preserve the bigger registers at all (SystemV x64).
 
-!!! warning "Currently this only affects code compiled without optimizations."
+Our strategy will be to try rearrange the stack operations to avoid this problem, starting by pushing
+smaller registers first, and then larger registers, effectively creating:
+
+```asm
+sub rsp, 8
+mov [rsp], rax
+sub rsp, 16
+mov [rsp], xmm0
+```
 
 #### When using Optimized Code
 

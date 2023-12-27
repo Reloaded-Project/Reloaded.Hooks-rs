@@ -169,6 +169,10 @@ impl Jit<AllRegisters> for JitAarch64 {
     fn standard_relative_call_bytes() -> usize {
         4
     }
+
+    fn standard_register_size() -> usize {
+        8
+    }
 }
 
 fn encode_instruction_aarch64(

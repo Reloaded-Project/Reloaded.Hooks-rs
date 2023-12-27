@@ -141,6 +141,10 @@ impl Jit<Register> for JitX64 {
     fn standard_relative_call_bytes() -> usize {
         5
     }
+
+    fn standard_register_size() -> usize {
+        8
+    }
 }
 
 fn encode_instruction_x64(
