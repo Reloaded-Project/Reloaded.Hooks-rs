@@ -632,11 +632,13 @@ For example, consider the following rule used by the RISC-V ABI.
 
 The wrappers cannot know or understand the intricate rules such as this that are imposed by an ABI.
 
-### Wrappers Don't Understand How Mixed Size Registers Are Stack Allocated.
+### Unoptimized Code may not Stack Allocate Mixed Size Registers Correct;y.
 
-!!! tip "Usually functions which have so many registers that they spill on stack won't be optimized to use custom parameter passing anyway; so this limitation is mostly moot in practice."
+!!! warning "Currently this only affects code compiled without optimizations."
 
-!!! tip "Even if they were optimised, the probability to spill both float AND int registers to trigger something like this is well... I've never ran into it before."
+Optimized code does not suffer from this bug.
+
+#### The Problem
 
 Consider a function which spills a float register `xmm0`, and an `nint` (native size integer).  
 A `Push` is basically a sequence of `sub` and then `mov`.
@@ -661,12 +663,25 @@ This is invalid, because the contents of rax will now replace half of the `xmm0`
 How ABIs and compilers deal with this isn't always well standardised; therefore there is not a good 
 strategy to handle this.  
 
-[bijective]: https://www.mathsisfun.com/sets/injective-surjective-bijective.html
+!!! warning "Currently this only affects code compiled without optimizations."
 
+#### When using Optimized Code
 
-### Wrappers (Currently) Don't understand how to split larger resigers.
+Currently with optimizations enabled, this code compiles as:
+
+```asm
+sub rsp, 24
+mov [rsp], xmm0
+mov [rsp + 16], rax
+```
+
+Which is valid.
+
+### Wrappers (Currently) Don't understand how to split larger registers.
 
 Some calling conventions, have rules where larger values (e.g. 128-bit values on x64) are split into
 2 registers.
 
 The wrapper generator cannot generate code for these functions currently.
+
+[bijective]: https://www.mathsisfun.com/sets/injective-surjective-bijective.html
