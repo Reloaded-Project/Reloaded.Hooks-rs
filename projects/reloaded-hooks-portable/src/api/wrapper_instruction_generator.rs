@@ -149,7 +149,8 @@ pub fn generate_wrapper_instructions<
 ) -> Result<Vec<Operation<TRegister>>, WrapperGenerationError> {
     let mut ops = Vec::<Operation<TRegister>>::with_capacity(32);
     let mut stack_pointer =
-        options.stack_entry_alignment + conv_called.reserved_stack_space() as usize;
+        options.stack_entry_alignment + conv_current.reserved_stack_space() as usize;
+    let called_reserved_space = conv_called.reserved_stack_space();
 
     /*
         Rough Summary of this function.
@@ -238,10 +239,13 @@ pub fn generate_wrapper_instructions<
     }
 
     // Backup callee saved registers
-    let callee_saved_regs = eliminate_common_callee_saved_registers(
+    let mut callee_saved_regs = eliminate_common_callee_saved_registers(
         conv_called.callee_saved_registers(),
         conv_current.callee_saved_registers(),
     );
+
+    // Sort registers in descending order of size
+    callee_saved_regs.sort_by(|a, b| b.size_in_bytes().cmp(&a.size_in_bytes()));
 
     for register in &callee_saved_regs {
         ops.push(Push::new(*register).into());
@@ -372,10 +376,8 @@ pub fn generate_wrapper_instructions<
     ops.extend_from_slice(optimized);
 
     // Reserve required space for function called
-    let reserved_space = conv_called.reserved_stack_space() as i32;
-    if reserved_space != 0 {
-        ops.push(StackAlloc::new(reserved_space).into());
-        stack_pointer += conv_called.reserved_stack_space() as usize;
+    if called_reserved_space != 0 {
+        ops.push(StackAlloc::new(called_reserved_space as i32).into());
     }
 
     // Call the Method
@@ -415,9 +417,9 @@ pub fn generate_wrapper_instructions<
 
     // Fix the stack
     let stack_ofs = if conv_called.stack_cleanup_behaviour() == StackCleanup::Callee {
-        stack_misalignment as isize
+        stack_misalignment as isize - called_reserved_space as isize
     } else {
-        after_backup_sp as isize - stack_pointer as isize
+        after_backup_sp as isize - stack_pointer as isize - called_reserved_space as isize
     };
 
     if stack_ofs != 0 {
@@ -447,7 +449,7 @@ pub fn generate_wrapper_instructions<
             .jit_capabilities
             .contains(JitCapabilities::CAN_MULTI_PUSH)
         {
-            merge_push_operations(&mut ops); // perf hit
+            merge_push_operations(&mut ops);
             merge_pop_operations(&mut ops);
         }
     }
