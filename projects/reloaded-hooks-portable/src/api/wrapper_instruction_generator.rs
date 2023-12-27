@@ -355,14 +355,6 @@ pub fn generate_wrapper_instructions<
             new_optimized = unsafe { reordered.unwrap_unchecked() };
             optimized = &mut new_optimized[..];
         }
-
-        if options
-            .jit_capabilities
-            .contains(JitCapabilities::CAN_MULTI_PUSH)
-        {
-            optimized = merge_push_operations(optimized); // perf hit
-            optimized = merge_pop_operations(optimized);
-        }
     }
 
     // Now write the correct stack alignment value, and correct offsets
@@ -450,6 +442,14 @@ pub fn generate_wrapper_instructions<
 
     if options.enable_optimizations {
         merge_stackalloc_and_return(&mut ops);
+
+        if options
+            .jit_capabilities
+            .contains(JitCapabilities::CAN_MULTI_PUSH)
+        {
+            merge_push_operations(&mut ops); // perf hit
+            merge_pop_operations(&mut ops);
+        }
     }
 
     Ok(ops)
