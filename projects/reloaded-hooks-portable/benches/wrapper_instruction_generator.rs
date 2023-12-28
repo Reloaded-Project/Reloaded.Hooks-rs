@@ -165,5 +165,6 @@ fn get_common_options(
         jit_capabilities: capabilties,
         can_generate_relative_jumps: true,
         enable_optimizations: optimized,
+        standard_register_size: size_of::<isize>(),
     }
 }

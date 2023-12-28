@@ -84,7 +84,7 @@ impl Jit<Register> for JitX86 {
     fn get_jit_capabilities() -> JitCapabilities {
         JitCapabilities::CAN_ENCODE_IP_RELATIVE_CALL
             | JitCapabilities::CAN_ENCODE_IP_RELATIVE_JUMP
-            | JitCapabilities::CAN_MULTI_PUSH
+            | JitCapabilities::CAN_MOV_TO_STACK
     }
 
     fn max_branch_bytes() -> u32 {

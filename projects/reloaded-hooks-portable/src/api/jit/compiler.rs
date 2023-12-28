@@ -35,6 +35,9 @@ bitflags! {
 
         /// This JIT can perform a 'relative jump' operation to any address.
         const CAN_RELATIVE_JUMP_TO_ANY_ADDRESS = 1 << 4;
+
+        /// This JIT can perform the 'Mov To Stack' operation.
+        const CAN_MOV_TO_STACK = 1 << 5;
     }
 }
 

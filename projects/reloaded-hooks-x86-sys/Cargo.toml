@@ -11,6 +11,7 @@ include = ["src/**/*"]
 default = ["x86", "x64"]
 x86 = []
 x64 = [ "iced-x86/instr_info" ]
+multipushpop = []
 
 [lib]
 bench = false

@@ -76,9 +76,13 @@ pub(crate) mod instructions {
     pub mod jump_absolute_indirect;
     pub mod jump_ip_relative;
     pub mod jump_relative;
+    pub mod macros;
     pub mod mov;
     pub mod mov_from_stack;
+    pub mod mov_to_stack;
+    #[cfg(target_feature = "multipushpop")]
     pub mod multi_pop;
+    #[cfg(target_feature = "multipushpop")]
     pub mod multi_push;
     pub mod pop;
     pub mod push;

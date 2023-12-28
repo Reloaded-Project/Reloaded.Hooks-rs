@@ -91,6 +91,7 @@ pub mod api {
         pub mod jump_rip_relative_operation;
         pub mod mov_from_stack_operation;
         pub mod mov_operation;
+        pub mod mov_to_stack_operation;
         pub mod operation;
         pub mod operation_aliases;
         pub mod pop_operation;

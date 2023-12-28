@@ -199,6 +199,37 @@
     mov ebx, [esp + 8] ; Move value at esp + 8 into ebx
     ```
 
+### MovToStack 
+
+!!! info "Represents moving a register value onto the stack at a user specified offset."
+
+=== "Rust"
+
+    ```rust
+    let mov_to_stack = MovToStackOperation {
+        register: rbx,
+        stack_offset: 16,  
+    };
+    ```
+
+=== "x64"
+
+    ```asm
+    mov [rsp + 16], rbx ; Move rbx onto the stack 16 bytes above rsp 
+    ```
+
+=== "ARM64"
+
+    ```asm
+    str x9, [sp, #16] ; Store x9 onto the stack 16 bytes above sp
+    ```
+
+=== "x86"  
+
+    ```asm
+    mov [esp + 16], ebx ; Move ebx onto the stack 16 bytes above esp
+    ```
+
 ### Push
 
 !!! info "Represents pushing a register onto the stack."

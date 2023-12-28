@@ -25,6 +25,7 @@ use crate::{
 };
 use alloc::vec::Vec;
 use core::{
+    hint::unreachable_unchecked,
     mem::{self, size_of},
     ptr::read_unaligned,
 };
@@ -200,5 +201,6 @@ fn encode_instruction_aarch64(
         Operation::JumpIpRelative(x) => encode_jump_ip_relative(x, pc, buf),
         Operation::MultiPush(x) => encode_multi_push(x, pc, buf),
         Operation::MultiPop(x) => encode_multi_pop(x, pc, buf),
+        Operation::MovToStack(_) => unsafe { unreachable_unchecked() }, // unreachable because JITCapabilities doesn't opt in
     }
 }
