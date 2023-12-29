@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use iced_x86::Instruction;
 use iced_x86::{BlockEncoder, BlockEncoderOptions, InstructionBlock};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 
 // Patches only needed for 64-bit.
 #[cfg(feature = "x64")]
