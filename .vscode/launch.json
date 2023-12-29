@@ -48,6 +48,28 @@
             }
         },
         {
+            "name": "[branch_hook_32] i686-unknown-linux-gnu",
+            "type": "lldb",
+            "cwd": "${workspaceFolder}/projects/reloaded-hooks-x86-sys",
+            "request": "launch",
+            "sourceLanguages": ["rust"],
+            "env": {
+                "RUST_TEST_THREADS": "1",
+            },
+            "cargo": {
+                // No idea how to limit to 1 test, but at least we can limit to 1 compilation artifact.
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--test=branch_hook_32",
+                    "--target=i686-unknown-linux-gnu",
+                    "--manifest-path=${workspaceFolder}/projects/reloaded-hooks-x86-sys/Cargo.toml"
+                    // "--profile=profile"
+                ],
+                "problemMatcher": "$rustc",
+            }
+        },
+        {
             "type": "lldb",
             "request": "launch",
             "name": "Debug x86 Benchmarks",
