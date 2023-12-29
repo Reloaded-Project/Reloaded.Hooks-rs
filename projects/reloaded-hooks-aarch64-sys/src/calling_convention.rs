@@ -14,7 +14,7 @@ use reloaded_hooks_portable::api::calling_convention_info::StackParameterOrder;
 /// # Examples
 ///
 /// ```rust
-/// use reloaded_hooks_arm64_sys::arm64::calling_conventions::CallingConvention;
+/// use reloaded_hooks_aarch64_sys::calling_convention::CallingConvention;
 /// let aapcs64_convention = CallingConvention::aapcs64();
 /// ```
 #[derive(Debug, Clone, PartialEq, DerefMut, Deref)]

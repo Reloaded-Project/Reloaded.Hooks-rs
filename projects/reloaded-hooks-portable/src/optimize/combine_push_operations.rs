@@ -17,7 +17,7 @@ macro_rules! deduplicate_merge_ops {
         /// This is an optional step that can be applied within the structs that implement the JIT trait.
         /// It can be used to optimize series of multiple $ops wherever possible.
         #[allow(dead_code)]
-        pub(crate) fn $name<TRegister: Copy>(operations: &mut Vec<Operation<TRegister>>) {
+        pub(crate) fn $name<TRegister: Copy + Clone>(operations: &mut Vec<Operation<TRegister>>) {
             let mut read_idx = 0;
             let mut write_idx = 0;
             while read_idx < operations.len() {

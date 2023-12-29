@@ -3,7 +3,6 @@ use crate::{
     api::{
         buffers::buffer_abstractions::{Buffer, BufferFactory},
         jit::compiler::Jit,
-        traits::register_info::RegisterInfo,
     },
     helpers::{
         atomic_write::atomic_swap, atomic_write_masked::atomic_write_masked,
@@ -57,7 +56,7 @@ impl StubPackedProps {
     ///
     /// * `stub_address` - The address of the stub containing the code described by this properties structure.
     pub fn enable<
-        TRegister: RegisterInfo + Clone + Default,
+        TRegister: Copy + Clone + Default,
         TJit: Jit<TRegister>,
         TBufferFactory: BufferFactory<TBuffer>,
         TBuffer: Buffer,
@@ -87,7 +86,7 @@ impl StubPackedProps {
     ///
     /// * `stub_address` - The address of the stub containing the code described by this properties structure.
     pub fn disable<
-        TRegister: RegisterInfo + Clone + Default,
+        TRegister: Copy + Clone + Default,
         TJit: Jit<TRegister>,
         TBufferFactory: BufferFactory<TBuffer>,
         TBuffer: Buffer,
@@ -116,7 +115,7 @@ impl StubPackedProps {
 
     /// Writes the hook to memory, either enabling or disabling it based on the provided parameters.
     unsafe fn swap_hook<
-        TRegister: RegisterInfo + Clone + Default,
+        TRegister: Copy + Clone + Default,
         TJit: Jit<TRegister>,
         TBufferFactory: BufferFactory<TBuffer>,
         TBuffer: Buffer,

@@ -1,11 +1,4 @@
 extern crate alloc;
-use core::cell::RefCell;
-use core::{hash::Hash, mem::size_of, slice};
-
-use alloc::vec::Vec;
-use alloc::{rc::Rc, string::ToString};
-use smallvec::SmallVec;
-
 use super::jit::compiler::Jit;
 use super::{
     calling_convention_info::CallingConventionInfo,
@@ -13,6 +6,10 @@ use super::{
     jit::{compiler::JitCapabilities, operation::Operation, return_operation::ReturnOperation},
     traits::register_info::{find_register_with_category, RegisterCategory, RegisterInfo},
 };
+use crate::optimize::decompose_push_pop_operations::{
+    decompose_pop_operations_ex, decompose_push_operations,
+};
+use crate::optimize::merge_stackalloc_operations::combine_stack_alloc_operations;
 use crate::{
     api::{
         calling_convention_info::StackCleanup,
@@ -21,11 +18,15 @@ use crate::{
     optimize::{
         combine_push_operations::{merge_pop_operations, merge_push_operations},
         eliminate_common_callee_saved_registers::eliminate_common_callee_saved_registers,
-        merge_stackalloc_and_return::merge_stackalloc_and_return,
         optimize_push_pop_parameters::{optimize_push_pop_parameters, update_stack_push_offsets},
         reorder_mov_sequence::reorder_mov_sequence,
     },
 };
+use alloc::vec::Vec;
+use alloc::{rc::Rc, string::ToString};
+use core::cell::RefCell;
+use core::{hash::Hash, mem::size_of, slice};
+use smallvec::SmallVec;
 
 /// Overkill in practice, but just in case, any leftover memory at end of buffers will
 /// be swept up by other hooks which can better estimate a byte count than we can for wrapper generation.
@@ -117,7 +118,7 @@ pub fn new_wrapper_instruction_generator_options<TFunctionInfo, TRegister, TJit>
 ) -> WrapperInstructionGeneratorOptions<'_, TFunctionInfo>
 where
     TFunctionInfo: FunctionInfo,
-    TRegister: RegisterInfo,
+    TRegister: RegisterInfo + Copy + Clone,
     TJit: Jit<TRegister>,
 {
     WrapperInstructionGeneratorOptions {
@@ -156,7 +157,10 @@ pub fn generate_wrapper_instructions<
     let mut ops = Vec::<Operation<TRegister>>::with_capacity(32);
     let mut stack_pointer =
         options.stack_entry_alignment + conv_current.reserved_stack_space() as usize;
+    let standard_reg_size = options.standard_register_size;
     let called_reserved_space = conv_called.reserved_stack_space();
+    let mut profitable_push_decompose = false; // Transform Push -> MovToStack + StackAlloc
+    let mut profitable_pop_decompose = false; // Transform Pop -> MovToStack + StackAlloc
 
     /*
         Rough Summary of this function.
@@ -264,9 +268,10 @@ pub fn generate_wrapper_instructions<
     let last = callee_saved_regs.last();
     let mut callee_saved_reg_padding = 0;
     if last.is_some() {
-        callee_saved_reg_padding = last.unwrap().size_in_bytes() - options.standard_register_size;
+        callee_saved_reg_padding = last.unwrap().size_in_bytes() - standard_reg_size;
         if callee_saved_reg_padding > 0 {
             ops.push(StackAlloc::new(callee_saved_reg_padding as i32).into());
+            profitable_push_decompose = true;
         }
 
         stack_pointer += callee_saved_reg_padding;
@@ -388,6 +393,7 @@ pub fn generate_wrapper_instructions<
     if stack_misalignment != 0 {
         ops[align_stack_idx] = StackAlloc::new(stack_misalignment as i32).into();
         stack_pointer += stack_misalignment as usize;
+        profitable_push_decompose = true;
         update_stack_push_offsets(optimized, stack_misalignment as i32);
     } else {
         ops.remove(align_stack_idx);
@@ -398,6 +404,7 @@ pub fn generate_wrapper_instructions<
     // Reserve required space for function called
     if called_reserved_space != 0 {
         ops.push(StackAlloc::new(called_reserved_space as i32).into());
+        profitable_push_decompose = true;
     }
 
     // Call the Method
@@ -449,6 +456,7 @@ pub fn generate_wrapper_instructions<
 
     if stack_ofs != 0 {
         ops.push(StackAlloc::new(stack_ofs as i32).into());
+        profitable_pop_decompose = true;
     }
 
     // Pop Callee Saved Registers
@@ -467,8 +475,33 @@ pub fn generate_wrapper_instructions<
         ops.push(ReturnOperation::new(0).into());
     }
 
+    // Final optimizations which pass over all instructions.
     if options.enable_optimizations {
-        merge_stackalloc_and_return(&mut ops);
+        // TODO: Our push-ing could be optimized for architectures that are neither ARM
+        // (can push multiple regs at once) or X86 (explicit 'push' instruction).
+
+        // Right now our code assumes that the architecture has either of those things,
+        // but if neither is true, the code generation may not be the most efficient possible.
+
+        if options
+            .jit_capabilities
+            .contains(JitCapabilities::CAN_MOV_TO_STACK)
+        {
+            if profitable_push_decompose {
+                // Transform Push -> MovToStack + StackAlloc
+                decompose_push_operations(&mut ops, options.standard_register_size);
+            }
+
+            if profitable_pop_decompose {
+                // Transform Pop -> MovToStack + StackAlloc
+                decompose_pop_operations_ex(&mut ops, options.standard_register_size);
+            }
+
+            // Merge Multiple in-a-row StackAlloc Into one.
+            // This merges stackalloc as result of padding
+            // end of callee saved registers with, stackalloc.
+            combine_stack_alloc_operations(&mut ops);
+        }
 
         if options
             .jit_capabilities
@@ -591,14 +624,12 @@ pub mod tests {
 
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
-        assert_eq!(vec.len(), 4);
+        assert_eq!(vec.len(), 5);
         assert_push_stack(&vec[0], nint, nint); // push right param
         assert_eq!(vec[1], Push::new(R1).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
-        assert_eq!(
-            vec[3],
-            Return::new((nint * 2) as usize + nint as usize).into()
-        ); // cleanup 2*nint (cdecl) + nint (thiscall)
+        assert_eq!(vec[3], StackAlloc::new((-nint * 2) as i32).into()); // caller cleanup 2*nint (cdecl)
+        assert_eq!(vec[4], Return::new(nint as usize).into()); // return, popping nint from stack (1 thiscall stack parameter)
     }
 
     #[test]
@@ -631,10 +662,11 @@ pub mod tests {
 
         assert!(result.is_ok());
         let vec: Vec<Operation<MockRegister>> = result.unwrap();
-        assert_eq!(vec.len(), 3);
+        assert_eq!(vec.len(), 4);
         assert_eq!(vec[0], MultiPush(smallvec![Push::new(R2), Push::new(R1)])); // push right param
         assert_eq!(vec[1], CallRel::new(4096).into());
-        assert_eq!(vec[2], Return::new((nint * 2) as usize).into()); // caller stack cleanup (2 cdecl parameters)
+        assert_eq!(vec[2], StackAlloc::new((-nint * 2) as i32).into()); // caller stack cleanup (2 cdecl parameters)
+        assert_eq!(vec[3], Return::new(0).into());
     }
 
     // EXTRA X86-LIKE TESTS //

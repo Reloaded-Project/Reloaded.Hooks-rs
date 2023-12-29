@@ -157,8 +157,9 @@ pub mod helpers {
 /// Code optimization algorithms.
 pub(crate) mod optimize {
     pub mod combine_push_operations;
+    pub mod decompose_push_pop_operations;
     pub mod eliminate_common_callee_saved_registers;
-    pub mod merge_stackalloc_and_return;
+    pub mod merge_stackalloc_operations;
     pub mod optimize_parameters_common;
     pub mod optimize_push_pop_parameters;
     pub mod reorder_mov_sequence;

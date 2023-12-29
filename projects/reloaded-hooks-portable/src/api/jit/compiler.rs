@@ -4,7 +4,6 @@ use super::{
     call_relative_operation::CallRelativeOperation, jump_absolute_operation::JumpAbsoluteOperation,
     jump_relative_operation::JumpRelativeOperation, operation::Operation,
 };
-use crate::api::traits::register_info::RegisterInfo;
 use alloc::{string::String, vec::Vec};
 use bitflags::bitflags;
 use core::fmt::Debug;
@@ -43,7 +42,7 @@ bitflags! {
 
 /// The trait for a Just In Time Compiler used for emitting
 /// wrappers assembled for a given address.
-pub trait Jit<TRegister: RegisterInfo> {
+pub trait Jit<TRegister: Copy + Clone> {
     /// Compiles the specified sequence of operations into a sequence of bytes.
     fn compile(
         address: usize,

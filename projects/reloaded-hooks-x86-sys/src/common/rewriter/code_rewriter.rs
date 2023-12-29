@@ -41,7 +41,7 @@ pub(crate) fn relocate_code(
     scratch_gpr: Option<AllRegisters>,
     buf: &mut Vec<u8>,
 ) -> Result<(), CodeRewriterError> {
-    let mut new_isns: SmallVec<[Instruction; 4]> = smallvec![];
+    let mut new_isns: SmallVec<[Instruction; 4]> = Default::default();
     let mut current_new_pc = new_pc;
     let mut needs_rewriting = false;
 

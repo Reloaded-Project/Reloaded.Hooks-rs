@@ -4,7 +4,6 @@ use crate::api::{
     buffers::buffer_abstractions::{Buffer, BufferFactory},
     jit::compiler::Jit,
     settings::proximity_target::ProximityTarget,
-    traits::register_info::RegisterInfo,
 };
 use alloc::boxed::Box;
 
@@ -33,7 +32,7 @@ pub(crate) fn allocate_with_proximity<
 ) -> (bool, Box<TBuffer>)
 where
     TJit: Jit<TRegister>,
-    TRegister: RegisterInfo,
+    TRegister: Copy + Clone,
 {
     // Try known relative jump ranges.
     for &requested_proximity in TJit::max_relative_jump_distances() {

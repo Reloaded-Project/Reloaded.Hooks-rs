@@ -1,10 +1,4 @@
 extern crate alloc;
-use alloc::rc::Rc;
-use alloc::vec::Vec;
-use core::cell::RefCell;
-use derive_more::From;
-use smallvec::SmallVec;
-
 use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
     call_rip_relative_operation::CallIpRelativeOperation,
@@ -17,12 +11,17 @@ use super::{
     push_stack_operation::PushStackOperation, return_operation::ReturnOperation,
     stack_alloc_operation::StackAllocOperation, xchg_operation::XChgOperation,
 };
+use alloc::rc::Rc;
+use alloc::vec::Vec;
+use core::cell::RefCell;
+use derive_more::From;
+use smallvec::SmallVec;
 
 pub type MultiPushVec<T> = [PushOperation<T>; 4];
 pub type MultiPopVec<T> = [PopOperation<T>; 4];
 
 #[derive(Debug, Clone, PartialEq, Eq, From)]
-pub enum Operation<T> {
+pub enum Operation<T: Copy + Clone> {
     None,
     Mov(MovOperation<T>),
     MovFromStack(MovFromStackOperation<T>),
@@ -44,7 +43,6 @@ pub enum Operation<T> {
     CallIpRelative(CallIpRelativeOperation<T>),
     JumpIpRelative(JumpIpRelativeOperation<T>),
     MovToStack(MovToStackOperation<T>),
-
     // Opt-in for architectures that support it or can optimise for this use case.
     // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
 
@@ -53,7 +51,7 @@ pub enum Operation<T> {
     MultiPop(SmallVec<MultiPopVec<T>>),
 }
 
-pub fn transform_op<TOldRegister: Copy, TNewRegister, TConvertRegister>(
+pub fn transform_op<TOldRegister: Copy + Clone, TNewRegister: Copy + Clone, TConvertRegister>(
     op: Operation<TOldRegister>,
     f: TConvertRegister,
 ) -> Operation<TNewRegister>

@@ -23,9 +23,9 @@ use derive_new::new;
 /// ```
 #[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
 pub struct MovToStackOperation<T> {
+    /// The offset from the current stack pointer in the direction opposite to the stack's growth.
+    pub stack_offset: i32,
+
     /// The source register to move to the stack.
     pub register: T,
-
-    /// The offset from current stack pointer to store the source register.
-    pub stack_offset: i32,
 }

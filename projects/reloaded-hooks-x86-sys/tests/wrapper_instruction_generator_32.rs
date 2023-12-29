@@ -109,14 +109,12 @@ pub mod tests {
 
         assert!(result.is_ok());
         let vec: Vec<Operation<Register>> = result.unwrap();
-        assert_eq!(vec.len(), 4);
+        assert_eq!(vec.len(), 5);
         assert_push_stack(&vec[0], nint, nint); // push right param
         assert_eq!(vec[1], Push::new(ecx).into()); // push left param
         assert_eq!(vec[2], CallRel::new(4096).into());
-        assert_eq!(
-            vec[3],
-            Return::new((nint * 2) as usize + nint as usize).into()
-        ); // cleanup 2*nint (cdecl) + nint (thiscall)
+        assert_eq!(vec[3], StackAlloc::new((-nint * 2) as i32).into()); // caller clean 2 cdecl parameters
+        assert_eq!(vec[4], Return::new(4).into()); // cleanup nint on stack (thiscall right param)
     }
 
     #[test]
@@ -149,10 +147,12 @@ pub mod tests {
 
         assert!(result.is_ok());
         let vec: Vec<Operation<Register>> = result.unwrap();
-        assert_eq!(vec.len(), 3);
-        assert_eq!(vec[0], MultiPush(smallvec![Push::new(edx), Push::new(ecx)])); // push right param + left param
-        assert_eq!(vec[1], CallRel::new(4096).into());
-        assert_eq!(vec[2], Return::new((nint * 2) as usize).into()); // caller stack cleanup (2 cdecl parameters)
+        assert_eq!(vec.len(), 5);
+        assert_eq!(vec[0], Push::new(edx).into()); // push right param
+        assert_eq!(vec[1], Push::new(ecx).into()); // push left param
+        assert_eq!(vec[2], CallRel::new(4096).into());
+        assert_eq!(vec[3], StackAlloc::new(-8).into()); // pop right param and left param
+        assert_eq!(vec[4], Return::new(0).into()); // nothing to pop
     }
 
     // EXTRA X86-LIKE TESTS //
@@ -202,7 +202,7 @@ pub mod tests {
 
         assert!(result.is_ok());
         let vec: Vec<Operation<Register>> = result.unwrap();
-        assert_eq!(vec.len(), 5);
+        assert_eq!(vec.len(), 6);
         assert_push_stack(&vec[0], 4, 4); // push left param
         assert_push_stack(&vec[1], 12, 4); // push right param
         assert_eq!(
@@ -212,8 +212,10 @@ pub mod tests {
         assert_eq!(vec[3], CallRel::new(4096).into());
         assert_eq!(
             vec[4],
-            Return::new((nint * 2) as usize + CDECL_WITH_STACK_EXTRA_SPACE as usize).into()
+            StackAlloc::new(((-nint * 2) as usize - CDECL_WITH_STACK_EXTRA_SPACE as usize) as i32)
+                .into()
         ); // callee stack cleanup (2 cdecl parameters) + extra space
+        assert_eq!(vec[5], Return::new(0).into());
     }
 
     #[test]
@@ -224,13 +226,13 @@ pub mod tests {
         assert!(result.is_ok());
         let vec: Vec<Operation<Register>> = result.unwrap();
         assert_eq!(vec.len(), 8);
-        assert_eq!(vec[0], Push::new(xmm0).into()); // callee save xmm
-        assert_eq!(vec[1], StackAlloc::new(12).into()); // 16 (xmm) - 4 (reg size)
+        assert_eq!(vec[0], MovToStack::new(-16, xmm0).into()); // callee save xmm
+        assert_eq!(vec[1], StackAlloc::new(28).into()); // 16 (xmm) - 4 (reg size)
         assert_push_stack(&vec[2], 32, 4); // push left param
         assert_push_stack(&vec[3], 40, 4); // push right param
         assert_eq!(vec[4], CallRel::new(4096).into());
-        assert_eq!(vec[5], StackAlloc::new(-(nint as i32 * 2) - 12).into()); // caller stack cleanup (2 cdecl parameters) + padding from xmm callee save
-        assert_eq!(vec[6], Pop::new(xmm0).into()); // callee restore xmm
+        assert_eq!(vec[5], MovFromStack::new(-20, xmm0).into()); // callee restore xmm
+        assert_eq!(vec[6], StackAlloc::new(-(nint as i32 * 2) - 16 - 12).into()); // caller stack cleanup (2 cdecl parameters) + 1 xmm reg + padding from xmm callee save
         assert_eq!(vec[7], Return::new(0).into());
     }
 

@@ -51,7 +51,7 @@ use crate::api::hooks::stub::stub_props_other::*;
 #[allow(clippy::type_complexity)]
 pub unsafe fn create_hook_stub_buffer<
     TJit,
-    TRegister: Clone + Default,
+    TRegister: Clone + Copy + Default,
     TBuffer: Buffer,
     TBufferFactory: BufferFactory<TBuffer>,
 >(

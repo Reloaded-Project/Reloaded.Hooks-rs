@@ -46,7 +46,7 @@ mod tests {
         let a = JitX64::compile(
             0,
             &[Operation::MovToStack(MovToStackOperation::new(
-                register, offset,
+                offset, register,
             ))],
         );
 

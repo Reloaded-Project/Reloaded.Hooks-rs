@@ -61,7 +61,7 @@ pub(crate) fn get_stolen_instructions_from_decoder(
 ) -> Result<(SmallVec<[Instruction; 4]>, u32), CodeRewriterError> {
     let required_bytes = min_bytes as u32;
     let mut total_bytes: u32 = 0;
-    let mut orig_instructions: SmallVec<[Instruction; 4]> = smallvec![];
+    let mut orig_instructions: SmallVec<[Instruction; 4]> = Default::default();
 
     let mut instr = Instruction::default();
     while decoder.can_decode() {

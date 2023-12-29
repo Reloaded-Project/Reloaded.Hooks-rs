@@ -53,7 +53,7 @@ use derive_new::new;
 /// In the real world, you should use enums instead of strings for source and target 😉,
 /// the code above shows strings for clarity.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
-pub struct PushOperation<T> {
+pub struct PushOperation<T: Copy> {
     /// The register to push onto the stack.
     pub register: T,
 }
