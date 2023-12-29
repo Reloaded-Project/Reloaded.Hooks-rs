@@ -67,10 +67,12 @@ impl Jit<Register> for JitX86 {
     }
 
     fn stack_entry_misalignment() -> u32 {
-        // x86 does not impose alignment requirements on stack
+        // Note: x86 does not impose alignment requirements on stack
         // If user runs across a custom convention with an alignment requirement
         // they should create 'shadow space' in their custom calling convention declaration.
-        0
+
+        // This value is still however needed in any case, for the wrapper generator.
+        4
     }
 
     fn code_alignment() -> u32 {

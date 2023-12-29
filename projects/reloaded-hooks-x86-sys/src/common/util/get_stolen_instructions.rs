@@ -3,7 +3,7 @@ extern crate alloc;
 use alloc::string::ToString;
 use iced_x86::{Decoder, DecoderOptions, Instruction};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 
 /// Retrieves the 'stolen' instructions from the provided code region.
 /// The 'stolen' instructions represent a minimum amount of code that needs to be
