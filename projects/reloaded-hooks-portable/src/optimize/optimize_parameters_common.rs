@@ -16,7 +16,7 @@ use crate::api::{jit::operation::Operation, traits::register_info::RegisterInfo}
 ///
 /// Index of the pop operation if found, otherwise None.
 #[inline(always)]
-pub(crate) fn find_pop_for_given_push<TRegister: RegisterInfo>(
+pub(crate) fn find_pop_for_given_push<TRegister: Copy + Clone + RegisterInfo>(
     items: &[Operation<TRegister>],
     stack_offset_to_find: usize,
 ) -> Option<usize> {

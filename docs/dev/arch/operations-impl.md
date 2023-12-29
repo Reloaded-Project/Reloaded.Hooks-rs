@@ -52,6 +52,16 @@
 | x86          | ✅           | ✅         |
 | ARM64        | ✅           | ✅         |
 
+### [MovToStack](./operations.md#movtostack)
+
+| Architecture | to Register | to Vector |
+| ------------ | ----------- | --------- |
+| x64          | ✅           | ✅         |
+| x86          | ✅           | ✅         |
+| ARM64*       | ❌           | ❌         |
+
+!!! note "This is not needed for optimal code generation on ARM64, thus was not implemented."
+
 ### [Push](./operations.md#push)
 
 | Architecture | Register | Vector |
@@ -150,14 +160,18 @@
 
 | Architecture | Supported | Notes                                                        |
 | ------------ | --------- | ------------------------------------------------------------ |
-| x64          | ✅         |                                                              |
-| x86          | ✅         |                                                              |
+| x64*         | ✅         |                                                              |
+| x86*         | ✅         |                                                              |
 | ARM64        | ✅         | Might fall back to single pop/push if mixing register sizes. |
+
+\* Implemented but not used, due to more efficient code generation alternative.
 
 ### [MultiPop](./operations.md#multipop)
 
 | Architecture | Supported | Notes                                                        |
 | ------------ | --------- | ------------------------------------------------------------ |
-| x64          | ✅         |                                                              |
-| x86          | ✅         |                                                              |
+| x64*         | ✅         |                                                              |
+| x86*         | ✅         |                                                              |
 | ARM64        | ✅         | Might fall back to single pop/push if mixing register sizes. |
+
+\* Implemented but not used, due to more efficient code generation alternative.

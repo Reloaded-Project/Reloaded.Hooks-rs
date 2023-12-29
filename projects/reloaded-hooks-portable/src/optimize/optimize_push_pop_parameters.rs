@@ -64,7 +64,7 @@ use crate::api::{jit::operation::Operation, traits::register_info::RegisterInfo}
 /// # Returns
 ///
 /// A new list of operations, these operations should replace the input slice that was passed to this structure.
-pub fn optimize_push_pop_parameters<TRegister: RegisterInfo + Copy>(
+pub fn optimize_push_pop_parameters<TRegister: RegisterInfo + Copy + Clone>(
     operations: &mut [Operation<TRegister>],
 ) -> &mut [Operation<TRegister>] {
     let mut current_stack_offset = 0;
@@ -170,7 +170,7 @@ pub fn optimize_push_pop_parameters<TRegister: RegisterInfo + Copy>(
 ///
 /// We call this after replacing a stack pointer relative push with a mov, as future
 /// operations need to be updated.
-pub(crate) fn update_stack_push_offsets<TRegister: RegisterInfo>(
+pub(crate) fn update_stack_push_offsets<TRegister: Copy + Clone>(
     items: &mut [Operation<TRegister>],
     offset_to_adjust_by: i32,
 ) {
@@ -183,7 +183,7 @@ pub(crate) fn update_stack_push_offsets<TRegister: RegisterInfo>(
 
 /// Accepts a push stack operation and a pop operation, and returns a mov operation that
 /// is equivalent to both the operations.
-fn encode_push_pop_to_mov<TRegister: Copy + RegisterInfo>(
+fn encode_push_pop_to_mov<TRegister: Copy + Clone + RegisterInfo>(
     push: &Push<TRegister>,
     pop: &Pop<TRegister>,
 ) -> Option<Mov<TRegister>> {
@@ -200,7 +200,7 @@ fn encode_push_pop_to_mov<TRegister: Copy + RegisterInfo>(
 
 /// Accepts a push stack operation and a pop operation, and returns a mov operation that
 /// is equivalent to both the operations.
-fn encode_push_stack_to_mov<TRegister: Copy + RegisterInfo>(
+fn encode_push_stack_to_mov<TRegister: Copy>(
     push_stack: &PushStack<TRegister>,
     pop: &Pop<TRegister>,
 ) -> Option<MovFromStack<TRegister>> {
@@ -210,7 +210,7 @@ fn encode_push_stack_to_mov<TRegister: Copy + RegisterInfo>(
     })
 }
 
-fn remove_nones<TRegister: Copy>(
+fn remove_nones<TRegister: Copy + Clone>(
     operations: &mut [Operation<TRegister>],
 ) -> &mut [Operation<TRegister>] {
     let mut write_idx = 0;

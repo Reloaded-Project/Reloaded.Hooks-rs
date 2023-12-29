@@ -86,7 +86,7 @@ pub(crate) fn rewrite_ldr_literal(
     let mov_instr = emit_mov_upper_48_bits_const_to_reg(orig_ins.rt(), orig_target as usize); // Assuming emit_mov_const_to_reg can handle this as well
     let ldr = get_ldr_immediate_for_literal(orig_ins, (orig_target & 0xFFFF) as i32);
 
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(5);
     mov_instr.append_to_buffer(&mut result);
     result.push(ldr.unwrap().0.to_le());
 

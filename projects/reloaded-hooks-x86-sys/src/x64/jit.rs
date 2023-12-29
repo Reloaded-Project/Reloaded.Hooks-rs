@@ -81,8 +81,8 @@ impl Jit<Register> for JitX64 {
     fn get_jit_capabilities() -> JitCapabilities {
         JitCapabilities::CAN_ENCODE_IP_RELATIVE_CALL
             | JitCapabilities::CAN_ENCODE_IP_RELATIVE_JUMP
-            | JitCapabilities::CAN_MULTI_PUSH
             | JitCapabilities::PROFITABLE_ABSOLUTE_INDIRECT_JUMP
+            | JitCapabilities::CAN_MOV_TO_STACK
     }
 
     fn max_branch_bytes() -> u32 {
@@ -140,6 +140,10 @@ impl Jit<Register> for JitX64 {
 
     fn standard_relative_call_bytes() -> usize {
         5
+    }
+
+    fn standard_register_size() -> usize {
+        8
     }
 }
 

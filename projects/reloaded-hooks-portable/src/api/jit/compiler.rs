@@ -4,7 +4,6 @@ use super::{
     call_relative_operation::CallRelativeOperation, jump_absolute_operation::JumpAbsoluteOperation,
     jump_relative_operation::JumpRelativeOperation, operation::Operation,
 };
-use crate::api::traits::register_info::RegisterInfo;
 use alloc::{string::String, vec::Vec};
 use bitflags::bitflags;
 use core::fmt::Debug;
@@ -35,12 +34,15 @@ bitflags! {
 
         /// This JIT can perform a 'relative jump' operation to any address.
         const CAN_RELATIVE_JUMP_TO_ANY_ADDRESS = 1 << 4;
+
+        /// This JIT can perform the 'Mov To Stack' operation.
+        const CAN_MOV_TO_STACK = 1 << 5;
     }
 }
 
 /// The trait for a Just In Time Compiler used for emitting
 /// wrappers assembled for a given address.
-pub trait Jit<TRegister: RegisterInfo> {
+pub trait Jit<TRegister: Copy + Clone> {
     /// Compiles the specified sequence of operations into a sequence of bytes.
     fn compile(
         address: usize,
@@ -84,6 +86,9 @@ pub trait Jit<TRegister: RegisterInfo> {
     fn max_indirect_offsets() -> &'static [u32] {
         &[]
     }
+
+    /// Returns the size of a regular register in bytes.
+    fn standard_register_size() -> usize;
 
     // TODO: Consider moving these things to 'JITUtils' or something.
 
