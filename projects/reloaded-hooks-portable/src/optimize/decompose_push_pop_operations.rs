@@ -206,7 +206,7 @@ pub(crate) fn decompose_pop_operations_ex<TRegister: Copy + Clone + RegisterInfo
 
 fn do_decompose_pops<TRegister: Clone + Copy>(
     operations: &mut Vec<Operation<TRegister>>,
-    mut ops: &mut SmallVec<[Operation<TRegister>; 16]>,
+    ops: &mut SmallVec<[Operation<TRegister>; 16]>,
     stack_size: &mut isize,
     last_stackalloc_val: i32,
     last_stackalloc_idx: usize,
@@ -214,7 +214,7 @@ fn do_decompose_pops<TRegister: Clone + Copy>(
 ) {
     let is_stackalloc = last_stackalloc_idx == first_pop_idx - 1;
     let stackalloc_offset = is_stackalloc as i32 * last_stackalloc_val;
-    update_mov_from_stack_offsets(&mut ops, last_stackalloc_val, is_stackalloc);
+    update_mov_from_stack_offsets(ops, last_stackalloc_val, is_stackalloc);
 
     // Emit stackalloc for the writes we just made.
     let stackalloc_ofs = -*stack_size as i32 + stackalloc_offset;

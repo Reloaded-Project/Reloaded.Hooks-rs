@@ -1,7 +1,6 @@
 extern crate alloc;
 
-use crate::all_registers::AllRegisters;
-use crate::common::jit_common::convert_error;
+use crate::{all_registers::AllRegisters, common::jit_common::X86jitError};
 use alloc::string::ToString;
 use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::JumpAbsInd};
@@ -9,7 +8,7 @@ use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::J
 pub(crate) fn encode_jump_absolute_indirect(
     a: &mut CodeAssembler,
     x: &JumpAbsInd<AllRegisters>,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     let mem_op = if a.bitness() == 64 && cfg!(feature = "x64") {
         qword_ptr(x.pointer_address)
     } else if cfg!(feature = "x86") {
@@ -17,10 +16,11 @@ pub(crate) fn encode_jump_absolute_indirect(
     } else {
         return Err(JitError::ThirdPartyAssemblerError(
             "Please use 'x86' or 'x64' library feature".to_string(),
-        ));
+        )
+        .into());
     };
 
-    a.jmp(mem_op).map_err(convert_error)?;
+    a.jmp(mem_op)?;
     Ok(())
 }
 

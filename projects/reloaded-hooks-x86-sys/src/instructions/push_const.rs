@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use crate::all_registers::AllRegisters;
-use crate::common::jit_common::{convert_error, ARCH_NOT_SUPPORTED};
+use crate::common::jit_common::{X86jitError, ARCH_NOT_SUPPORTED};
 use alloc::string::ToString;
 use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::PushConst};
@@ -9,17 +9,16 @@ use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::P
 pub(crate) fn encode_push_constant(
     a: &mut CodeAssembler,
     x: &PushConst<AllRegisters>,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     if a.bitness() == 32 && cfg!(feature = "x86") {
-        a.push(x.value as i32).map_err(convert_error)
+        a.push(x.value as i32)?;
+        Ok(())
     } else if a.bitness() == 64 && cfg!(feature = "x64") {
-        a.push(((x.value as u64 >> 32) & 0xFFFFFFFF) as i32)
-            .map_err(convert_error)?;
-        a.push((x.value & 0xFFFFFFFF) as i32).map_err(convert_error)
+        a.push(((x.value as u64 >> 32) & 0xFFFFFFFF) as i32)?;
+        a.push((x.value & 0xFFFFFFFF) as i32)?;
+        Ok(())
     } else {
-        return Err(JitError::ThirdPartyAssemblerError(
-            ARCH_NOT_SUPPORTED.to_string(),
-        ));
+        return Err(JitError::ThirdPartyAssemblerError(ARCH_NOT_SUPPORTED.to_string()).into());
     }
 }
 

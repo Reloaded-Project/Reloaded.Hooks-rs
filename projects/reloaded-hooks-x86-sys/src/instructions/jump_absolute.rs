@@ -1,7 +1,7 @@
 extern crate alloc;
 
-use crate::all_registers::AllRegisters;
-use crate::common::jit_common::{convert_error, ARCH_NOT_SUPPORTED};
+use crate::common::jit_common::ARCH_NOT_SUPPORTED;
+use crate::{all_registers::AllRegisters, common::jit_common::X86jitError};
 use alloc::string::ToString;
 use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::JumpAbs};
@@ -9,24 +9,20 @@ use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::J
 pub(crate) fn encode_jump_absolute(
     a: &mut CodeAssembler,
     x: &JumpAbs<AllRegisters>,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     if a.bitness() == 64 && cfg!(feature = "x64") {
         #[cfg(feature = "x64")]
         {
             let target_reg = x.scratch_register.as_iced_64()?;
-            a.mov(target_reg, x.target_address as u64)
-                .map_err(convert_error)?;
-            a.jmp(target_reg).map_err(convert_error)?;
+            a.mov(target_reg, x.target_address as u64)?;
+            a.jmp(target_reg)?;
         }
     } else if a.bitness() == 32 && cfg!(feature = "x86") {
         let target_reg = x.scratch_register.as_iced_32()?;
-        a.mov(target_reg, x.target_address as u32)
-            .map_err(convert_error)?;
-        a.jmp(target_reg).map_err(convert_error)?;
+        a.mov(target_reg, x.target_address as u32)?;
+        a.jmp(target_reg)?;
     } else {
-        return Err(JitError::ThirdPartyAssemblerError(
-            ARCH_NOT_SUPPORTED.to_string(),
-        ));
+        return Err(JitError::ThirdPartyAssemblerError(ARCH_NOT_SUPPORTED.to_string()).into());
     }
 
     Ok(())

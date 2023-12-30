@@ -1,12 +1,11 @@
-use crate::all_registers::AllRegisters;
-use crate::common::jit_common::convert_error;
+use crate::{all_registers::AllRegisters, common::jit_common::X86jitError};
 use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::Mov};
 
 pub(crate) fn encode_mov(
     a: &mut CodeAssembler,
     mov: &Mov<AllRegisters>,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     if mov.target.is_32() && mov.source.is_32() {
         a.mov(mov.target.as_iced_32()?, mov.source.as_iced_32()?)
     } else if mov.target.is_64() && mov.source.is_64() && cfg!(feature = "x64") {
@@ -25,9 +24,8 @@ pub(crate) fn encode_mov(
     } else if mov.target.is_zmm() && mov.source.is_zmm() {
         a.vmovaps(mov.target.as_iced_zmm()?, mov.source.as_iced_zmm()?)
     } else {
-        return Err(JitError::InvalidRegisterCombination(mov.source, mov.target));
-    }
-    .map_err(convert_error)?;
+        return Err(JitError::InvalidRegisterCombination(mov.source, mov.target).into());
+    }?;
 
     Ok(())
 }

@@ -1,7 +1,5 @@
 extern crate alloc;
-
 use crate::all_registers::AllRegisters;
-use crate::common::jit_common::alloc::string::ToString;
 use crate::instructions::{
     call_absolute::encode_call_absolute, call_relative::encode_call_relative,
     jump_absolute::encode_jump_absolute, jump_absolute_indirect::encode_jump_absolute_indirect,
@@ -10,6 +8,7 @@ use crate::instructions::{
     push_const::encode_push_constant, push_stack::encode_push_stack, ret::encode_return,
     stack_alloc::encode_stack_alloc, xchg::encode_xchg,
 };
+use alloc::string::ToString;
 
 #[cfg(target_feature = "multipushpop")]
 use crate::instructions::multi_pop::encode_multi_pop;
@@ -34,29 +33,29 @@ pub(crate) fn encode_instruction(
     address: usize,
 ) -> Result<(), JitError<AllRegisters>> {
     match operation {
-        Operation::Mov(x) => encode_mov(assembler, x),
-        Operation::MovFromStack(x) => encode_mov_from_stack(assembler, x),
-        Operation::Push(x) => encode_push(assembler, x),
-        Operation::PushStack(x) => encode_push_stack(assembler, x),
-        Operation::StackAlloc(x) => encode_stack_alloc(assembler, x),
-        Operation::Pop(x) => encode_pop(assembler, x),
-        Operation::Xchg(x) => encode_xchg(assembler, x),
-        Operation::CallRelative(x) => encode_call_relative(assembler, x),
-        Operation::CallAbsolute(x) => encode_call_absolute(assembler, x),
-        Operation::JumpRelative(x) => encode_jump_relative(assembler, x),
-        Operation::JumpAbsolute(x) => encode_jump_absolute(assembler, x),
-        Operation::JumpAbsoluteIndirect(x) => encode_jump_absolute_indirect(assembler, x),
-        Operation::MovToStack(x) => encode_mov_to_stack(assembler, x),
+        Operation::Mov(x) => Ok(encode_mov(assembler, x)?),
+        Operation::MovFromStack(x) => Ok(encode_mov_from_stack(assembler, x)?),
+        Operation::Push(x) => Ok(encode_push(assembler, x)?),
+        Operation::PushStack(x) => Ok(encode_push_stack(assembler, x)?),
+        Operation::StackAlloc(x) => Ok(encode_stack_alloc(assembler, x)?),
+        Operation::Pop(x) => Ok(encode_pop(assembler, x)?),
+        Operation::Xchg(x) => Ok(encode_xchg(assembler, x)?),
+        Operation::CallRelative(x) => Ok(encode_call_relative(assembler, x)?),
+        Operation::CallAbsolute(x) => Ok(encode_call_absolute(assembler, x)?),
+        Operation::JumpRelative(x) => Ok(encode_jump_relative(assembler, x)?),
+        Operation::JumpAbsolute(x) => Ok(encode_jump_absolute(assembler, x)?),
+        Operation::JumpAbsoluteIndirect(x) => Ok(encode_jump_absolute_indirect(assembler, x)?),
+        Operation::MovToStack(x) => Ok(encode_mov_to_stack(assembler, x)?),
 
         // x64 only
         #[cfg(feature = "x64")]
-        Operation::CallIpRelative(x) => encode_call_ip_relative(assembler, x, address),
+        Operation::CallIpRelative(x) => Ok(encode_call_ip_relative(assembler, x, address)?),
         #[cfg(feature = "x64")]
-        Operation::JumpIpRelative(x) => encode_jump_ip_relative(assembler, x, address),
+        Operation::JumpIpRelative(x) => Ok(encode_jump_ip_relative(assembler, x, address)?),
 
         // Optimised Functions
-        Operation::PushConst(x) => encode_push_constant(assembler, x),
-        Operation::Return(x) => encode_return(assembler, x),
+        Operation::PushConst(x) => Ok(encode_push_constant(assembler, x)?),
+        Operation::Return(x) => Ok(encode_return(assembler, x)?),
 
         // Deprecated
         #[cfg(target_feature = "multipushpop")]
@@ -68,6 +67,28 @@ pub(crate) fn encode_instruction(
     }
 }
 
-pub(crate) fn convert_error(e: IcedError) -> JitError<AllRegisters> {
-    JitError::ThirdPartyAssemblerError(e.to_string())
+pub enum X86jitError<T> {
+    IcedError(IcedError),
+    JitError(JitError<T>),
+}
+
+impl<T> From<IcedError> for X86jitError<T> {
+    fn from(e: IcedError) -> Self {
+        Self::IcedError(e)
+    }
+}
+
+impl<T> From<JitError<T>> for X86jitError<T> {
+    fn from(e: JitError<T>) -> Self {
+        Self::JitError(e)
+    }
+}
+
+impl<T> From<X86jitError<T>> for JitError<T> {
+    fn from(val: X86jitError<T>) -> Self {
+        match val {
+            X86jitError::JitError(e) => e,
+            X86jitError::IcedError(e) => JitError::ThirdPartyAssemblerError(e.to_string()),
+        }
+    }
 }

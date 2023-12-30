@@ -1,7 +1,6 @@
 extern crate alloc;
-
 use crate::all_registers::AllRegisters;
-use crate::common::jit_common::{convert_error, ARCH_NOT_SUPPORTED};
+use crate::common::jit_common::{X86jitError, ARCH_NOT_SUPPORTED};
 use alloc::string::ToString;
 use iced_x86::code_asm::{dword_ptr, qword_ptr, registers as iced_regs, CodeAssembler};
 use reloaded_hooks_portable::api::jit::compiler::JitError;
@@ -10,19 +9,13 @@ use reloaded_hooks_portable::api::jit::operation_aliases::Push;
 macro_rules! encode_xmm_push {
     ($a:expr, $reg:expr, $reg_type:ident, $op:ident) => {
         if $a.bitness() == 32 && cfg!(feature = "x86") {
-            $a.sub(iced_regs::esp, $reg.size() as i32)
-                .map_err(convert_error)?;
-            $a.$op(dword_ptr(iced_regs::esp), $reg.$reg_type()?)
-                .map_err(convert_error)?;
+            $a.sub(iced_regs::esp, $reg.size() as i32)?;
+            $a.$op(dword_ptr(iced_regs::esp), $reg.$reg_type()?)?;
         } else if $a.bitness() == 64 && cfg!(feature = "x64") {
-            $a.sub(iced_regs::rsp, $reg.size() as i32)
-                .map_err(convert_error)?;
-            $a.$op(qword_ptr(iced_regs::rsp), $reg.$reg_type()?)
-                .map_err(convert_error)?;
+            $a.sub(iced_regs::rsp, $reg.size() as i32)?;
+            $a.$op(qword_ptr(iced_regs::rsp), $reg.$reg_type()?)?;
         } else {
-            return Err(JitError::ThirdPartyAssemblerError(
-                ARCH_NOT_SUPPORTED.to_string(),
-            ));
+            return Err(JitError::ThirdPartyAssemblerError(ARCH_NOT_SUPPORTED.to_string()).into());
         }
     };
 }
@@ -30,12 +23,12 @@ macro_rules! encode_xmm_push {
 pub(crate) fn encode_push(
     a: &mut CodeAssembler,
     push: &Push<AllRegisters>,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     if push.register.is_32() {
-        a.push(push.register.as_iced_32()?).map_err(convert_error)?;
+        a.push(push.register.as_iced_32()?)?;
     } else if push.register.is_64() && cfg!(feature = "x64") {
         #[cfg(feature = "x64")]
-        a.push(push.register.as_iced_64()?).map_err(convert_error)?;
+        a.push(push.register.as_iced_64()?)?;
     } else if push.register.is_xmm() {
         encode_xmm_push!(a, push.register, as_iced_xmm, movdqu);
     } else if push.register.is_ymm() {
@@ -43,7 +36,7 @@ pub(crate) fn encode_push(
     } else if push.register.is_zmm() {
         encode_xmm_push!(a, push.register, as_iced_zmm, vmovdqu8);
     } else {
-        return Err(JitError::InvalidRegister(push.register));
+        return Err(JitError::InvalidRegister(push.register).into());
     }
 
     Ok(())

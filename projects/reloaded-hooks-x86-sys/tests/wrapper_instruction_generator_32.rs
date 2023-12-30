@@ -9,7 +9,6 @@ pub mod tests {
     use reloaded_hooks_portable::api::function_info::{BasicFunctionInfo, ParameterType};
     use reloaded_hooks_portable::api::jit::compiler::Jit;
     use reloaded_hooks_portable::api::jit::operation::Operation;
-    use reloaded_hooks_portable::api::jit::operation::Operation::MultiPush;
     use reloaded_hooks_portable::api::jit::operation_aliases::*;
     use reloaded_hooks_portable::api::wrapper_instruction_generator::{
         generate_wrapper_instructions, WrapperInstructionGeneratorOptions,
@@ -17,7 +16,6 @@ pub mod tests {
     use reloaded_hooks_x86_sys::x86::calling_convention::CallingConvention;
     use reloaded_hooks_x86_sys::x86::jit::JitX86;
     use reloaded_hooks_x86_sys::x86::Register::{self, *};
-    use smallvec::smallvec;
 
     // EXTRA TESTS //
 
@@ -138,7 +136,6 @@ pub mod tests {
 
     #[test]
     fn ms_cdecl_to_fastcall_optimized() {
-        let nint = size_of::<u32>() as isize;
         let result = two_parameters(
             CallingConvention::cdecl(),
             CallingConvention::fastcall(),

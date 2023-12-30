@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use crate::all_registers::AllRegisters;
-use crate::common::jit_common::convert_error;
+use crate::common::jit_common::X86jitError;
 use alloc::string::ToString;
 use iced_x86::code_asm::{qword_ptr, CodeAssembler};
 use reloaded_hooks_portable::api::jit::compiler::JitError;
@@ -12,11 +12,12 @@ pub(crate) fn encode_jump_ip_relative(
     a: &mut CodeAssembler,
     x: &JumpIpRel<AllRegisters>,
     address: usize,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     if a.bitness() == 32 {
         return Err(JitError::ThirdPartyAssemblerError(
             "Jump IP Relative is only Supported on 64-bit!".to_string(),
-        ));
+        )
+        .into());
     }
 
     let isns = a.instructions();
@@ -27,8 +28,7 @@ pub(crate) fn encode_jump_ip_relative(
     };
 
     let relative_offset = x.target_address.wrapping_sub(current_ip as usize);
-    a.jmp(qword_ptr(iced_x86::Register::RIP) + relative_offset as i32)
-        .map_err(convert_error)?;
+    a.jmp(qword_ptr(iced_x86::Register::RIP) + relative_offset as i32)?;
     Ok(())
 }
 

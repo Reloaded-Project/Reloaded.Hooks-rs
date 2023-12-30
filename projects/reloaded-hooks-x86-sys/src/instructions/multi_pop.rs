@@ -31,7 +31,7 @@ macro_rules! multi_pop_item {
 pub(crate) fn encode_multi_pop(
     a: &mut CodeAssembler,
     ops: &[Pop<AllRegisters>],
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     // Note: It is important that we do MOV in ascending address order, to help CPU caching :wink:
 
     // Start from the top of the reserved space.
@@ -49,7 +49,7 @@ pub(crate) fn encode_multi_pop(
         } else if x.register.is_zmm() {
             multi_pop_item!(a, x.register, current_offset, as_iced_zmm, vmovdqu8);
         } else {
-            return Err(JitError::InvalidRegister(x.register));
+            return Err(JitError::InvalidRegister(x.register).into());
         }
 
         // Move to the next offset.
@@ -59,15 +59,11 @@ pub(crate) fn encode_multi_pop(
     // Release the space.
     let total_space = ops.iter().map(|x| x.register.size()).sum::<usize>();
     if a.bitness() == 32 && cfg!(feature = "x86") {
-        a.add(iced_regs::esp, total_space as i32)
-            .map_err(convert_error)?;
+        a.add(iced_regs::esp, total_space as i32)?;
     } else if a.bitness() == 64 && cfg!(feature = "x64") {
-        a.add(iced_regs::rsp, total_space as i32)
-            .map_err(convert_error)?;
+        a.add(iced_regs::rsp, total_space as i32)?;
     } else {
-        return Err(JitError::ThirdPartyAssemblerError(
-            ARCH_NOT_SUPPORTED.to_string(),
-        ));
+        return Err(JitError::ThirdPartyAssemblerError(ARCH_NOT_SUPPORTED.to_string()).into());
     }
 
     Ok(())

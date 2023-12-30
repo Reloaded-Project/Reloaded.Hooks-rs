@@ -1,25 +1,20 @@
 extern crate alloc;
+use crate::{all_registers::AllRegisters, common::jit_common::X86jitError};
 use alloc::string::ToString;
 use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::XChg};
-
-use crate::all_registers::AllRegisters;
-use crate::common::jit_common::convert_error;
 
 macro_rules! encode_xchg_vector {
     ($fn_name:ident, $reg_type:ident, $mov_instr:ident) => {
         fn $fn_name(
             a: &mut CodeAssembler,
             xchg: &XChg<AllRegisters>,
-        ) -> Result<(), JitError<AllRegisters>> {
+        ) -> Result<(), X86jitError<AllRegisters>> {
             let scratch = get_scratch(xchg.scratch)?;
 
-            a.$mov_instr(scratch.$reg_type()?, xchg.register1.$reg_type()?)
-                .map_err(convert_error)?;
-            a.$mov_instr(xchg.register1.$reg_type()?, xchg.register2.$reg_type()?)
-                .map_err(convert_error)?;
-            a.$mov_instr(xchg.register2.$reg_type()?, scratch.$reg_type()?)
-                .map_err(convert_error)?;
+            a.$mov_instr(scratch.$reg_type()?, xchg.register1.$reg_type()?)?;
+            a.$mov_instr(xchg.register1.$reg_type()?, xchg.register2.$reg_type()?)?;
+            a.$mov_instr(xchg.register2.$reg_type()?, scratch.$reg_type()?)?;
             Ok(())
         }
     };
@@ -32,14 +27,12 @@ encode_xchg_vector!(encode_xchg_zmm, as_iced_zmm, vmovaps);
 pub(crate) fn encode_xchg(
     a: &mut CodeAssembler,
     xchg: &XChg<AllRegisters>,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     if xchg.register1.is_32() && xchg.register2.is_32() {
-        a.xchg(xchg.register1.as_iced_32()?, xchg.register2.as_iced_32()?)
-            .map_err(convert_error)?
+        a.xchg(xchg.register1.as_iced_32()?, xchg.register2.as_iced_32()?)?
     } else if xchg.register1.is_64() && xchg.register2.is_64() && cfg!(feature = "x64") {
         #[cfg(feature = "x64")]
-        a.xchg(xchg.register1.as_iced_64()?, xchg.register2.as_iced_64()?)
-            .map_err(convert_error)?
+        a.xchg(xchg.register1.as_iced_64()?, xchg.register2.as_iced_64()?)?
     } else if xchg.register1.is_xmm() && xchg.register2.is_xmm() {
         encode_xchg_xmm(a, xchg)?
     } else if xchg.register1.is_ymm() && xchg.register2.is_ymm() {
@@ -47,10 +40,7 @@ pub(crate) fn encode_xchg(
     } else if xchg.register1.is_zmm() && xchg.register2.is_zmm() {
         encode_xchg_zmm(a, xchg)?
     } else {
-        return Err(JitError::InvalidRegisterCombination(
-            xchg.register1,
-            xchg.register2,
-        ));
+        return Err(JitError::InvalidRegisterCombination(xchg.register1, xchg.register2).into());
     }
 
     Ok(())

@@ -1,6 +1,6 @@
 extern crate alloc;
 use crate::all_registers::AllRegisters;
-use crate::common::jit_common::convert_error;
+use crate::common::jit_common::X86jitError;
 use crate::common::jit_common::ARCH_NOT_SUPPORTED;
 use alloc::string::ToString;
 use iced_x86::code_asm::registers as iced_regs;
@@ -11,15 +11,13 @@ use reloaded_hooks_portable::api::jit::operation_aliases::StackAlloc;
 pub(crate) fn encode_stack_alloc(
     a: &mut CodeAssembler,
     sub: &StackAlloc,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     if a.bitness() == 32 && cfg!(feature = "x86") {
-        a.sub(iced_regs::esp, sub.operand).map_err(convert_error)?;
+        a.sub(iced_regs::esp, sub.operand)?;
     } else if a.bitness() == 64 && cfg!(feature = "x64") {
-        a.sub(iced_regs::rsp, sub.operand).map_err(convert_error)?;
+        a.sub(iced_regs::rsp, sub.operand)?;
     } else {
-        return Err(JitError::ThirdPartyAssemblerError(
-            ARCH_NOT_SUPPORTED.to_string(),
-        ));
+        return Err(JitError::ThirdPartyAssemblerError(ARCH_NOT_SUPPORTED.to_string()).into());
     }
 
     Ok(())

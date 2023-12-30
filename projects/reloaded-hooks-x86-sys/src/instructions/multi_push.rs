@@ -11,7 +11,7 @@ use reloaded_hooks_portable::api::jit::operation_aliases::Push;
 pub(crate) fn encode_multi_push(
     a: &mut CodeAssembler,
     ops: &[Push<AllRegisters>],
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     // Calculate space to reserve.
     let mut space_needed = 0;
 
@@ -21,15 +21,11 @@ pub(crate) fn encode_multi_push(
 
     // Reserve the space.
     if a.bitness() == 64 && cfg!(feature = "x64") {
-        a.sub(iced_regs::rsp, space_needed as i32)
-            .map_err(convert_error)?;
+        a.sub(iced_regs::rsp, space_needed as i32)?;
     } else if a.bitness() == 32 && cfg!(feature = "x86") {
-        a.sub(iced_regs::esp, space_needed as i32)
-            .map_err(convert_error)?;
+        a.sub(iced_regs::esp, space_needed as i32)?;
     } else {
-        return Err(JitError::ThirdPartyAssemblerError(
-            ARCH_NOT_SUPPORTED.to_string(),
-        ));
+        return Err(JitError::ThirdPartyAssemblerError(ARCH_NOT_SUPPORTED.to_string()).into());
     }
 
     // Push the items.

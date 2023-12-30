@@ -1,5 +1,6 @@
 extern crate alloc;
 use crate::all_registers::AllRegisters;
+use crate::common::jit_common::X86jitError;
 use crate::mov_item_to_stack;
 use iced_x86::code_asm::CodeAssembler;
 use reloaded_hooks_portable::api::jit::compiler::JitError;
@@ -8,7 +9,7 @@ use reloaded_hooks_portable::api::jit::mov_to_stack_operation::MovToStackOperati
 pub(crate) fn encode_mov_to_stack(
     a: &mut CodeAssembler,
     x: &MovToStackOperation<AllRegisters>,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     if x.register.is_32() {
         mov_item_to_stack!(a, x.register, x.stack_offset, as_iced_32, mov);
     } else if x.register.is_64() && cfg!(feature = "x64") {
@@ -21,7 +22,7 @@ pub(crate) fn encode_mov_to_stack(
     } else if x.register.is_zmm() {
         mov_item_to_stack!(a, x.register, x.stack_offset, as_iced_zmm, vmovdqu8);
     } else {
-        return Err(JitError::InvalidRegister(x.register));
+        return Err(JitError::InvalidRegister(x.register).into());
     }
 
     Ok(())

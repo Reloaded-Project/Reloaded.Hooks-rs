@@ -1,7 +1,7 @@
 extern crate alloc;
 
 use crate::all_registers::AllRegisters;
-use crate::common::jit_common::{convert_error, ARCH_NOT_SUPPORTED};
+use crate::common::jit_common::{X86jitError, ARCH_NOT_SUPPORTED};
 use alloc::string::ToString;
 use iced_x86::code_asm::{dword_ptr, qword_ptr, CodeAssembler};
 use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::MovFromStack};
@@ -9,7 +9,7 @@ use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::M
 pub(crate) fn encode_mov_from_stack(
     a: &mut CodeAssembler,
     x: &MovFromStack<AllRegisters>,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     let base_ptr = if a.bitness() == 64 && cfg!(feature = "x64") {
         qword_ptr(iced_x86::Register::RSP) + x.stack_offset
     } else if cfg!(feature = "x86") {
@@ -17,7 +17,8 @@ pub(crate) fn encode_mov_from_stack(
     } else {
         return Err(JitError::ThirdPartyAssemblerError(
             "Please use 'x86' or 'x64' library feature".to_string(),
-        ));
+        )
+        .into());
     };
 
     if x.target.is_32() {
@@ -38,11 +39,8 @@ pub(crate) fn encode_mov_from_stack(
     } else if x.target.is_zmm() {
         a.vmovups(x.target.as_iced_zmm()?, base_ptr)
     } else {
-        return Err(JitError::ThirdPartyAssemblerError(
-            ARCH_NOT_SUPPORTED.to_string(),
-        ));
-    }
-    .map_err(convert_error)?;
+        return Err(JitError::ThirdPartyAssemblerError(ARCH_NOT_SUPPORTED.to_string()).into());
+    }?;
 
     Ok(())
 }

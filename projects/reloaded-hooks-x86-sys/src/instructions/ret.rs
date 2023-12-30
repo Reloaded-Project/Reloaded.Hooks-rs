@@ -1,16 +1,17 @@
-use crate::all_registers::AllRegisters;
-use crate::common::jit_common::convert_error;
+use crate::{all_registers::AllRegisters, common::jit_common::X86jitError};
 use iced_x86::code_asm::CodeAssembler;
-use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::Return};
+use reloaded_hooks_portable::api::jit::operation_aliases::Return;
 
 pub(crate) fn encode_return(
     a: &mut CodeAssembler,
     x: &Return,
-) -> Result<(), JitError<AllRegisters>> {
+) -> Result<(), X86jitError<AllRegisters>> {
     if x.offset == 0 {
-        a.ret().map_err(convert_error)
+        a.ret()?;
+        Ok(())
     } else {
-        a.ret_1(x.offset as i32).map_err(convert_error)
+        a.ret_1(x.offset as i32)?;
+        Ok(())
     }
 }
 
