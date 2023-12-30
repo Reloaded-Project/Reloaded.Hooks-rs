@@ -22,6 +22,7 @@ derive_more = { version = "0.99.17", default-features = false, features = ["from
 derive-new = { version = "0.6.0", default-features = false }
 bitfield = "0.14.0"
 portable-atomic = "1.6.0"
+libc = "0.2.146" # direct access to mprotect (unix) & malloc
 
 # Tests only!
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
@@ -35,9 +36,6 @@ pprof = { version = "0.12", features = ["flamegraph", "criterion"] }
 # Platform Specific
 [target.'cfg(not(target_os = "windows"))'.dependencies]
 clf = "0.1.7" # flushing cache
-
-[target.'cfg(unix)'.dependencies]
-libc = "0.2.146" # direct access to mprotect
 
 [target.'cfg(target_os = "macos")'.dependencies]
 mach = "0.3.2" # direct access to macOS memory stuff
