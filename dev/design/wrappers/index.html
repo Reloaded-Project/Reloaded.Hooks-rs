@@ -1,0 +1,1829 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://github.com/Reloaded-Project/Reloaded.Hooks-rs/dev/design/wrappers/">
+      
+      
+        <link rel="prev" href="../common/">
+      
+      
+        <link rel="next" href="../function-hooks/overview/">
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.4.2, mkdocs-material-9.0.6">
+    
+    
+      
+        <title>Wrapper Generation - Reloaded Hooks NexGen</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../assets/stylesheets/main.558e4712.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../assets/stylesheets/palette.2505c338.min.css">
+      
+      
+
+    
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../Reloaded/Stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="reloaded3-slate" data-md-color-primary="" data-md-color-accent="">
+  
+    
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#calling-conversion-wrappers" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="Reloaded Hooks NexGen" class="md-header__button md-logo" aria-label="Reloaded Hooks NexGen" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Reloaded Hooks NexGen
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Wrapper Generation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/Reloaded-Project/Reloaded.Hooks-rs" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Reloaded-Project/Reloaded.Hooks-rs
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="Reloaded Hooks NexGen" class="md-nav__button md-logo" aria-label="Reloaded Hooks NexGen" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    Reloaded Hooks NexGen
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/Reloaded-Project/Reloaded.Hooks-rs" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M439.55 236.05 244 40.45a28.87 28.87 0 0 0-40.81 0l-40.66 40.63 51.52 51.52c27.06-9.14 52.68 16.77 43.39 43.68l49.66 49.66c34.23-11.8 61.18 31 35.47 56.69-26.49 26.49-70.21-2.87-56-37.34L240.22 199v121.85c25.3 12.54 22.26 41.85 9.08 55a34.34 34.34 0 0 1-48.55 0c-17.57-17.6-11.07-46.91 11.25-56v-123c-20.8-8.51-24.6-30.74-18.64-45L142.57 101 8.45 235.14a28.86 28.86 0 0 0 0 40.81l195.61 195.6a28.86 28.86 0 0 0 40.8 0l194.69-194.69a28.86 28.86 0 0 0 0-40.81z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    Reloaded-Project/Reloaded.Hooks-rs
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        Home
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " data-md-toggle="__nav_2" type="checkbox" id="__nav_2" checked>
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2" tabindex="0" aria-expanded="true">
+          Library Internals
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Library Internals" data-md-level="1">
+        <label class="md-nav__title" for="__nav_2">
+          <span class="md-nav__icon md-icon"></span>
+          Library Internals
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " data-md-toggle="__nav_2_1" type="checkbox" id="__nav_2_1" checked>
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_1" tabindex="0" aria-expanded="true">
+          Design Docs
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Design Docs" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_1">
+          <span class="md-nav__icon md-icon"></span>
+          Design Docs
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../common/" class="md-nav__link">
+        Common Notes
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" data-md-toggle="toc" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Wrapper Generation
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        Wrapper Generation
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#general-strategy" class="md-nav__link">
+    General Strategy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optimization" class="md-nav__link">
+    Optimization
+  </a>
+  
+    <nav class="md-nav" aria-label="Optimization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#align-wrappers-to-architecture-recommended-alignment" class="md-nav__link">
+    Align Wrappers to Architecture Recommended Alignment
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eliminate-callee-saved-registers" class="md-nav__link">
+    Eliminate Callee Saved Registers
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#combine-pushpop-operations-when-possible" class="md-nav__link">
+    Combine Push/Pop Operations when Possible
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#move-between-registers-instead-of-push-pop" class="md-nav__link">
+    Move Between Registers Instead of Push Pop
+  </a>
+  
+    <nav class="md-nav" aria-label="Move Between Registers Instead of Push Pop">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#with-register-to-register" class="md-nav__link">
+    With Register to Register
+  </a>
+  
+    <nav class="md-nav" aria-label="With Register to Register">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-case" class="md-nav__link">
+    Basic Case
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-case" class="md-nav__link">
+    Advanced Case
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reordering-operations" class="md-nav__link">
+    Reordering Operations
+  </a>
+  
+    <nav class="md-nav" aria-label="Reordering Operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#handling-cycles-2-node-cycle" class="md-nav__link">
+    Handling Cycles (2 Node Cycle)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handling-cycles-multi-register-cycle" class="md-nav__link">
+    Handling Cycles (Multi Register Cycle)
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#idea-eliminate-return-address" class="md-nav__link">
+    Idea: Eliminate Return Address
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#technical-limitations" class="md-nav__link">
+    Technical Limitations
+  </a>
+  
+    <nav class="md-nav" aria-label="Technical Limitations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wrappers-dont-understand-abi-specific-rules" class="md-nav__link">
+    Wrappers Don't understand ABI Specific Rules
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allocating-mixed-size-registers-is-tricky" class="md-nav__link">
+    Allocating Mixed Size Registers is Tricky.
+  </a>
+  
+    <nav class="md-nav" aria-label="Allocating Mixed Size Registers is Tricky.">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-problem" class="md-nav__link">
+    The Problem
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-using-optimized-code" class="md-nav__link">
+    When using Optimized Code
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wrappers-currently-dont-understand-how-to-split-larger-registers" class="md-nav__link">
+    Wrappers (Currently) Don't understand how to split larger registers.
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " data-md-toggle="__nav_2_1_3" type="checkbox" id="__nav_2_1_3" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_1_3" tabindex="0" aria-expanded="false">
+          Function Hooks
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Function Hooks" data-md-level="3">
+        <label class="md-nav__title" for="__nav_2_1_3">
+          <span class="md-nav__icon md-icon"></span>
+          Function Hooks
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../function-hooks/overview/" class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " data-md-toggle="__nav_2_1_3_2" type="checkbox" id="__nav_2_1_3_2" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_1_3_2" tabindex="0" aria-expanded="false">
+          Hooking Strategy
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Hooking Strategy" data-md-level="4">
+        <label class="md-nav__title" for="__nav_2_1_3_2">
+          <span class="md-nav__icon md-icon"></span>
+          Hooking Strategy
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../function-hooks/hooking-strategy/" class="md-nav__link">
+        General
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../function-hooks/hooking-strategy-x86/" class="md-nav__link">
+        x86
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../function-hooks/hooking-strategy-arm64/" class="md-nav__link">
+        ARM64
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assembly-hooks/overview/" class="md-nav__link">
+        Assembly Hooks
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../branch-hooks/overview/" class="md-nav__link">
+        Branch Hooks
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vtable-hooks/overview/" class="md-nav__link">
+        VTable Hooks
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " data-md-toggle="__nav_2_2" type="checkbox" id="__nav_2_2" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_2" tabindex="0" aria-expanded="false">
+          Architectures
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="Architectures" data-md-level="2">
+        <label class="md-nav__title" for="__nav_2_2">
+          <span class="md-nav__icon md-icon"></span>
+          Architectures
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arch/overview/" class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arch/operations/" class="md-nav__link">
+        Operations
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arch/operations-impl/" class="md-nav__link">
+        Operations (Implemented)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " data-md-toggle="__nav_2_2_4" type="checkbox" id="__nav_2_2_4" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_2_4" tabindex="0" aria-expanded="false">
+          x86
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="x86" data-md-level="3">
+        <label class="md-nav__title" for="__nav_2_2_4">
+          <span class="md-nav__icon md-icon"></span>
+          x86
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arch/x86/x86/" class="md-nav__link">
+        Overview (x86)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arch/x86/x86_64/" class="md-nav__link">
+        Overview (x86_64)
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arch/x86/code_relocation/" class="md-nav__link">
+        Code Relocation
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+      
+      
+      <input class="md-nav__toggle md-toggle " data-md-toggle="__nav_2_2_5" type="checkbox" id="__nav_2_2_5" >
+      
+      
+      
+        <label class="md-nav__link" for="__nav_2_2_5" tabindex="0" aria-expanded="false">
+          arm64
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <nav class="md-nav" aria-label="arm64" data-md-level="3">
+        <label class="md-nav__title" for="__nav_2_2_5">
+          <span class="md-nav__icon md-icon"></span>
+          arm64
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arch/arm64/aarch64/" class="md-nav__link">
+        Overview
+      </a>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../arch/arm64/code_relocation/" class="md-nav__link">
+        Code Relocation
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+            
+          
+            
+              
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../platform/overview/" class="md-nav__link">
+        Platform Support
+      </a>
+    </li>
+  
+
+            
+          
+        </ul>
+      </nav>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../contributing/" class="md-nav__link">
+        Contributing
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Reloaded/Pages/license/" class="md-nav__link">
+        License
+      </a>
+    </li>
+  
+
+    
+      
+      
+      
+
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../Reloaded/Pages/contributing/" class="md-nav__link">
+        How to Document
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#general-strategy" class="md-nav__link">
+    General Strategy
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#optimization" class="md-nav__link">
+    Optimization
+  </a>
+  
+    <nav class="md-nav" aria-label="Optimization">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#align-wrappers-to-architecture-recommended-alignment" class="md-nav__link">
+    Align Wrappers to Architecture Recommended Alignment
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#eliminate-callee-saved-registers" class="md-nav__link">
+    Eliminate Callee Saved Registers
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#combine-pushpop-operations-when-possible" class="md-nav__link">
+    Combine Push/Pop Operations when Possible
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#move-between-registers-instead-of-push-pop" class="md-nav__link">
+    Move Between Registers Instead of Push Pop
+  </a>
+  
+    <nav class="md-nav" aria-label="Move Between Registers Instead of Push Pop">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#with-register-to-register" class="md-nav__link">
+    With Register to Register
+  </a>
+  
+    <nav class="md-nav" aria-label="With Register to Register">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-case" class="md-nav__link">
+    Basic Case
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#advanced-case" class="md-nav__link">
+    Advanced Case
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reordering-operations" class="md-nav__link">
+    Reordering Operations
+  </a>
+  
+    <nav class="md-nav" aria-label="Reordering Operations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#handling-cycles-2-node-cycle" class="md-nav__link">
+    Handling Cycles (2 Node Cycle)
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#handling-cycles-multi-register-cycle" class="md-nav__link">
+    Handling Cycles (Multi Register Cycle)
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#idea-eliminate-return-address" class="md-nav__link">
+    Idea: Eliminate Return Address
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#technical-limitations" class="md-nav__link">
+    Technical Limitations
+  </a>
+  
+    <nav class="md-nav" aria-label="Technical Limitations">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#wrappers-dont-understand-abi-specific-rules" class="md-nav__link">
+    Wrappers Don't understand ABI Specific Rules
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#allocating-mixed-size-registers-is-tricky" class="md-nav__link">
+    Allocating Mixed Size Registers is Tricky.
+  </a>
+  
+    <nav class="md-nav" aria-label="Allocating Mixed Size Registers is Tricky.">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-problem" class="md-nav__link">
+    The Problem
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-using-optimized-code" class="md-nav__link">
+    When using Optimized Code
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#wrappers-currently-dont-understand-how-to-split-larger-registers" class="md-nav__link">
+    Wrappers (Currently) Don't understand how to split larger registers.
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  
+  
+
+
+
+<h1 id="calling-conversion-wrappers">Calling Conversion Wrappers</h1>
+<div class="admonition info">
+<p class="admonition-title">Describes how stubs for converting between different Calling Conventions (ABIs) are generated.</p>
+</div>
+<div class="admonition info">
+<p class="admonition-title">This page uses x86 as an example, however the same concepts apply to other architectures.</p>
+</div>
+<p>These stubs are what allows <code>Reloaded.Hooks-rs</code> to hook functions which take parameters in custom registers, 
+allowing developers to skip writing error prone <code>'naked'</code> functions by hand.</p>
+<h2 id="general-strategy">General Strategy</h2>
+<div class="admonition note">
+<p class="admonition-title">Setting frame pointer (<code>ebp</code>) is not necessary, as our wrapper shouldn't use it</p>
+</div>
+<ul>
+<li>Backup Non-Volatile Registers (incl. Link Register on Relevant Platforms)</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="c1"># push LR if present on platform</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">ebp</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">ebx</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">edi</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">esi</span>
+</code></pre></div>
+<ul>
+<li>Align the Stack</li>
+<li>
+<p>Setup Function Parameters</p>
+<ul>
+<li>Re push stack parameters (right to left) of the function being returned</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="c1"># In a loop</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">ebp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">baseStackOffset</span><span class="p">}]</span>
+</code></pre></div>
+<ul>
+<li>Push register parameters of the function being returned (right to left, reverse loop)</li>
+<li>Pop parameters into registers of function being called</li>
+</ul>
+</li>
+<li>
+<p>Reserve Extra Stack Space</p>
+</li>
+</ul>
+<p>Some calling conventions require extra space reserved up front</p>
+<div class="highlight"><pre><span></span><code><span class="nf">sub</span><span class="w"> </span><span class="no">esp</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="no">whatever</span><span class="p">}</span>
+</code></pre></div>
+<ul>
+<li>Call Target Method</li>
+<li>Setup Return Register</li>
+</ul>
+<p>If target function returns in different register than caller expects, might need to for example <code>mov eax, ecx</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="no">ecx</span>
+</code></pre></div>
+<ul>
+<li>Restore Non-Volatile Registers</li>
+</ul>
+<div class="highlight"><pre><span></span><code><span class="c1"># Restore non-volatile registers</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">esi</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">edi</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">ebx</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">ebp</span>
+<span class="c1"># pop LR if relevant on given platform</span>
+</code></pre></div>
+<div class="admonition tip">
+<p class="admonition-title">The general implementation for 64-bit is the same, however the stack must be 16 byte aligned at method entry, and for MSFT convention, 32 bytes reserved on stack before call</p>
+</div>
+<p>There are also some very minor nuances, which the actual code has to handle, but this is the general
+jist of it.</p>
+<h2 id="optimization">Optimization</h2>
+<h3 id="align-wrappers-to-architecture-recommended-alignment">Align Wrappers to Architecture Recommended Alignment</h3>
+<div class="admonition tip">
+<p class="admonition-title">This optimizes CPU instruction fetch, which (on x86) operates on 16 byte boundaries.</p>
+</div>
+<p>So we align our wrappers to these boundaries.</p>
+<h3 id="eliminate-callee-saved-registers">Eliminate Callee Saved Registers</h3>
+<div class="admonition info">
+<p class="admonition-title">When there are overlaps in callee saved registers between source and target, we can skip backing up those registers.</p>
+</div>
+<p>For example, <code>cdecl</code> and <code>stdcall</code> use the same callee saved registers, <code>ebp</code>, <code>ebx</code>, <code>esi</code>, <code>edi</code>. When converting between these two conventions, it is not necessary to backup/restore any of them in the wrapper, because the target function will already take care of that.</p>
+<p>Example: <code>cdecl target -&gt; stdcall</code> wrapper.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">Before</label><label for="__tabbed_1_2">After</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="c1"># Stack Backup</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">ebp</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">ebp</span><span class="p">,</span><span class="w"> </span><span class="no">esp</span>
+
+<span class="c1"># Callee Save</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">ebx</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">edi</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">esi</span>
+
+<span class="c1"># Re push parameters</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">ebp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">ebp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+
+<span class="nf">call</span><span class="w"> </span><span class="p">{</span><span class="no">function</span><span class="p">}</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">esp</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span>
+
+<span class="c1"># Callee Restore</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">esi</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">edi</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">ebx</span>
+
+<span class="c1"># Stack Restore</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">ebp</span>
+<span class="nf">ret</span><span class="w"> </span><span class="mi">8</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="c1"># Stack Backup</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">ebp</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">ebp</span><span class="p">,</span><span class="w"> </span><span class="no">esp</span>
+
+<span class="c1"># Re push parameters</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">ebp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">ebp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+
+<span class="nf">call</span><span class="w"> </span><span class="p">{</span><span class="no">function</span><span class="p">}</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">esp</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span>
+
+<span class="c1"># Stack Restore</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">ebp</span>
+<span class="nf">ret</span><span class="w"> </span><span class="mi">8</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Pseudocode example. Not verified for accuracy, but it shows the idea</p>
+</div>
+<p>In the <code>cdecl -&gt; stdcall</code> example, <code>ebp</code> is considered a callee saved register too, thus it should be possible to optimise into:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Re push parameters</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">esp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">esp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+
+<span class="nf">call</span><span class="w"> </span><span class="p">{</span><span class="no">function</span><span class="p">}</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">esp</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span>
+
+<span class="nf">ret</span><span class="w"> </span><span class="mi">8</span>
+</code></pre></div>
+<h3 id="combine-pushpop-operations-when-possible">Combine Push/Pop Operations when Possible</h3>
+<div class="admonition info">
+<p class="admonition-title">When pushing multiple registers at once, it is possible to remove redundant stack operations.</p>
+</div>
+<p>Imagine a situation where you need to push 3 float registers onto the stack; if we pass the instructions
+from the wrapper generator verbatim [push a, then push b, then push c], we would land with the following:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">; Push XMM registers</span>
+<span class="nf">sub</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">],</span><span class="w"> </span><span class="no">xmm0</span>
+<span class="nf">sub</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">],</span><span class="w"> </span><span class="no">xmm1</span>
+<span class="nf">sub</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">],</span><span class="w"> </span><span class="no">xmm2</span>
+
+<span class="c1">; Pop XMM registers</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="no">xmm2</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">]</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="no">xmm1</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">]</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="no">xmm0</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">]</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span>
+</code></pre></div>
+<p>This is unoptimal as it can be simplified to:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Push Registers to the Stack</span>
+<span class="nf">sub</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">48</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">],</span><span class="w"> </span><span class="no">xmm0</span><span class="w"> </span>
+<span class="no">movdqu</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">16</span><span class="p">],</span><span class="w"> </span><span class="no">xmm1</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">32</span><span class="p">],</span><span class="w"> </span><span class="no">xmm2</span>
+
+<span class="c1"># Pop three XMM registers from the Stack</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="no">xmm0</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">]</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="no">xmm1</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">16</span><span class="p">]</span>
+<span class="nf">movdqu</span><span class="w"> </span><span class="no">xmm2</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">32</span><span class="p">]</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">48</span>
+</code></pre></div>
+<p>When generating wrappers, the generator must recognise this pattern, and merge multiple
+push/pop operations into a single block, wherever possible.</p>
+<div class="admonition note">
+<p class="admonition-title">It is optimal to access memory sequentially from lowest to highest address.</p>
+</div>
+<h3 id="move-between-registers-instead-of-push-pop">Move Between Registers Instead of Push Pop</h3>
+<div class="admonition tip">
+<p class="admonition-title">In some cases it's possible to mov between registers, rather than doing an explicit push+pop operation</p>
+</div>
+<p>Suppose you have a <code>custom target -&gt; stdcall</code> wrapper. Custom is defined as <code>int@eax FastAdd(int a@eax, int b@ecx)</code>.  </p>
+<p>Normally wrapper generation will convert the arguments like this:  </p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Re-push STDCALL arguments to stack</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">esp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">esp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+
+<span class="c1"># Pop into correct registers</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">eax</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">ecx</span>
+
+<span class="c1"># Call that function</span>
+<span class="c1"># ...</span>
+</code></pre></div>
+<p>There's opportunities for optimisation here; notably you can do:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Pop into correct registers</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">esp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">ecx</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="no">esp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+
+<span class="c1"># Call that function</span>
+<span class="c1"># ...</span>
+</code></pre></div>
+<p>Optimising cases where the source/from convention, e.g. <code>custom target -&gt; stdcall</code> has no register 
+parameters is trivial, since you can directly mov into the intended target register. And this is 
+the most common use case in x86.</p>
+<p>For completeness, it should be noted that in the opposite direction <code>stdcall target -&gt; custom</code>, such
+as one that would be used in entry point of a hook (<a href="#reversewrappers">ReverseWrapper</a>),
+no optimisation is needed here, as all registers are directly pushed without any extra steps.</p>
+<div class="admonition tip">
+<p class="admonition-title">In the backend, the wrapper generator keeps track of current stack pointer (assuming start is '0'); and uses that information to match the push and pop operations accordingly 😉</p>
+</div>
+<h4 id="with-register-to-register">With Register to Register</h4>
+<div class="admonition info">
+<p class="admonition-title">In x64, and more advanced x86 scenarios where both to/from calling convention have register parameters, mov optimisation is not trivial.</p>
+</div>
+<h5 id="basic-case">Basic Case</h5>
+<p>Suppose you have a a function to add 'health' to a character that's in a struct or class. i.e. <code>int AddHealth(Player* this, int amount)</code>. 
+(Note: The 'this' parameter to struct instance is implicit and added during compilation.)</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="2:3"><input checked="checked" id="__tabbed_2_1" name="__tabbed_2" type="radio" /><input id="__tabbed_2_2" name="__tabbed_2" type="radio" /><input id="__tabbed_2_3" name="__tabbed_2" type="radio" /><div class="tabbed-labels"><label for="__tabbed_2_1">C++</label><label for="__tabbed_2_2">x64 asm (SystemV)</label><label for="__tabbed_2_3">x64 asm (Microsoft)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Player</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">mana</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">health</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddHealth</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">amount</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="n">health</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">amount</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nf">add</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">rdi</span><span class="err">+</span><span class="mi">4</span><span class="p">],</span><span class="w"> </span><span class="no">esi</span>
+<span class="nf">ret</span>
+</code></pre></div>
+<p><a href="https://godbolt.org/z/js4Esav19">See for yourself.</a></p>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nf">add</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">rcx</span><span class="err">+</span><span class="mi">4</span><span class="p">],</span><span class="w"> </span><span class="no">edx</span>
+<span class="nf">ret</span>
+</code></pre></div>
+<p><a href="https://godbolt.org/z/n8Ev5z5cW">See for yourself.</a></p>
+</div>
+</div>
+</div>
+<p>If you were to make a <code>SystemV target -&gt; Microsoft</code> wrapper; you would have to move the two registers
+from <code>rcx, rdx</code> to <code>rdi, rsi</code>.</p>
+<p>Therefore, a wrapper might have code that looks something like:  </p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Push register parameters of the function being returned (right to left, reverse loop)</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">rdx</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">rcx</span>
+
+<span class="c1"># Pop parameters into registers of function being called</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">rdi</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">rsi</span>
+</code></pre></div>
+<p>In this case, it is possible to optimise with:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span><span class="w"> </span><span class="no">rdi</span><span class="p">,</span><span class="w"> </span><span class="no">rcx</span><span class="w"> </span><span class="c1"># last push, first pop</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">rsi</span><span class="p">,</span><span class="w"> </span><span class="no">rdx</span><span class="w"> </span><span class="c1"># second last push, second pop</span>
+</code></pre></div>
+<p>Provided that the wrapper correctly saves and restores callee moved registers for returned method, i.e.
+backs up <code>RBX, RBP, RDI, RSI, RSP, R12, R13, R14, and R15</code>, this is fine.</p>
+<p>Or in the case of this wrapper, just <code>RDI, RSI</code> (due to overlap within the 2 conventions).</p>
+<div class="admonition note">
+<p class="admonition-title">The 'strategy' to generate code for this optimisation is keeping track of stack, start between <code>push</code> and <code>pop</code> in the ASM and pair the registers in the corresponding <code>push</code> and <code>pop</code> operations together, going outwards until there is no push/pop left.</p>
+</div>
+<h5 id="advanced-case">Advanced Case</h5>
+<div class="admonition tip">
+<p class="admonition-title">This is just another example.</p>
+</div>
+<p>Suppose we add 2 more parameters...</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="3:3"><input checked="checked" id="__tabbed_3_1" name="__tabbed_3" type="radio" /><input id="__tabbed_3_2" name="__tabbed_3" type="radio" /><input id="__tabbed_3_3" name="__tabbed_3" type="radio" /><div class="tabbed-labels"><label for="__tabbed_3_1">C++</label><label for="__tabbed_3_2">x64 asm (SystemV)</label><label for="__tabbed_3_3">x64 asm (Microsoft)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">Player</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">mana</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">health</span><span class="p">;</span>
+<span class="w">    </span><span class="kt">int</span><span class="w"> </span><span class="n">money</span><span class="p">;</span>
+
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="nf">AddStats</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">health</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">mana</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">money</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">this</span><span class="o">-&gt;</span><span class="n">health</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">health</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="o">-&gt;</span><span class="n">mana</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">mana</span><span class="p">;</span>
+<span class="w">        </span><span class="k">this</span><span class="o">-&gt;</span><span class="n">money</span><span class="w"> </span><span class="o">+=</span><span class="w"> </span><span class="n">money</span><span class="p">;</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="p">};</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nf">add</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">rdi</span><span class="err">+</span><span class="mi">4</span><span class="p">],</span><span class="w"> </span><span class="no">esi</span><span class="w"> </span><span class="c1"># health</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">rdi</span><span class="p">],</span><span class="w"> </span><span class="no">edx</span><span class="w">   </span><span class="c1"># mana</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">rdi</span><span class="err">+</span><span class="mi">8</span><span class="p">],</span><span class="w"> </span><span class="no">ecx</span><span class="w"> </span><span class="c1"># money</span>
+<span class="nf">ret</span>
+</code></pre></div>
+<p><a href="https://godbolt.org/z/q8zM4aeo4">See for yourself.</a></p>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nf">add</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">rcx</span><span class="err">+</span><span class="mi">4</span><span class="p">],</span><span class="w"> </span><span class="no">edx</span><span class="w"> </span><span class="c1"># health</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">rcx</span><span class="p">],</span><span class="w"> </span><span class="no">r8d</span><span class="w">   </span><span class="c1"># mana</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">rcx</span><span class="err">+</span><span class="mi">8</span><span class="p">],</span><span class="w"> </span><span class="no">r9d</span><span class="w"> </span><span class="c1"># money</span>
+<span class="nf">ret</span>
+</code></pre></div>
+<p><a href="https://godbolt.org/z/hGYs4Tsqz">See for yourself.</a></p>
+</div>
+</div>
+</div>
+<p>There is now an overlap between the registers used.</p>
+<p>Microsoft convention uses:<br />
+- <code>rcx</code> for self<br />
+- <code>rdx</code> for health  </p>
+<p>SystemV uses:<br />
+- <code>rcx</code> for money<br />
+- <code>rdx</code> for mana  </p>
+<p>The wrapper now does the following</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="4:2"><input checked="checked" id="__tabbed_4_1" name="__tabbed_4" type="radio" /><input id="__tabbed_4_2" name="__tabbed_4" type="radio" /><div class="tabbed-labels"><label for="__tabbed_4_1">Unoptimised</label><label for="__tabbed_4_2">Optimised (Contains Bug)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="c1"># Push register parameters of the function being returned (right to left, reverse loop)</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">rcx</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">rdx</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">rsi</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">rdi</span>
+
+<span class="c1"># Pop parameters into registers of function being called</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">rcx</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">rdx</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">r8</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">r9</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span><span class="w"> </span><span class="no">rcx</span><span class="p">,</span><span class="w"> </span><span class="no">rdi</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">rdx</span><span class="p">,</span><span class="w"> </span><span class="no">rsi</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">r8</span><span class="p">,</span><span class="w"> </span><span class="no">rdx</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">r9</span><span class="p">,</span><span class="w"> </span><span class="no">rcx</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<div class="admonition failure">
+<p class="admonition-title">The optimised version of code above contains a bug.</p>
+</div>
+<p>There is a bug because both conventions have overlapping registers, notably <code>rcx</code> and <code>rdx</code>. When
+you try to do <code>mov r8, rdx</code>, this pushes invalid data, as <code>rdx</code> was already overwritten.</p>
+<p>In this specific case, you can reverse the order of operations, and get a correct result:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Reversed</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">r9</span><span class="p">,</span><span class="w"> </span><span class="no">rcx</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">r8</span><span class="p">,</span><span class="w"> </span><span class="no">rdx</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">rdx</span><span class="p">,</span><span class="w"> </span><span class="no">rsi</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">rcx</span><span class="p">,</span><span class="w"> </span><span class="no">rdi</span>
+</code></pre></div>
+<p>However might not always be the case.</p>
+<p>When generating wrappers, we must perform a validation check to determine if any source register
+in <code>mov target, source</code> hasn't already been overwritten by a prior operation.</p>
+<h5 id="reordering-operations">Reordering Operations</h5>
+<div class="admonition info">
+<p class="admonition-title">In the <a href="#advanced-case">Advanced Case</a> we saw that it's not always possible to perform mov optimisation.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">This problem can be solved with a <code>Directed Acyclic Graph</code>.</p>
+</div>
+<p>This problem can be solved in <code>O(n)</code> complexity with a <code>Directed Acyclic Graph</code>, where each node represents
+a register and an edge (arrow) from Node A to Node B represents a move from register A to register B.</p>
+<p>The above (buggy) code would be represented as:<br />
+<pre class="mermaid"><code>flowchart TD
+    RDI --&gt; RCX
+    RSI --&gt; RDX
+    RDX --&gt; R8
+    RCX --&gt; R9</code></pre></p>
+<p>RDI writes to RCX which writes to R9, which is now invalid.<br />
+We can determine the correct <code>mov</code> order, by processing them in reverse order of their dependencies</p>
+<ul>
+<li><code>mov r9, rcx</code> before <code>mov rcx, rdi</code></li>
+<li><code>mov r8, rdx</code> before <code>mov rdx, rsi</code></li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Exact order encoded depends on algorithm implementation in code; as long as the 2 derived rules are followed.</p>
+</div>
+<h6 id="handling-cycles-2-node-cycle">Handling Cycles (2 Node Cycle)</h6>
+<p>Suppose we have 2 calling conventions with reverse parameter order. For this example we will define 
+convention <code>🐱call</code>. <code>🐱call</code> uses the reverse register order of Microsoft compiler.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="5:3"><input checked="checked" id="__tabbed_5_1" name="__tabbed_5" type="radio" /><input id="__tabbed_5_2" name="__tabbed_5" type="radio" /><input id="__tabbed_5_3" name="__tabbed_5" type="radio" /><div class="tabbed-labels"><label for="__tabbed_5_1">C</label><label for="__tabbed_5_2">x64 (Microsoft)</label><label for="__tabbed_5_3">x64 (<code>🐱call</code>)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="kt">int</span><span class="w"> </span><span class="nf">AddWithShift</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">a</span><span class="p">,</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="n">b</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="p">(</span><span class="n">a</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">16</span><span class="p">)</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="n">b</span><span class="p">;</span>
+<span class="p">}</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nf">shl</span><span class="w"> </span><span class="no">ecx</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span>
+<span class="nf">lea</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">rdx</span><span class="err">+</span><span class="no">rcx</span><span class="p">]</span>
+<span class="nf">ret</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nf">shl</span><span class="w"> </span><span class="no">edx</span><span class="p">,</span><span class="w"> </span><span class="mi">4</span>
+<span class="nf">lea</span><span class="w"> </span><span class="no">eax</span><span class="p">,</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">rcx</span><span class="err">+</span><span class="no">rdx</span><span class="p">]</span>
+<span class="nf">ret</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>The ASM to do the calling convention transformation becomes:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="6:2"><input checked="checked" id="__tabbed_6_1" name="__tabbed_6" type="radio" /><input id="__tabbed_6_2" name="__tabbed_6" type="radio" /><div class="tabbed-labels"><label for="__tabbed_6_1">Unoptimised</label><label for="__tabbed_6_2">Optimised (Contains Bug)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="c1"># Push register parameters of the function being returned (right to left, reverse loop)</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">rcx</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">rdx</span>
+
+<span class="c1"># Pop parameters into registers of function being called</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">rcx</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">rdx</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span><span class="w"> </span><span class="no">rcx</span><span class="p">,</span><span class="w"> </span><span class="no">rdx</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">rdx</span><span class="p">,</span><span class="w"> </span><span class="no">rcx</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>There is now a cycle.</p>
+<pre class="mermaid"><code>flowchart TD
+    RCX --&gt; RDX
+    RDX --&gt; RCX</code></pre>
+<p>In this trivial example, you can use <code>xchg</code> or 3 <code>mov</code>(s) to swap between the two registers.</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="7:2"><input checked="checked" id="__tabbed_7_1" name="__tabbed_7" type="radio" /><input id="__tabbed_7_2" name="__tabbed_7" type="radio" /><div class="tabbed-labels"><label for="__tabbed_7_1">xchg</label><label for="__tabbed_7_2">mov</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nf">xchg</span><span class="w"> </span><span class="no">rcx</span><span class="p">,</span><span class="w"> </span><span class="no">rdx</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span><span class="w"> </span><span class="p">{</span><span class="no">temp</span><span class="p">},</span><span class="w"> </span><span class="no">rdx</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">rdx</span><span class="p">,</span><span class="w"> </span><span class="no">rcx</span>
+<span class="nf">xor</span><span class="w"> </span><span class="no">rcx</span><span class="p">,</span><span class="w"> </span><span class="p">{</span><span class="no">temp</span><span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>On <em>some</em> Intel architectures, the <code>mov</code> approach can reportedly be faster, however, it's not possible
+to procure a scratch register in all cases.</p>
+<div class="admonition info">
+<p class="admonition-title">I'll welcome any PRs that detect and write the more optimal choice on a given architecture, however this is not planned for main library.</p>
+</div>
+<p>Adding instructions also means the wrapper might overflow to the next multiple of 16 bytes, causing 
+more instructions to be fetched when it otherwise won't happend with xchg, potentially losing any 
+benefits gained on those architectures.</p>
+<div class="admonition note">
+<p class="admonition-title">The mappings done in <code>Reloaded.Hooks</code> are a 1:1 <a href="https://www.mathsisfun.com/sets/injective-surjective-bijective.html">bijective</a> mapping. Therefore any cycle of just 2 registers can be resolved by simply swapping the involved registers.</p>
+</div>
+<h6 id="handling-cycles-multi-register-cycle">Handling Cycles (Multi Register Cycle)</h6>
+<p>Now imagine doing a mapping which involves 3 registers, <code>r8</code> - <code>r10</code>, and all registers need to be <code>mov'd</code>.</p>
+<pre class="mermaid"><code>flowchart TD
+    R8 --&gt; R9
+    R9 --&gt; R10
+    R10 --&gt; R8</code></pre>
+<div class="highlight"><pre><span></span><code><span class="nf">mov</span><span class="w"> </span><span class="no">R9</span><span class="p">,</span><span class="w"> </span><span class="no">R8</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">R10</span><span class="p">,</span><span class="w"> </span><span class="no">R9</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">R8</span><span class="p">,</span><span class="w"> </span><span class="no">R10</span>
+</code></pre></div>
+<p>To resolve this, we backup the register at the end of the cycle (in this case R10), disconnect it
+from the first register in the cycle and resolve as normal.</p>
+<p>i.e. we solve for</p>
+<pre class="mermaid"><code>flowchart TD
+    R8 --&gt; R9
+    R9 --&gt; R10</code></pre>
+<p>Then write original value of R10 into R8 after this code is converted into <code>mov</code> sequences.</p>
+<p>This can be done using the following strategies:  </p>
+<ul>
+<li><code>mov</code> into scratch register.  <ul>
+<li>For mid-function hooks (<code>AsmHook</code>) prefer callee saved register which is not a parameter.  </li>
+<li>For function hooks, use a caller saved register.  </li>
+</ul>
+</li>
+<li><code>push</code> + <code>pop</code> register.  </li>
+</ul>
+<div class="tabbed-set tabbed-alternate" data-tabs="8:2"><input checked="checked" id="__tabbed_8_1" name="__tabbed_8" type="radio" /><input id="__tabbed_8_2" name="__tabbed_8" type="radio" /><div class="tabbed-labels"><label for="__tabbed_8_1">ASM (mov scratch)</label><label for="__tabbed_8_2">ASM (push+pop)</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="c1"># Move value from end of cycle into caller saved register (scratch)</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">RAX</span><span class="p">,</span><span class="w"> </span><span class="no">R10</span>
+
+<span class="c1"># Original (after reorder)</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">R10</span><span class="p">,</span><span class="w"> </span><span class="no">R9</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">R9</span><span class="p">,</span><span class="w"> </span><span class="no">R8</span>
+
+<span class="c1"># Move from caller saved register into first in cycle.</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">R8</span><span class="p">,</span><span class="w"> </span><span class="no">RAX</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><span class="c1"># Push value from end of cycle into stack</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">R10</span>
+
+<span class="c1"># Original (after reorder)</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">R10</span><span class="p">,</span><span class="w"> </span><span class="no">R9</span>
+<span class="nf">mov</span><span class="w"> </span><span class="no">R9</span><span class="p">,</span><span class="w"> </span><span class="no">R8</span>
+
+<span class="c1"># Pop into intended place from stack</span>
+<span class="nf">pop</span><span class="w"> </span><span class="no">R8</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<p>When possible to get scratch register, use <code>mov</code>, otherwise use <code>push</code>.</p>
+<h3 id="idea-eliminate-return-address">Idea: Eliminate Return Address</h3>
+<div class="admonition danger">
+<p class="admonition-title">This is a theoretical idea, not implemented in library.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Only applies to platforms like x86 return addresses on stack.</p>
+</div>
+<p>In some cases, like converting between <code>stdcall</code> and <code>cdecl</code>; it might be possible to reuse the same
+parameters from the stack. Take into account the previous example:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Re push parameters</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">esp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">dword</span><span class="w"> </span><span class="p">[</span><span class="no">esp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="p">{</span><span class="no">x</span><span class="p">}]</span>
+
+<span class="nf">call</span><span class="w"> </span><span class="p">{</span><span class="no">function</span><span class="p">}</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">esp</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span>
+
+<span class="nf">ret</span><span class="w"> </span><span class="mi">8</span>
+</code></pre></div>
+<p>Strictly speaking, to convert from <code>stdcall</code> to <code>cdecl</code>, you will only need to convert from
+caller stack cleanup to callee stack cleanup i.e. <code>ret 8</code>.</p>
+<p>In this case, re-pushing parameters is redundant, as the pushed parameters from the previous
+method call are on stack and can still be re-used.</p>
+<p>What we can instead do, is overwrite the return address and jump to our code.</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Pop previous return address from stack</span>
+<span class="nf">mov</span><span class="w"> </span><span class="p">[</span><span class="no">esp</span><span class="p">],</span><span class="w"> </span><span class="p">{</span><span class="no">addressPostJump</span><span class="p">}</span><span class="w"> </span><span class="c1"># replace return address</span>
+<span class="nf">jmp</span><span class="w"> </span><span class="p">{</span><span class="no">function</span><span class="p">}</span><span class="w"> </span><span class="c1"># jump to our function</span>
+<span class="nf">add</span><span class="w"> </span><span class="no">esp</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span><span class="w"> </span><span class="c1"># our function returns here due to changed return address</span>
+<span class="nf">ret</span><span class="w"> </span><span class="mi">8</span>
+</code></pre></div>
+<h2 id="technical-limitations">Technical Limitations</h2>
+<div class="admonition info">
+<p class="admonition-title">Wrapper generation does not have understanding of any specific ABI, and as such cannot always be 100% correct in edge cases.</p>
+</div>
+<h3 id="wrappers-dont-understand-abi-specific-rules">Wrappers Don't understand ABI Specific Rules</h3>
+<div class="admonition info">
+<p class="admonition-title">Some ABIs have unconventional rules for handling edge cases.</p>
+</div>
+<p>For example, consider the following rule used by the RISC-V ABI.</p>
+<blockquote>
+<p>When primitive arguments twice the size of a pointer-word are passed on the stack, they are
+naturally aligned. When they are passed in the integer registers, they reside in an aligned even-odd
+register pair, with the even register holding the least-significant bits. In RV32, for example, the
+function void foo(int, long long) is passed its first argument in a0 and its second in a2 and
+a3. Nothing is passed in a1.</p>
+</blockquote>
+<p>The wrappers cannot know or understand the intricate rules such as this that are imposed by an ABI.</p>
+<h3 id="allocating-mixed-size-registers-is-tricky">Allocating Mixed Size Registers is Tricky.</h3>
+<p>Optimized code does not suffer from this bug.</p>
+<h4 id="the-problem">The Problem</h4>
+<p>Consider a function which spills a float register <code>xmm0</code>, and an <code>nint</code> (native size integer).<br />
+A <code>Push</code> is basically a sequence of <code>sub</code> and then <code>mov</code>.</p>
+<p>So (pretend ASM below is valid)</p>
+<div class="highlight"><pre><span></span><code><span class="nf">push</span><span class="w"> </span><span class="no">xmm0</span>
+<span class="nf">push</span><span class="w"> </span><span class="no">rax</span>
+</code></pre></div>
+<p>Would become</p>
+<div class="highlight"><pre><span></span><code><span class="nf">sub</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span>
+<span class="nf">mov</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">],</span><span class="w"> </span><span class="no">xmm0</span>
+<span class="nf">sub</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span>
+<span class="nf">mov</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">],</span><span class="w"> </span><span class="no">rax</span>
+</code></pre></div>
+<p>This is invalid, because the contents of rax will now replace half of the <code>xmm0</code> register on the stack.<br />
+How ABIs and compilers deal with this isn't always well standardised; some only consider lower bits volatile,
+(Microsoft x64) while others don't preserve the bigger registers at all (SystemV x64).</p>
+<p>Our strategy will be to try rearrange the stack operations to avoid this problem, starting by pushing
+smaller registers first, and then larger registers, effectively creating:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">sub</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">8</span>
+<span class="nf">mov</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">],</span><span class="w"> </span><span class="no">rax</span>
+<span class="nf">sub</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">16</span>
+<span class="nf">mov</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">],</span><span class="w"> </span><span class="no">xmm0</span>
+</code></pre></div>
+<h4 id="when-using-optimized-code">When using Optimized Code</h4>
+<p>Currently with optimizations enabled, this code compiles as:</p>
+<div class="highlight"><pre><span></span><code><span class="nf">sub</span><span class="w"> </span><span class="no">rsp</span><span class="p">,</span><span class="w"> </span><span class="mi">24</span>
+<span class="nf">mov</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="p">],</span><span class="w"> </span><span class="no">xmm0</span>
+<span class="nf">mov</span><span class="w"> </span><span class="p">[</span><span class="no">rsp</span><span class="w"> </span><span class="err">+</span><span class="w"> </span><span class="mi">16</span><span class="p">],</span><span class="w"> </span><span class="no">rax</span>
+</code></pre></div>
+<p>Which is valid.</p>
+<h3 id="wrappers-currently-dont-understand-how-to-split-larger-registers">Wrappers (Currently) Don't understand how to split larger registers.</h3>
+<p>Some calling conventions, have rules where larger values (e.g. 128-bit values on x64) are split into
+2 registers.</p>
+<p>The wrapper generator cannot generate code for these functions currently.</p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+      
+      
+    
+    <a href="https://github.com/Reloaded-Project" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.1 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    <script id="__config" type="application/json">{"base": "../../..", "features": ["navigation.instant"], "search": "../../../assets/javascripts/workers/search.e5c33ebb.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.51d95adb.min.js"></script>
+      
+    
+  </body>
+</html>
