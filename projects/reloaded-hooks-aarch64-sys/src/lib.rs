@@ -15,6 +15,9 @@ pub mod rewriter;
 /// Contains the length disassembler, returning length of instructions requires for hooking.
 pub mod length_disassembler;
 
+/// Contains the calling convention related info.
+pub mod calling_convention;
+
 /// Rewriting the code from one address to another!
 pub(crate) mod code_rewriter {
     pub mod aarch64_rewriter;

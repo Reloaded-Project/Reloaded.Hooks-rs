@@ -6,7 +6,7 @@ use core::mem::{align_of, forget};
 pub(crate) fn vec_u8_to_i32(mut buf: Vec<u8>) -> Vec<i32> {
     debug_assert!(buf.len() % 4 == 0, "Vec<u8> length is not a multiple of 4");
     debug_assert!(
-        buf.as_ptr() as usize % align_of::<i32>() == 0,
+        buf.is_empty() || buf.as_ptr() as usize % align_of::<u32>() == 0,
         "Vec<u8> is not properly aligned for i32"
     );
 
@@ -20,7 +20,7 @@ pub(crate) fn vec_u8_to_i32(mut buf: Vec<u8>) -> Vec<i32> {
 pub(crate) fn vec_u8_to_u32(mut buf: Vec<u8>) -> Vec<u32> {
     debug_assert!(buf.len() % 4 == 0, "Vec<u8> length is not a multiple of 4");
     debug_assert!(
-        buf.as_ptr() as usize % align_of::<u32>() == 0,
+        buf.is_empty() || buf.as_ptr() as usize % align_of::<u32>() == 0,
         "Vec<u8> is not properly aligned for u32"
     );
 

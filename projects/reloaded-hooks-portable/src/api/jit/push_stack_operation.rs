@@ -1,7 +1,7 @@
 extern crate alloc;
+use core::cell::RefCell;
 
-use alloc::rc::Rc;
-use alloc::vec::Vec;
+use alloc::{rc::Rc, vec::Vec};
 use derive_new::new;
 
 /// Represents a push stack operation which pushes a value onto the stack from an
@@ -40,7 +40,7 @@ pub struct PushStackOperation<T> {
     pub item_size: u32,
 
     /// Scratch registers to use for the push operation. (Needed for some architectures)
-    pub scratch: Rc<Vec<T>>,
+    pub scratch: Rc<RefCell<Vec<T>>>,
 }
 
 impl<T> Default for PushStackOperation<T> {

@@ -41,6 +41,7 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
+    #[cfg(debug_assertions)]
     #[case(-4096)] // Below Min Range
     #[case(4096)] // Above Max Range
     fn error_on_out_of_range(#[case] stack_size: i32) {

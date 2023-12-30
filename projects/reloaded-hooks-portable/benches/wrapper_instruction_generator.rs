@@ -149,7 +149,7 @@ fn two_parameters(
         | JitCapabilities::CAN_MULTI_PUSH;
 
     let options = get_common_options(optimized, &MOCK_FUNCTION, capabiltiies);
-    generate_wrapper_instructions(from_convention, to_convention, options)
+    generate_wrapper_instructions(from_convention, to_convention, &options)
 }
 
 fn get_common_options(
@@ -165,5 +165,6 @@ fn get_common_options(
         jit_capabilities: capabilties,
         can_generate_relative_jumps: true,
         enable_optimizations: optimized,
+        standard_register_size: size_of::<isize>(),
     }
 }

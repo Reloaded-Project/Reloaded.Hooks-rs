@@ -1,9 +1,4 @@
 extern crate alloc;
-
-use alloc::rc::Rc;
-use derive_more::From;
-use smallvec::SmallVec;
-
 use super::{
     call_absolute_operation::CallAbsoluteOperation, call_relative_operation::CallRelativeOperation,
     call_rip_relative_operation::CallIpRelativeOperation,
@@ -11,17 +6,22 @@ use super::{
     jump_absolute_operation::JumpAbsoluteOperation, jump_relative_operation::JumpRelativeOperation,
     jump_rip_relative_operation::JumpIpRelativeOperation,
     mov_from_stack_operation::MovFromStackOperation, mov_operation::MovOperation,
-    pop_operation::PopOperation, push_constant_operation::PushConstantOperation,
-    push_operation::PushOperation, push_stack_operation::PushStackOperation,
-    return_operation::ReturnOperation, stack_alloc_operation::StackAllocOperation,
-    xchg_operation::XChgOperation,
+    mov_to_stack_operation::MovToStackOperation, pop_operation::PopOperation,
+    push_constant_operation::PushConstantOperation, push_operation::PushOperation,
+    push_stack_operation::PushStackOperation, return_operation::ReturnOperation,
+    stack_alloc_operation::StackAllocOperation, xchg_operation::XChgOperation,
 };
+use alloc::rc::Rc;
+use alloc::vec::Vec;
+use core::cell::RefCell;
+use derive_more::From;
+use smallvec::SmallVec;
 
 pub type MultiPushVec<T> = [PushOperation<T>; 4];
 pub type MultiPopVec<T> = [PopOperation<T>; 4];
 
 #[derive(Debug, Clone, PartialEq, Eq, From)]
-pub enum Operation<T> {
+pub enum Operation<T: Copy + Clone> {
     None,
     Mov(MovOperation<T>),
     MovFromStack(MovFromStackOperation<T>),
@@ -42,7 +42,7 @@ pub enum Operation<T> {
     // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
     CallIpRelative(CallIpRelativeOperation<T>),
     JumpIpRelative(JumpIpRelativeOperation<T>),
-
+    MovToStack(MovToStackOperation<T>),
     // Opt-in for architectures that support it or can optimise for this use case.
     // These are opt-in and controlled by [JitCapabilities](super::compiler::JitCapabilities).
 
@@ -51,7 +51,7 @@ pub enum Operation<T> {
     MultiPop(SmallVec<MultiPopVec<T>>),
 }
 
-pub fn transform_op<TOldRegister: Copy, TNewRegister, TConvertRegister>(
+pub fn transform_op<TOldRegister: Copy + Clone, TNewRegister: Copy + Clone, TConvertRegister>(
     op: Operation<TOldRegister>,
     f: TConvertRegister,
 ) -> Operation<TNewRegister>
@@ -66,11 +66,17 @@ where
         Operation::Push(inner_op) => Operation::Push(PushOperation {
             register: f(inner_op.register),
         }),
-        Operation::PushStack(inner_op) => Operation::PushStack(PushStackOperation {
-            offset: inner_op.offset,
-            item_size: inner_op.item_size,
-            scratch: Rc::new(inner_op.scratch.iter().map(|x| f(*x)).collect()),
-        }),
+        Operation::PushStack(inner_op) => {
+            // TODO: This is slow, due to a full copy. However this is only hit in presence of external assemblers.
+            let borrowed_scratch = inner_op.scratch.borrow();
+            let mut new_vec = Vec::with_capacity(borrowed_scratch.len());
+            new_vec.extend(borrowed_scratch.iter().map(|x| f(*x)));
+            Operation::PushStack(PushStackOperation {
+                offset: inner_op.offset,
+                item_size: inner_op.item_size,
+                scratch: Rc::new(RefCell::new(new_vec)),
+            })
+        }
         Operation::StackAlloc(inner_op) => Operation::StackAlloc(StackAllocOperation {
             operand: inner_op.operand,
         }),
@@ -136,5 +142,9 @@ where
                 pointer_address: inner_op.pointer_address,
             })
         }
+        Operation::MovToStack(x) => Operation::MovToStack(MovToStackOperation {
+            register: f(x.register),
+            stack_offset: x.stack_offset,
+        }),
     }
 }

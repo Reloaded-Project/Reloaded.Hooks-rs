@@ -2,13 +2,160 @@
 
 !!! info "Design notes common to all hooking strategies."
 
-## Thread Safe Enable/Disable of Hooks
+## Wrappers
+
+### Wrapper
+
+!!! info "Wrappers are stubs which convert from the calling convention of the original function to your calling convention."
+
+!!! note "If the calling convention of the hooked function and your function matches, this wrapper is simply just 1 `jmp` instruction."
+
+Wrappers are documented [in their own page here](./wrappers.md).
+
+### ReverseWrapper
+
+!!! info "Stub which converts from your code's calling convention to original function's calling convention"
+
+!!! info "This is basically [Wrapper](#wrappers) with `source` and `destination` swapped around"
+
+## Hook Memory Layouts & Thread Safety
+
+!!! info "Hooks in `reloaded-hooks-rs` are structured in a very specific way to ensure thread safety."
+
+!!! info "They sacrifice a bit of memory usage in favour of performance + thread safety."
+
+Most hooks, regardless of type have a memory layout that looks something like this:
+
+```rust
+// Size: 2 registers
+pub struct Hook
+{
+    /// The address of the stub containing bridging code
+    /// between your code and custom code. This is the address
+    /// of the code that will actually be executed at runtime.
+    stub_address: usize,
+
+    /// Address of the 'properties' structure, containing
+    /// the necessary info to manipulate the data at stub_address
+    props: NonNull<StubPackedProps>,
+}
+```
+
+Notably, there are two heap allocations. One at `stub_address`, which contains the executable code,
+and one at `props`, which contains packed info of the stub at `stub_address`.
+
+The hooks use a 'swapping' system. Both `stub_address` and `props` contains `swap space`. When you
+enable or disable a hook, the data in the two 'swap spaces' are swapped around. 
+
+In other words, when `stub_address`' 'swap space' contains the code for `HookFunction` (hook enabled), 
+the 'swap space' at `props`' contains the code for `Original Code`.
+
+Thread safety is ensured by making writes within the stub itself atomic, as well as making the emplacing
+of the jump to the stub in the original application code atomic.
+
+### Stub Layout
+
+!!! info "The memory region containing the actual executed code."
+
+The stub has two possible layouts, if the `Swap Space` is small enough such that it can be atomically
+overwritten, it will look like this:
+
+```text
+- 'Swap Space' [HookCode / OriginalCode]
+<pad to atomic register size>
+```
+
+Otherwise, if `Swap Space` cannot be atomically overwritten, it will look like:
+
+```text
+- 'Swap Space' [HookCode / OriginalCode]
+- HookCode
+- OriginalCode
+```
+
+!!! note "Some hooks may store, extra data after `OriginalCode`."
+
+For example, if calling convention conversion is needed, the `HookCode` becomes a 
+[ReverseWrapper](#reversewrapper), and the stub will also contain a [Wrapper](#wrapper).
+
+If calling convention conversion is needed, the layout looks like this:
+
+```
+- 'Swap Space' [ReverseWrapper / OriginalCode]
+- ReverseWrapper
+- OriginalCode
+- Wrapper
+```
+
+#### Example
 
 !!! info "Using ARM64 [Assembly Hook](./assembly-hooks/overview.md) as an example."
 
+If the *'OriginalCode'* was:
+
+```asm
+mov x0, x1
+add x0, x2
+```
+
+And the *'HookCode'* was:
+
+```asm
+add x1, x1
+mov x0, x2
+```
+
+The memory would look like this when hook is enabled.
+
+```asm
+swap: ; Currently Applied (Hook)
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+
+hook: ; HookCode
+    add x1, x1
+    mov x0, x2
+    b back_to_code
+
+original: ; OriginalCode
+    mov x0, x1
+    add x0, x2
+    b back_to_code
+```
+
+(When `sizeof(swap)` is larger than biggest possible atomic write.)
+
+### Heap (Props) Layout
+
+Each Assembly Hook contains a pointer to the heap stub (seen above) and a pointer to the heap.
+
+The heap contains all information required to perform operations on the stub.
+
+```text
+- StubPackedProps
+    - Enabled Flag
+    - IsSwapOnly
+    - SwapSize
+    - HookSize
+- [Hook Function / Original Code]
+```
+
+The data in the heap contains a short `StubPackedProps`` struct, detailing the data stored over in the
+stub. 
+
+The `SwapSize` contains the length of the 'swap' info (and also consequently, offset of `HookCode`).  
+The `HookSize` contains the length of the 'hook' instructions (and consequently, offset of `OriginalCode`).  
+
+If the `IsSwapOnly` flag is set, then this data is to be atomically overwritten.
+
+### The 'Enable' / 'Disable' Process
+
 !!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `entry`, this allows us to manipulate the remaining code safely."
 
-We start the 'disable' process with:
+!!! info "Using ARM64 [Assembly Hook](./assembly-hooks/overview.md) as an example."
+
+We start the 'disable' process with a temporary branch:
 
 ```asm
 entry: ; Currently Applied (Hook)
@@ -16,14 +163,14 @@ entry: ; Currently Applied (Hook)
     mov x0, x2
     b back_to_code
 
-original: ; Backup (Original)
-    mov x0, x1
-    add x0, x2
-    b back_to_code
-
 hook: ; Backup (Hook)
     add x1, x1
     mov x0, x2
+    b back_to_code
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
     b back_to_code
 ```
 
@@ -39,14 +186,14 @@ entry: ; Currently Applied (Hook)
     add x0, x2     ; overwritten with 'original' code.
     b back_to_code ; overwritten with 'original' code.
 
-original: ; Backup (Original)
-    mov x0, x1
-    add x0, x2
-    b back_to_code
-
 hook: ; Backup (Hook)
     add x1, x1
     mov x0, x2
+    b back_to_code
+
+original: ; Backup (Original)
+    mov x0, x1
+    add x0, x2
     b back_to_code
 ```
 
@@ -73,6 +220,69 @@ hook: ; Backup (Hook)
 ```
 
 This way we achieve zero overhead CPU-wise, at expense of some memory.
+
+### Limits
+
+Stub info is packed by default to save on memory space. By default, the following limits apply:
+
+| Property             | 4 Byte Instruction (e.g. ARM64) | Other (e.g. x86) |
+| -------------------- | ------------------------------- | ---------------- |
+| Max Orig Code Length | 128KiB                          | 32KiB            |
+| Max Hook Code Length | 128KiB                          | 32KiB            |
+
+!!! note "These limits may increase in the future if additional required functionality warrants extending metadata length."
+
+## Thread Safety on x86
+
+!!! note "Thread safety is ***'theoretically'*** not guaranteed for every possible x86 processor, however is satisfied for all modern CPUs."
+
+!!! tip "The information below is x86 specific but applies to all architectures with a non-fixed instruction size. Architectures with fixed instruction sizes (e.g. ARM) are thread safe in this library by default."
+
+### The Theory
+
+> If the `jmp` instruction emplaced when [switching state](./assembly-hooks/overview.md#switching-state) overwrites what originally
+  were multiple instructions, it is *theoretically* possible that the placing the `jmp` will make the
+  instruction about to be executed invalid.
+
+For example if the previous instruction sequence was:
+
+```asm
+0x0: push ebp
+0x1: mov ebp, esp ; 2 bytes
+```
+
+And inserting a jmp produces:
+
+```asm
+0x0: jmp disabled ; 2 bytes
+```
+
+It's possible that the CPU's Instruction Pointer was at `0x1`` at the time of the overwrite, making the
+`mov ebp, esp` instruction invalid.
+
+### What Happens in Practice
+
+In practice, modern x86 CPUs (1990 onwards) from Intel, AMD and VIA prefetch instruction in batches 
+of 16 bytes. We place our stubs generated by the various hooks on 16-byte boundaries for this 
+(and optimisation) reasons.
+
+So, by the time we change the code, the CPU has already prefetched the instructions we are atomically 
+overwriting.
+
+In other words, it is simply not possible to perfectly time a write such that a thread at `0x1` 
+(`mov ebp, esp`) would read an invalid instruction, as that instruction was prefetched and is being 
+executed from local thread cache.
+
+### What is Safe
+
+Here is a thread safety table for x86, taking the above into account:
+
+| Safe? | Hook     | Notes                                                                                          |
+| ----- | -------- | ---------------------------------------------------------------------------------------------- |
+| ✅     | Function | Functions start on multiples of 16 on pretty much all compilers, per Intel Optimisation Guide. |
+| ✅     | Branch   | Stubs are 16 aligned.                                                                          |
+| ✅     | Assembly | Stubs are 16 aligned.                                                                          |
+| ✅     | VTable   | VTable entries are `usize` aligned, and don't cross cache boundaries.                          |
 
 ## Hook Length Mismatch Problem
 
@@ -186,58 +396,6 @@ This library must do the following:
 There unfortunately isn't much we can do to detect invalid instructions generated by other hooking libraries
 reliably, best we can do is try to avoid it by using shorter hooks. Thankfully this is not a common issue
 given most people use the 'popular' libraries.
-
-## Thread Safety on x86
-
-!!! note "Thread safety is ***'theoretically'*** not guaranteed for every possible x86 processor, however is satisfied for all modern CPUs."
-
-!!! tip "The information below is x86 specific but applies to all architectures with a non-fixed instruction size. Architectures with fixed instruction sizes (e.g. ARM) are thread safe in this library by default."
-
-### The Theory
-
-> If the `jmp` instruction emplaced when [switching state](./assembly-hooks/overview.md#switching-state) overwrites what originally
-  were multiple instructions, it is *theoretically* possible that the placing the `jmp` will make the
-  instruction about to be executed invalid.
-
-For example if the previous instruction sequence was:
-
-```asm
-0x0: push ebp
-0x1: mov ebp, esp ; 2 bytes
-```
-
-And inserting a jmp produces:
-
-```asm
-0x0: jmp disabled ; 2 bytes
-```
-
-It's possible that the CPU's Instruction Pointer was at `0x1`` at the time of the overwrite, making the
-`mov ebp, esp` instruction invalid.
-
-### What Happens in Practice
-
-In practice, modern x86 CPUs (1990 onwards) from Intel, AMD and VIA prefetch instruction in batches 
-of 16 bytes. We place our stubs generated by the various hooks on 16-byte boundaries for this 
-(and optimisation) reasons.
-
-So, by the time we change the code, the CPU has already prefetched the instructions we are atomically 
-overwriting.
-
-In other words, it is simply not possible to perfectly time a write such that a thread at `0x1` 
-(`mov ebp, esp`) would read an invalid instruction, as that instruction was prefetched and is being 
-executed from local thread cache.
-
-### What is Safe
-
-Here is a thread safety table for x86, taking the above into account:
-
-| Safe? | Hook     | Notes                                                                                          |
-| ----- | -------- | ---------------------------------------------------------------------------------------------- |
-| ✅     | Function | Functions start on multiples of 16 on pretty much all compilers, per Intel Optimisation Guide. |
-| ✅     | Branch   | Stubs are 16 aligned.                                                                          |
-| ✅     | Assembly | Stubs are 16 aligned.                                                                          |
-| ✅     | VTable   | VTable entries are `usize` aligned, and don't cross cache boundaries.                          |
 
 ## Fallback Strategies
 

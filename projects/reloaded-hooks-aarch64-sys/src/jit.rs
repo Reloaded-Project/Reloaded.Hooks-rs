@@ -2,7 +2,9 @@ extern crate alloc;
 
 use crate::{
     all_registers::AllRegisters,
+    code_rewriter::aarch64_rewriter::is_b_or_bl,
     helpers::{vec_i32_to_u8, vec_u8_to_i32},
+    instructions::b::B,
     jit_instructions::{
         branch_absolute::{encode_call_absolute, encode_jump_absolute},
         branch_ip_relative::{encode_call_ip_relative, encode_jump_ip_relative},
@@ -22,9 +24,15 @@ use crate::{
     },
 };
 use alloc::vec::Vec;
-use core::mem::{self, size_of};
+use core::{
+    hint::unreachable_unchecked,
+    mem::{self, size_of},
+    ptr::read_unaligned,
+};
 use reloaded_hooks_portable::api::jit::{
-    compiler::{Jit, JitCapabilities, JitError},
+    call_relative_operation::CallRelativeOperation,
+    compiler::{DecodeCallTargetResult, Jit, JitCapabilities, JitError},
+    jump_absolute_operation::JumpAbsoluteOperation,
     jump_relative_operation::JumpRelativeOperation,
     operation::Operation,
 };
@@ -60,6 +68,10 @@ impl Jit<AllRegisters> for JitAarch64 {
 
         *buf = vec_i32_to_u8(buf_i32);
         Ok(())
+    }
+
+    fn stack_entry_misalignment() -> u32 {
+        0 // uses LR
     }
 
     fn code_alignment() -> u32 {
@@ -108,6 +120,60 @@ impl Jit<AllRegisters> for JitAarch64 {
     fn max_relative_jump_bytes() -> usize {
         12
     }
+
+    fn encode_call(
+        x: &CallRelativeOperation,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<AllRegisters>> {
+        let mut buf_i32 = vec_u8_to_i32(mem::take(buf));
+        let result = encode_call_relative(x, pc, &mut buf_i32);
+        *buf = vec_i32_to_u8(buf_i32);
+        result
+    }
+
+    fn decode_call_target(
+        ins_address: usize,
+        ins_length: usize,
+    ) -> Result<DecodeCallTargetResult, &'static str> {
+        if ins_length < 4 {
+            return Err("[ARM64: decode_call_target] Instruction is too short.");
+        }
+
+        // Need to do from BE for some reason.
+        let num: u32 = u32::from_le(unsafe { read_unaligned(ins_address as *const u32) });
+        let instruction = B(num);
+
+        if !is_b_or_bl(instruction.0) {
+            return Err("[ARM64: decode_call_target] This is not a branch instruction.");
+        }
+
+        let addr = (ins_address as isize).wrapping_add(instruction.offset() as isize) as usize;
+        Ok(DecodeCallTargetResult::new(addr, instruction.is_link()))
+    }
+
+    fn encode_abs_jump(
+        x: &JumpAbsoluteOperation<AllRegisters>,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<AllRegisters>> {
+        let mut buf_i32 = vec_u8_to_i32(mem::take(buf));
+        let result = encode_jump_absolute(x, pc, &mut buf_i32);
+        *buf = vec_i32_to_u8(buf_i32);
+        result
+    }
+
+    fn max_standard_relative_call_distance() -> usize {
+        (1024 * 1024 * 128) - 4
+    }
+
+    fn standard_relative_call_bytes() -> usize {
+        4
+    }
+
+    fn standard_register_size() -> usize {
+        8
+    }
 }
 
 fn encode_instruction_aarch64(
@@ -135,5 +201,6 @@ fn encode_instruction_aarch64(
         Operation::JumpIpRelative(x) => encode_jump_ip_relative(x, pc, buf),
         Operation::MultiPush(x) => encode_multi_push(x, pc, buf),
         Operation::MultiPop(x) => encode_multi_pop(x, pc, buf),
+        Operation::MovToStack(_) => unsafe { unreachable_unchecked() }, // unreachable because JITCapabilities doesn't opt in
     }
 }

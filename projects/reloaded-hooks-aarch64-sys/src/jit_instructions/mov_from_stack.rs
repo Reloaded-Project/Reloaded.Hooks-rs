@@ -74,6 +74,7 @@ mod tests {
     }
 
     #[rstest]
+    #[cfg(debug_assertions)]
     // Below Min Range
     #[case(w0, -4)]
     #[case(x0, -8)]
@@ -95,6 +96,7 @@ mod tests {
     }
 
     #[rstest]
+    #[cfg(debug_assertions)]
     // Not Aligned to 4
     #[case(w0, 1)]
     #[case(w0, 2)]

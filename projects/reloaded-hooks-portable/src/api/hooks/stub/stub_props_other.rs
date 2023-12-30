@@ -3,13 +3,19 @@ use bitfield::bitfield;
 bitfield! {
     /// Defines the data layout of the Assembly Hook data for architectures
     /// with variable length instructions.
-    pub struct AssemblyHookPackedProps(u32);
+    pub struct StubPackedProps(u32);
     impl Debug;
 
     /// True if the hook is enabled, else false.
     pub is_enabled, set_is_enabled: 0;
 
-    reserved, _: 1;
+    /// This allocation contains only 'swap space', and no hook or original function.
+    ///
+    /// If this flag is true, the 'enable' and 'disable' functions will not place a temporary
+    /// branch.
+    ///
+    /// The 'swap' space is
+    pub is_swap_only, set_is_swap_only: 1;
 
     /// Size of the 'swap' space where hook function and original code are swapped out.
     u16, swap_size, set_swap_size_impl: 16, 2; // Max 32KiB.
@@ -18,7 +24,7 @@ bitfield! {
     u16, hook_fn_size, set_hook_fn_size_impl: 31, 17; // Max 32KiB.
 }
 
-impl AssemblyHookPackedProps {
+impl StubPackedProps {
     pub fn get_swap_size(&self) -> usize {
         self.swap_size() as usize
     }
@@ -47,7 +53,7 @@ mod tests {
 
     #[test]
     fn test_swap_and_hook_fn_sizes() {
-        let mut props = AssemblyHookPackedProps(0);
+        let mut props = StubPackedProps(0);
 
         // Test setting and getting swap size
         props.set_swap_size(1024);
@@ -67,14 +73,14 @@ mod tests {
     #[test]
     #[should_panic(expected = "Swap size must be at most 32KiB")]
     fn test_swap_size_limit() {
-        let mut props = AssemblyHookPackedProps(0);
+        let mut props = StubPackedProps(0);
         props.set_swap_size(33 * 1024); // Should panic
     }
 
     #[test]
     #[should_panic(expected = "Hook function size must be at most 32KiB")]
     fn test_hook_fn_size_limit() {
-        let mut props = AssemblyHookPackedProps(0);
+        let mut props = StubPackedProps(0);
         props.set_hook_fn_size(33 * 1024); // Should panic
     }
 }

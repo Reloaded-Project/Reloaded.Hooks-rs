@@ -8,8 +8,8 @@ pub mod all_registers;
 /// Contains the public namespaces for x86
 #[cfg(feature = "x86")]
 pub mod x86 {
+    pub mod calling_convention;
     pub mod length_disassembler;
-    pub mod preset_calling_convention;
     pub mod register;
     pub use register::Register;
     pub mod jit;
@@ -23,6 +23,7 @@ pub mod x64 {
     pub mod register;
     pub mod rewriter;
     pub use register::Register;
+    pub mod calling_convention;
     pub mod jit;
 }
 
@@ -52,7 +53,11 @@ pub(crate) mod common {
     }
 
     pub mod jit_instructions {
+        pub mod decode_relative_call_target;
+        pub mod encode_absolute_jump;
+        pub mod encode_relative_call;
         pub mod encode_relative_jump;
+        pub(crate) mod helpers;
     }
 
     pub mod jit_common;
@@ -71,9 +76,13 @@ pub(crate) mod instructions {
     pub mod jump_absolute_indirect;
     pub mod jump_ip_relative;
     pub mod jump_relative;
+    pub mod macros;
     pub mod mov;
     pub mod mov_from_stack;
+    pub mod mov_to_stack;
+    #[cfg(target_feature = "multipushpop")]
     pub mod multi_pop;
+    #[cfg(target_feature = "multipushpop")]
     pub mod multi_push;
     pub mod pop;
     pub mod push;

@@ -13,6 +13,7 @@ pub(crate) fn encode_jump_relative(
 
 #[cfg(test)]
 mod tests {
+    #[cfg(target_pointer_width = "64")]
     use crate::x64::jit::JitX64;
     use crate::x86::jit::JitX86;
     use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};

@@ -13,7 +13,7 @@ bitfield! {
     u8;
 
     /// True if this is a 'link' branch.
-    pub is_link, set_is_loink: 31;
+    pub is_link, set_is_link: 31;
 
     /// Opcode
     opcode, set_opcode: 31, 26;

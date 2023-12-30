@@ -7,7 +7,9 @@ extern crate alloc;
 ///
 /// # Generic Parameters
 /// - `TRegister`: The type of register used by the target architecture. (Enum)
-pub trait CallingConventionInfo<TRegister: Copy + RegisterInfo + PartialEq + 'static> {
+pub trait CallingConventionInfo<TRegister: Copy + RegisterInfo + PartialEq + 'static>:
+    PartialEq
+{
     /// Registers in left to right parameter order passed to the custom function.
     fn register_int_parameters(&self) -> &[TRegister];
 
@@ -137,6 +139,83 @@ pub enum StackParameterOrder {
 
     /// This is currently not supported in this library, and will throw an error.
     LeftToRight,
+}
+
+/// Base struct representing the calling convention of a function, detailing how
+/// parameters are passed, which registers are used, and how the stack is managed.
+///
+/// This struct is useful for defining different calling conventions in a way that
+/// can be easily referenced and utilized in various contexts, such as JIT compilation
+/// or function hooking.
+///
+/// # Fields
+///
+/// - `int_parameters`: A slice of registers used for passing integer parameters.
+/// - `float_parameters`: A slice of registers used for passing floating-point parameters.
+/// - `vector_parameters`: A slice of registers used for passing vector parameters.
+/// - `return_register`: The register used for the function return value.
+/// - `reserved_stack_space`: The amount of stack space reserved for the function.
+/// - `callee_saved_registers`: Registers that the callee is responsible for saving and restoring.
+/// - `always_saved_registers`: Registers that are always saved across function calls.
+/// - `stack_cleanup`: Specifies who cleans up the stack after the function call.
+/// - `stack_parameter_order`: The order in which parameters are pushed onto the stack.
+/// - `required_stack_alignment`: The required alignment of the stack pointer before the function call.
+#[derive(Debug, Clone, PartialEq)]
+pub struct GenericCallingConvention<'a, TRegister: Copy> {
+    pub int_parameters: &'a [TRegister],
+    pub float_parameters: &'a [TRegister],
+    pub vector_parameters: &'a [TRegister],
+    pub return_register: TRegister,
+    pub reserved_stack_space: u32,
+    pub callee_saved_registers: &'a [TRegister],
+    pub always_saved_registers: &'a [TRegister],
+    pub stack_cleanup: StackCleanup,
+    pub stack_parameter_order: StackParameterOrder,
+    pub required_stack_alignment: u32,
+}
+
+impl<'a, TRegister: Copy + RegisterInfo + PartialEq + 'static> CallingConventionInfo<TRegister>
+    for GenericCallingConvention<'a, TRegister>
+{
+    fn register_int_parameters(&self) -> &[TRegister] {
+        self.int_parameters
+    }
+
+    fn register_float_parameters(&self) -> &[TRegister] {
+        self.float_parameters
+    }
+
+    fn register_vector_parameters(&self) -> &[TRegister] {
+        self.vector_parameters
+    }
+
+    fn return_register(&self) -> TRegister {
+        self.return_register
+    }
+
+    fn reserved_stack_space(&self) -> u32 {
+        self.reserved_stack_space
+    }
+
+    fn callee_saved_registers(&self) -> &[TRegister] {
+        self.callee_saved_registers
+    }
+
+    fn always_saved_registers(&self) -> &[TRegister] {
+        self.always_saved_registers
+    }
+
+    fn stack_cleanup_behaviour(&self) -> StackCleanup {
+        self.stack_cleanup
+    }
+
+    fn stack_parameter_order(&self) -> StackParameterOrder {
+        self.stack_parameter_order
+    }
+
+    fn required_stack_alignment(&self) -> u32 {
+        self.required_stack_alignment
+    }
 }
 
 #[cfg(test)]

@@ -8,6 +8,9 @@ pub mod api {
     /// The errors that can occur when generating a wrapper.
     pub mod errors {
         pub mod assembly_hook_error;
+        pub mod fast_hook_error;
+        pub mod function_hook_error;
+        pub mod hook_builder_error;
         pub mod inline_branch_error;
         pub mod wrapper_generation_error;
     }
@@ -22,6 +25,8 @@ pub mod api {
     /// Settings passed to other methodss
     pub mod settings {
         pub mod assembly_hook_settings;
+        pub mod basic_hook_settings;
+        pub mod function_hook_settings;
         pub mod proximity_target;
     }
 
@@ -29,10 +34,26 @@ pub mod api {
     pub mod hooks {
         pub mod assembly {
             pub mod assembly_hook;
-            pub mod assembly_hook_props_4byteins;
-            pub mod assembly_hook_props_common;
-            pub mod assembly_hook_props_other;
         }
+
+        pub mod branch {
+            pub mod branch_hook;
+            pub mod branch_hook_fast;
+        }
+
+        /// Contains the memory layout of various stubs used throughout the hooks.
+        pub mod stub {
+            pub mod stub_props_4byteins;
+            pub mod stub_props_common;
+            pub mod stub_props_other;
+
+            pub mod mixins {
+                pub mod assembly_mixin;
+                pub mod stub_wrapper_mixin;
+            }
+        }
+
+        pub mod common_hook;
     }
 
     /// Platform and architecture specific integrations
@@ -70,6 +91,7 @@ pub mod api {
         pub mod jump_rip_relative_operation;
         pub mod mov_from_stack_operation;
         pub mod mov_operation;
+        pub mod mov_to_stack_operation;
         pub mod operation;
         pub mod operation_aliases;
         pub mod pop_operation;
@@ -96,12 +118,12 @@ pub mod api {
 
     pub mod calling_convention_info;
     pub mod function_info;
-    pub mod wrapper_generator;
     pub mod wrapper_instruction_generator;
 }
 
 pub(crate) mod internal {
-    pub(crate) mod assembly_hook;
+    pub mod stub_builder;
+    pub mod stub_builder_settings;
 }
 
 /// Code for all the graph algorithms.
@@ -125,6 +147,7 @@ pub mod helpers {
     pub mod jit_jump_operation;
     pub mod make_inline_rel_branch;
     pub mod overwrite_code;
+    pub mod relative_branch_range_check;
 
     /// For Benchmarks and tests only. Do not use in production code.
     #[doc(hidden)]
@@ -134,8 +157,9 @@ pub mod helpers {
 /// Code optimization algorithms.
 pub(crate) mod optimize {
     pub mod combine_push_operations;
+    pub mod decompose_push_pop_operations;
     pub mod eliminate_common_callee_saved_registers;
-    pub mod merge_stackalloc_and_return;
+    pub mod merge_stackalloc_operations;
     pub mod optimize_parameters_common;
     pub mod optimize_push_pop_parameters;
     pub mod reorder_mov_sequence;

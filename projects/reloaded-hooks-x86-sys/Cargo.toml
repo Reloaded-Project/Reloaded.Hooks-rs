@@ -11,6 +11,7 @@ include = ["src/**/*"]
 default = ["x86", "x64"]
 x86 = []
 x64 = [ "iced-x86/instr_info" ]
+multipushpop = []
 
 [lib]
 bench = false
@@ -22,6 +23,7 @@ derive-enum-all-values = "0.1.0"
 smallvec = { version = "1.11.0", features = ["const_new"] }
 reloaded-hooks-portable = { path = "../reloaded-hooks-portable" }
 hex = "0.4.3"
+derive_more = { version = "0.99.17", default-features = false, features = ["deref", "deref_mut"] }
 
 [dependencies.iced-x86]
 version = "=1.16.0" # due to bug https://github.com/icedland/iced/issues/498
@@ -33,7 +35,7 @@ features = ["no_std", "code_asm", "decoder"]
 criterion = "0.5.1"
 rstest = "0.18.2"
 reloaded-hooks-buffers-common = { path = "../reloaded-hooks-buffers-common" }
-reloaded-memory-buffers = "4.0.1"
+reloaded-memory-buffers = "4.0.3"
 
 [target.'cfg(unix)'.dev-dependencies]
 pprof = { version = "0.12", features = ["flamegraph", "criterion"] }

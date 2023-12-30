@@ -28,7 +28,7 @@ Notably it differs in the following ways:
 - There is no [Wrapper To Call Original Function](../function-hooks/overview.md#when-activated-in-fast-mode) as no instructions are stolen.  
     - Your method will directly call original instead. 
 
-- You `call` the `ReverseWrapper` instead of `jump`ing to it.
+- You `call` the [ReverseWrapper](../common.md#reversewrappers) instead of `jump`ing to it.
 - Code replacement is at caller level rather than function level.
 
 ## High Level Diagram
@@ -72,7 +72,7 @@ flowchart TD
 
 This option allows for a small performance improvement, saving 1 instruction and some instruction prefetching load. 
 
-This is on by default (can be disabled), and will take into effect when no conversion between calling conventions is needed and target is within 'Relative Jump' range for your CPU architecture. 
+This is on by default (can be disabled), and will take into effect when no conversion between calling conventions is needed.
 
 ### When Activated (with Calling Convention Conversion)
 
@@ -110,18 +110,27 @@ When the hook is deactivated, the stub is replaced with a direct jump back to th
 By bypassing your code entirely, it is safe for your dynamic library (`.dll`/`.so`/`.dylib`) 
 to unload from the process.
 
-## Thread Safety & Memory Layout
+## Thread Safety, Memory Layout & State Switching
 
-!!! info "Extra: [Thread Safety on x86](../common.md#thread-safety-on-x86)"
+!!! info "Common: [Thread Safety & Memory Layout](../common.md#hook-memory-layouts--thread-safety)"
 
-Emplacing the jump to the stub and patching within the stub are atomic operations on all supported platforms.
+### Stub Memory Layout
 
 The 'branch hook' stub uses the following memory layout:
 
 ```text
-- ( [ReverseWrapper] OR [Branch to Custom Function] ) OR [Branch to Original Function]
+- [Branch to Hook Function / Branch to Original Function]
+- Branch to Hook Function
 - Branch to Original Function
-- [Wrapper] (If Calling Convention Conversion is needed)
+```
+
+If calling convention conversion is needed, the layout looks like this:
+
+```
+- [ReverseWrapper / Branch to Original Function]
+- ReverseWrapper
+- Branch to Original Function
+- Wrapper
 ```
 
 !!! tip "The library is optimised to not use redundant memory"
@@ -130,11 +139,11 @@ The 'branch hook' stub uses the following memory layout:
     we don't write `Branch to Original Function` to the buffer at all, provided a `ReverseWrapper` is not needed,
     as it is not necessary.
 
-### Examples
+#### Examples
 
 !!! info "Using x86 Assembly."
 
-#### Before
+##### Before
 
 ```asm
 originalCaller:
@@ -143,7 +152,7 @@ originalCaller:
     ; More code...
 ```
 
-#### After (Fast Mode)
+##### After (Fast Mode)
 
 ```asm
 originalCaller:
@@ -156,7 +165,7 @@ userFunction:
     call originalFunction ; Optional.
 ```
 
-#### After
+##### After
 
 ```asm
 ; x86 Assembly
@@ -166,9 +175,9 @@ originalCaller:
     ; More code...
 
 stub:
-    ; == BranchToCustom ==
+    ; == BranchToHook ==
     jmp newFunction
-    ; == BranchToCustom ==
+    ; == BranchToHook ==
 
     ; == BranchToOriginal ==
     jmp originalFunction
@@ -179,7 +188,7 @@ newFunction:
     call originalFunction ; Optional.
 ```
 
-#### After (with Calling Convention Conversion)
+##### After (with Calling Convention Conversion)
 
 ```asm
 ; x86 Assembly
@@ -210,7 +219,7 @@ userFunction:
     call wrapper; (See Above)
 ```
 
-#### After (Disabled)
+##### After (Disabled)
 
 ```asm
 ; x86 Assembly
@@ -230,9 +239,3 @@ newFunction:
 originalFunction:
     ; Original function implementation...
 ```
-
-### Switching State
-
-!!! info "When transitioning between Enabled/Disabled state, we place a temporary branch at `stub`, this allows us to manipulate the remaining code safely."
-
-!!! info "Read [Thread Safe Enable/Disable of Hooks](../common.md#thread-safe-enabledisable-of-hooks) for more info."

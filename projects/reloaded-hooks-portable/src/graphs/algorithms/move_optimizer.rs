@@ -139,7 +139,7 @@ fn dfs<TRegister: Eq + Hash + Copy + RegisterInfo>(
     }
 }
 
-fn unwind<T: Eq + Copy + Hash>(
+fn unwind<T: Eq + Copy + Hash + Clone>(
     rec_stack: &[Rc<RefCell<Node<T>>>],
     results: &mut Vec<Operation<T>>,
 ) {

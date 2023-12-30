@@ -5,10 +5,16 @@ use crate::common::jit_common::encode_instruction;
 use crate::common::jit_conversions_common::{
     map_allregisters_to_x86, map_register_x86_to_allregisters,
 };
+use crate::common::jit_instructions::decode_relative_call_target::decode_call_target;
+use crate::common::jit_instructions::encode_absolute_jump::encode_absolute_jump_x86;
+use crate::common::jit_instructions::encode_relative_call::encode_call_relative;
 use crate::common::jit_instructions::encode_relative_jump::encode_jump_relative;
 use crate::x86::register::Register;
 use alloc::{string::ToString, vec::Vec};
 use iced_x86::code_asm::CodeAssembler;
+use reloaded_hooks_portable::api::jit::call_relative_operation::CallRelativeOperation;
+use reloaded_hooks_portable::api::jit::compiler::DecodeCallTargetResult;
+use reloaded_hooks_portable::api::jit::jump_absolute_operation::JumpAbsoluteOperation;
 use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
 use reloaded_hooks_portable::api::jit::{
     compiler::{transform_err, Jit, JitCapabilities, JitError},
@@ -60,6 +66,15 @@ impl Jit<Register> for JitX86 {
         Ok(())
     }
 
+    fn stack_entry_misalignment() -> u32 {
+        // Note: x86 does not impose alignment requirements on stack
+        // If user runs across a custom convention with an alignment requirement
+        // they should create 'shadow space' in their custom calling convention declaration.
+
+        // This value is still however needed in any case, for the wrapper generator.
+        4
+    }
+
     fn code_alignment() -> u32 {
         16
     }
@@ -71,7 +86,7 @@ impl Jit<Register> for JitX86 {
     fn get_jit_capabilities() -> JitCapabilities {
         JitCapabilities::CAN_ENCODE_IP_RELATIVE_CALL
             | JitCapabilities::CAN_ENCODE_IP_RELATIVE_JUMP
-            | JitCapabilities::CAN_MULTI_PUSH
+            | JitCapabilities::CAN_MOV_TO_STACK
     }
 
     fn max_branch_bytes() -> u32 {
@@ -94,6 +109,41 @@ impl Jit<Register> for JitX86 {
 
     fn max_relative_jump_bytes() -> usize {
         5
+    }
+
+    fn encode_call(
+        x: &CallRelativeOperation,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<Register>> {
+        encode_call_relative(x, pc, buf)
+    }
+
+    fn decode_call_target(
+        ins_address: usize,
+        ins_length: usize,
+    ) -> Result<DecodeCallTargetResult, &'static str> {
+        decode_call_target(ins_address, ins_length)
+    }
+
+    fn encode_abs_jump(
+        x: &JumpAbsoluteOperation<Register>,
+        _pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<Register>> {
+        encode_absolute_jump_x86(x, buf)
+    }
+
+    fn max_standard_relative_call_distance() -> usize {
+        i32::MAX as usize
+    }
+
+    fn standard_relative_call_bytes() -> usize {
+        5
+    }
+
+    fn standard_register_size() -> usize {
+        4
     }
 }
 

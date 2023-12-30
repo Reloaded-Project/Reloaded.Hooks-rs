@@ -18,6 +18,8 @@ pub fn encode_multi_pop(
         let reg2 = &x[index + 1].register;
 
         // Can fail if both registers are a different size.
+        // The JIT sorts registers by size, so this should only happen when transitioning,
+        // as we can't mix registers either way, this works out for us.
         match encode_pop_two(reg1, reg2, pc, buf) {
             Ok(_) => {
                 index += 2;

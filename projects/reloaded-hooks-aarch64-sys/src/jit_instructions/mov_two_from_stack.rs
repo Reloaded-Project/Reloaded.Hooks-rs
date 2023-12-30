@@ -73,6 +73,7 @@ mod tests {
     }
 
     #[rstest]
+    #[cfg(debug_assertions)]
     // Max Offset
     #[case(w0, w1, 256)]
     #[case(x0, x1, 512)]
@@ -93,6 +94,7 @@ mod tests {
     }
 
     #[rstest]
+    #[cfg(debug_assertions)]
     // Not Aligned to 4
     #[case(w0, w1, 1)]
     #[case(w0, w1, 2)]

@@ -8,12 +8,12 @@ use crate::api::{
         operation::Operation,
         operation_aliases::{JumpAbs, JumpAbsInd, JumpRel},
     },
-    traits::register_info::RegisterInfo,
 };
 use alloc::string::ToString;
 use alloc::vec::Vec;
 
 /// Creates a jump operation for a given address.
+/// This creates a 'space' optimised operation, so will use indirect relative jumps where preferable.
 ///
 /// # Parameters
 /// - `mem_address` - The address of where the jump operation should be emplaced.
@@ -28,7 +28,7 @@ pub(crate) fn create_jump_operation<TRegister, TJit, TBufferFactory, TBuffer>(
     buffer: &mut Vec<u8>,
 ) -> Result<(), JitError<TRegister>>
 where
-    TRegister: RegisterInfo + Clone + Default,
+    TRegister: Clone + Copy + Default,
     TJit: Jit<TRegister>,
     TBuffer: Buffer,
     TBufferFactory: BufferFactory<TBuffer>,
@@ -62,7 +62,7 @@ pub(crate) fn create_jump_operation_ops<TRegister, TJit, TBufferFactory, TBuffer
     scratch_register: Option<TRegister>,
 ) -> Result<[Operation<TRegister>; 1], JitError<TRegister>>
 where
-    TRegister: RegisterInfo + Clone + Default,
+    TRegister: Clone + Copy + Default,
     TJit: Jit<TRegister>,
     TBuffer: Buffer,
     TBufferFactory: BufferFactory<TBuffer>,

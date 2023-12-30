@@ -5,13 +5,14 @@ use core::mem::{transmute, MaybeUninit};
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 pub const INLINE_BRANCH_LEN: usize = 5;
 
-// ARM64 = 4 bytes
-// ARM = 4 bytes
-// MIPS = 4 bytes
-// PPC = 4 bytes
-// RISC-V = 4 bytes
-// SPARC = 4 bytes
-#[cfg(not(any(target_arch = "x86", target_arch = "x86_64")))]
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "riscv32",
+    target_arch = "riscv64"
+))]
 pub const INLINE_BRANCH_LEN: usize = 4;
 
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
@@ -23,21 +24,53 @@ const X86_REL16_BRANCH: usize = 4; // with prefix
 #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
 const X86_REL32_BRANCH: usize = 5;
 
-#[cfg(target_arch = "aarch64")]
-const AARCH64_BRANCH: usize = 4;
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "riscv32",
+    target_arch = "riscv64"
+))]
+const COMMON_BRANCH: usize = 4;
 
 pub fn make_inline_branch(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], InlineBranchError> {
-    #[cfg(target_arch = "aarch64")]
-    return make_inline_branch_aarch64(rc);
+    #[cfg(any(
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "mips",
+        target_arch = "powerpc",
+        target_arch = "riscv32",
+        target_arch = "riscv64"
+    ))]
+    return make_inline_branch_common(rc);
 
     #[cfg(any(target_arch = "x86", target_arch = "x86_64"))]
     return make_inline_branch_x86(rc);
 
-    #[cfg(not(any(target_arch = "aarch64", target_arch = "x86", target_arch = "x86_64")))]
+    #[cfg(not(any(
+        target_arch = "aarch64",
+        target_arch = "arm",
+        target_arch = "mips",
+        target_arch = "powerpc",
+        target_arch = "riscv32",
+        target_arch = "riscv64",
+        target_arch = "x86",
+        target_arch = "x86_64"
+    )))]
     return make_inline_branch_fallback(rc);
 }
 
-#[cfg(not(any(target_arch = "aarch64", target_arch = "x86", target_arch = "x86_64")))]
+#[cfg(not(any(
+    target_arch = "aarch64",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "riscv32",
+    target_arch = "riscv64",
+    target_arch = "x86",
+    target_arch = "x86_64"
+)))]
 fn make_inline_branch_fallback(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], InlineBranchError> {
     if rc.len() <= INLINE_BRANCH_LEN {
         // Copy the available bytes (up to 5) from the rc slice.
@@ -99,13 +132,20 @@ fn unexpected_array_length_cold(len: usize) -> Result<[u8; INLINE_BRANCH_LEN], I
     Err(InlineBranchError::ArrayTooShort(INLINE_BRANCH_LEN, len))
 }
 
-#[cfg(target_arch = "aarch64")]
-fn make_inline_branch_aarch64(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], InlineBranchError> {
-    if rc.len() == AARCH64_BRANCH {
+#[cfg(any(
+    target_arch = "aarch64",
+    target_arch = "arm",
+    target_arch = "mips",
+    target_arch = "powerpc",
+    target_arch = "riscv32",
+    target_arch = "riscv64"
+))]
+fn make_inline_branch_common(rc: &[u8]) -> Result<[u8; INLINE_BRANCH_LEN], InlineBranchError> {
+    if rc.len() == COMMON_BRANCH {
         unsafe {
             let mut result: [MaybeUninit<u8>; INLINE_BRANCH_LEN] =
                 MaybeUninit::uninit().assume_init();
-            result[..AARCH64_BRANCH].copy_from_slice(transmute(&rc[..AARCH64_BRANCH]));
+            result[..COMMON_BRANCH].copy_from_slice(transmute(&rc[..COMMON_BRANCH]));
             return Ok(transmute(result));
         }
     }

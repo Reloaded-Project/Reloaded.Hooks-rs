@@ -126,7 +126,7 @@ pub(crate) fn rewrite_bcc(
     let instr1 =
         Bcc::assemble_bcc(orig_ins.condition() ^ 1, 8 + mov_instr.size_bytes() as i32).unwrap();
     let instr2 = BranchRegister::new_br(scratch_reg);
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(6);
     result.push(instr1.0.to_le());
     mov_instr.append_to_buffer(&mut result);
     result.push(instr2.0.to_le());

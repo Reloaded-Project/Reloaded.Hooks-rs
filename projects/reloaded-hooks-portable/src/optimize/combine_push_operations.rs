@@ -1,5 +1,6 @@
 extern crate alloc;
 use crate::api::jit::operation::Operation;
+use alloc::vec::Vec;
 use smallvec::SmallVec;
 
 macro_rules! deduplicate_merge_ops {
@@ -9,66 +10,52 @@ macro_rules! deduplicate_merge_ops {
         ///
         /// # Parameters
         ///
-        /// - `operations` - The operations where $op will be merged.
+        /// - `operations` - The vector of operations where $op will be merged.
         ///
         /// # Remarks
         ///
         /// This is an optional step that can be applied within the structs that implement the JIT trait.
-        /// It can be used to optimise series of multiple $ops wherever possible.
+        /// It can be used to optimize series of multiple $ops wherever possible.
         #[allow(dead_code)]
-        pub(crate) fn $name<TRegister: Copy>(
-            operations: &mut [Operation<TRegister>],
-        ) -> &mut [Operation<TRegister>] {
+        pub(crate) fn $name<TRegister: Copy + Clone>(operations: &mut Vec<Operation<TRegister>>) {
             let mut read_idx = 0;
             let mut write_idx = 0;
             while read_idx < operations.len() {
-                match &operations[read_idx] {
-                    Operation::$op(_) => {
-                        let mut ops = SmallVec::new();
+                if let Operation::$op(_) = operations[read_idx] {
+                    let mut ops = SmallVec::new();
 
-                        // Collect sequential $op (Push/Pop) Operations
-                        while read_idx < operations.len() {
-                            if let Operation::$op(op) =
-                                unsafe { &operations.get_unchecked(read_idx) }
-                            {
-                                ops.push(*op);
-                                read_idx += 1;
-                            } else {
-                                break;
-                            }
-                        }
-
-                        // If there's more than one $op Operation, replace them with a Multi$op
-                        if ops.len() > 1 {
-                            unsafe {
-                                *operations.get_unchecked_mut(write_idx) = Operation::$op_name(ops);
-                            }
+                    // Collect sequential $op (Push/Pop) Operations
+                    while read_idx < operations.len() {
+                        if let Operation::$op(op) = operations[read_idx] {
+                            ops.push(op);
+                            read_idx += 1;
                         } else {
-                            // If there's only one, just copy the $op Operation
-                            unsafe {
-                                if read_idx - 1 != write_idx {
-                                    *operations.get_unchecked_mut(write_idx) =
-                                        operations.get_unchecked(read_idx - 1).clone();
-                                }
-                            }
+                            break;
                         }
-                        write_idx += 1;
                     }
-                    // For all other operations, simply copy them over
-                    _ => {
-                        unsafe {
-                            if read_idx != write_idx {
-                                *operations.get_unchecked_mut(write_idx) =
-                                    operations.get_unchecked(read_idx).clone();
-                            }
+
+                    // If there's more than one $op Operation, replace them with a Multi$op
+                    if ops.len() > 1 {
+                        operations[write_idx] = Operation::$op_name(ops);
+                    } else {
+                        // Only one $op Operation, no need to replace
+                        if read_idx - 1 != write_idx {
+                            operations.swap(write_idx, read_idx - 1);
                         }
-                        read_idx += 1;
-                        write_idx += 1;
                     }
+                    write_idx += 1;
+                } else {
+                    // For all other operations, simply move them forward if necessary
+                    if read_idx != write_idx {
+                        operations.swap(read_idx, write_idx);
+                    }
+                    read_idx += 1;
+                    write_idx += 1;
                 }
             }
 
-            &mut operations[..write_idx]
+            // Truncate the vector to remove unused elements
+            operations.truncate(write_idx);
         }
     };
 }
@@ -101,9 +88,9 @@ mod tests {
             }),
         ];
 
-        let result = merge_push_operations(&mut ops);
-        assert_eq!(result.len(), 3);
-        match &result[0] {
+        merge_push_operations(&mut ops);
+        assert_eq!(ops.len(), 3);
+        match &ops[0] {
             Operation::MultiPush(pushes) => {
                 assert_eq!(pushes.len(), 2);
                 assert_eq!(pushes[0].register, MockRegister::R1);
@@ -111,7 +98,7 @@ mod tests {
             }
             _ => panic!("Expected MultiPush operation"),
         }
-        match &result[2] {
+        match &ops[2] {
             Operation::Push(push_op) => {
                 assert_eq!(push_op.register, MockRegister::R3);
             }
@@ -137,9 +124,9 @@ mod tests {
             }),
         ];
 
-        let result = merge_pop_operations(&mut ops);
-        assert_eq!(result.len(), 3);
-        match &result[0] {
+        merge_pop_operations(&mut ops);
+        assert_eq!(ops.len(), 3);
+        match &ops[0] {
             Operation::MultiPop(pops) => {
                 assert_eq!(pops.len(), 2);
                 assert_eq!(pops[0].register, MockRegister::R1);
@@ -147,7 +134,7 @@ mod tests {
             }
             _ => panic!("Expected MultiPop operation"),
         }
-        match &result[2] {
+        match &ops[2] {
             Operation::Pop(pop_op) => {
                 assert_eq!(pop_op.register, MockRegister::R3);
             }

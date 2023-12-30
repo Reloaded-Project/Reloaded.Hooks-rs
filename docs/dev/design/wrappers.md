@@ -63,6 +63,9 @@ pop ebp
 
 !!! tip "The general implementation for 64-bit is the same, however the stack must be 16 byte aligned at method entry, and for MSFT convention, 32 bytes reserved on stack before call"
 
+There are also some very minor nuances, which the actual code has to handle, but this is the general
+jist of it.
+
 ## Optimization
 
 ### Align Wrappers to Architecture Recommended Alignment
@@ -225,7 +228,7 @@ parameters is trivial, since you can directly mov into the intended target regis
 the most common use case in x86.
 
 For completeness, it should be noted that in the opposite direction `stdcall target -> custom`, such
-as one that would be used in entry point of a hook ([ReverseWrapper](./overview.md#reversewrappers)),
+as one that would be used in entry point of a hook ([ReverseWrapper](#reversewrappers)),
 no optimisation is needed here, as all registers are directly pushed without any extra steps.
 
 !!! tip "In the backend, the wrapper generator keeps track of current stack pointer (assuming start is '0'); and uses that information to match the push and pop operations accordingly 😉"
@@ -632,11 +635,11 @@ For example, consider the following rule used by the RISC-V ABI.
 
 The wrappers cannot know or understand the intricate rules such as this that are imposed by an ABI.
 
-### Wrappers Don't Understand How Mixed Size Registers Are Stack Allocated.
+### Allocating Mixed Size Registers is Tricky.
 
-!!! tip "Usually functions which have so many registers that they spill on stack won't be optimized to use custom parameter passing anyway; so this limitation is mostly moot in practice."
+Optimized code does not suffer from this bug.
 
-!!! tip "Even if they were optimised, the probability to spill both float AND int registers to trigger something like this is well... I've never ran into it before."
+#### The Problem
 
 Consider a function which spills a float register `xmm0`, and an `nint` (native size integer).  
 A `Push` is basically a sequence of `sub` and then `mov`.
@@ -658,7 +661,36 @@ mov [rsp], rax
 ```
 
 This is invalid, because the contents of rax will now replace half of the `xmm0` register on the stack.  
-How ABIs and compilers deal with this isn't always well standardised; therefore there is not a good 
-strategy to handle this.  
+How ABIs and compilers deal with this isn't always well standardised; some only consider lower bits volatile,
+(Microsoft x64) while others don't preserve the bigger registers at all (SystemV x64).
+
+Our strategy will be to try rearrange the stack operations to avoid this problem, starting by pushing
+smaller registers first, and then larger registers, effectively creating:
+
+```asm
+sub rsp, 8
+mov [rsp], rax
+sub rsp, 16
+mov [rsp], xmm0
+```
+
+#### When using Optimized Code
+
+Currently with optimizations enabled, this code compiles as:
+
+```asm
+sub rsp, 24
+mov [rsp], xmm0
+mov [rsp + 16], rax
+```
+
+Which is valid.
+
+### Wrappers (Currently) Don't understand how to split larger registers.
+
+Some calling conventions, have rules where larger values (e.g. 128-bit values on x64) are split into
+2 registers.
+
+The wrapper generator cannot generate code for these functions currently.
 
 [bijective]: https://www.mathsisfun.com/sets/injective-surjective-bijective.html

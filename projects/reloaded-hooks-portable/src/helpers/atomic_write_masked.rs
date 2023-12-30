@@ -1,5 +1,8 @@
 use crate::api::buffers::buffer_abstractions::Buffer;
-use core::{hint::unreachable_unchecked, ptr::read_unaligned};
+use core::{
+    hint::unreachable_unchecked,
+    ptr::{read_unaligned, write_unaligned},
+};
 
 pub trait AtomicWriter {
     /// Writes a native integer type to a given address atomically.
@@ -20,9 +23,7 @@ impl AtomicWriter for NativeMemoryAtomicWriter {
     where
         Self: Sized,
     {
-        unsafe {
-            *(address as *mut TInteger) = value;
-        }
+        unsafe { write_unaligned(address as *mut TInteger, value) }
     }
 }
 
@@ -39,6 +40,7 @@ where
     }
 }
 
+/// Maximum amount of bytes that can be written atomically.
 pub const MAX_ATOMIC_WRITE_BYTES: u8 = 16;
 
 /// Overwrites bytes at the specified address with provided bytes using atomic operations.

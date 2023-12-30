@@ -1,10 +1,13 @@
 extern crate alloc;
 
-use super::{jump_relative_operation::JumpRelativeOperation, operation::Operation};
-use crate::api::traits::register_info::RegisterInfo;
+use super::{
+    call_relative_operation::CallRelativeOperation, jump_absolute_operation::JumpAbsoluteOperation,
+    jump_relative_operation::JumpRelativeOperation, operation::Operation,
+};
 use alloc::{string::String, vec::Vec};
 use bitflags::bitflags;
 use core::fmt::Debug;
+use derive_new::new;
 use thiserror_no_std::Error;
 
 bitflags! {
@@ -28,12 +31,18 @@ bitflags! {
         /// than an 'Absolute Jump'. This is used for Assembly Hooks to reduce number of bytes
         /// used.
         const PROFITABLE_ABSOLUTE_INDIRECT_JUMP = 1 << 3;
+
+        /// This JIT can perform a 'relative jump' operation to any address.
+        const CAN_RELATIVE_JUMP_TO_ANY_ADDRESS = 1 << 4;
+
+        /// This JIT can perform the 'Mov To Stack' operation.
+        const CAN_MOV_TO_STACK = 1 << 5;
     }
 }
 
 /// The trait for a Just In Time Compiler used for emitting
 /// wrappers assembled for a given address.
-pub trait Jit<TRegister: RegisterInfo> {
+pub trait Jit<TRegister: Copy + Clone> {
     /// Compiles the specified sequence of operations into a sequence of bytes.
     fn compile(
         address: usize,
@@ -56,6 +65,12 @@ pub trait Jit<TRegister: RegisterInfo> {
     /// Maximum number of bytes required to perform a branch (i.e. an absolute branch).
     fn max_branch_bytes() -> u32;
 
+    /// Stack offset upon entry into a method from desired value.
+    ///
+    /// This is 0 for architectures with a link register, or sizeof([usize]) for architectures which have
+    /// return addresses on stack.
+    fn stack_entry_misalignment() -> u32;
+
     /// Maximum distances of supported relative jump assembly instruction sequences.
     /// This affects wrapper generation, and parameters passed into JIT.
     fn max_relative_jump_distances() -> &'static [usize];
@@ -72,11 +87,22 @@ pub trait Jit<TRegister: RegisterInfo> {
         &[]
     }
 
+    /// Returns the size of a regular register in bytes.
+    fn standard_register_size() -> usize;
+
+    // TODO: Consider moving these things to 'JITUtils' or something.
+
+    /// Maximum distance of 'call' or 'branch and link' operation.
+    fn max_standard_relative_call_distance() -> usize;
+
+    /// Number of bytes used to encode a 'standard' relative call instruction. [`Self::max_standard_relative_call_distance`]
+    fn standard_relative_call_bytes() -> usize;
+
     /// Fills an array with NOP instructions.
     fn fill_nops(arr: &mut [u8]);
 
     /// Assembles a 'jmp'/'branch' instruction directly, bypassing the whole compilation step.
-    /// This is used to speed up single instruction com
+    /// This is used to speed up single instruction computation.
     ///
     /// # Parameters
     /// - `x` - The jump instruction to encode.
@@ -87,6 +113,48 @@ pub trait Jit<TRegister: RegisterInfo> {
         pc: &mut usize,
         buf: &mut Vec<u8>,
     ) -> Result<(), JitError<TRegister>>;
+
+    /// Assembles a 'jmp'/'branch' instruction to an absolute address, bypassing
+    /// the whole compilation step. This is used to speed up single instruction computation.
+    ///
+    /// # Parameters
+    /// - `x` - The jump instruction to encode.
+    /// - `pc` - The current program counter.
+    /// - `buf` - The buffer to write the instruction to.
+    fn encode_abs_jump(
+        x: &JumpAbsoluteOperation<TRegister>,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<TRegister>>;
+
+    /// Assembles a 'call'/'branch link' instruction directly, bypassing the whole compilation step.
+    /// This is used to speed up single instruction computation.
+    ///
+    /// # Parameters
+    /// - `x` - The call instruction to encode.
+    /// - `pc` - The current program counter.
+    /// - `buf` - The buffer to write the instruction to.
+    fn encode_call(
+        x: &CallRelativeOperation,
+        pc: &mut usize,
+        buf: &mut Vec<u8>,
+    ) -> Result<(), JitError<TRegister>>;
+
+    /// Decodes the target address of a 'call instruction', i.e. the address where the 'call'
+    /// instruction will branch to.
+    ///
+    /// # Parameters
+    /// - `ins_address` - The address of the 'call' instruction.
+    /// - `ins_length` - The length of the 'call' instruction at 'ins_address'.
+    ///
+    /// # Returns
+    ///
+    /// Returns the target address of the call instruction.
+    /// Otherwise an error.
+    fn decode_call_target(
+        ins_address: usize,
+        ins_length: usize,
+    ) -> Result<DecodeCallTargetResult, &'static str>;
 
     /// Maximum number of bytes required to perform a relative jump.
     /// This is the max amount of bytes that can be returned by [`self::encode_jump`].
@@ -122,10 +190,6 @@ pub enum JitError<TRegister> {
     )]
     InvalidRegisterCombination3(TRegister, TRegister, TRegister),
 
-    /// JIT of an unrecognised instruction was requested.
-    #[error("Invalid instruction provided: {0:?}")]
-    InvalidInstruction(Operation<TRegister>),
-
     #[error("Operand is out of range: {0:?}")]
     OperandOutOfRange(String),
 
@@ -144,9 +208,6 @@ where
         JitError::CannotInitializeAssembler(x) => JitError::CannotInitializeAssembler(x),
         JitError::ThirdPartyAssemblerError(x) => JitError::ThirdPartyAssemblerError(x),
         JitError::InvalidRegister(x) => JitError::InvalidRegister(f(x)),
-        JitError::InvalidInstruction(x) => {
-            JitError::InvalidInstruction(super::operation::transform_op(x, f))
-        }
         JitError::InvalidRegisterCombination(a, b) => {
             JitError::InvalidRegisterCombination(f(a), f(b))
         }
@@ -157,4 +218,15 @@ where
             JitError::InvalidRegisterCombination3(f(a), f(b), f(c))
         }
     }
+}
+
+/// Contains the result of decoding a 'call' instruction.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, new)]
+pub struct DecodeCallTargetResult {
+    /// The target address of the call instruction.
+    pub target_address: usize,
+
+    /// True if the instruction is a 'call' (branch+link) instruction.
+    /// False if the instruction is a 'jump' (branch) instruction.
+    pub is_call: bool,
 }

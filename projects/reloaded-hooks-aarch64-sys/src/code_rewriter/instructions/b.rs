@@ -101,7 +101,7 @@ pub(crate) fn rewrite_b_mov_immediate(
     let mov_instr = emit_mov_const_to_reg(scratch_register, orig_target); // Assuming emit_mov_const_to_reg can handle this as well
     let b_instr = BranchRegister::new_b(scratch_register, link);
 
-    let mut result = Vec::new();
+    let mut result = Vec::with_capacity(5);
     mov_instr.append_to_buffer(&mut result);
     result.push(b_instr.0.to_le());
 

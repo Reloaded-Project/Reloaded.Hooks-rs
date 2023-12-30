@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 use iced_x86::Instruction;
 use iced_x86::{BlockEncoder, BlockEncoderOptions, InstructionBlock};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
-use smallvec::{smallvec, SmallVec};
+use smallvec::SmallVec;
 
 // Patches only needed for 64-bit.
 #[cfg(feature = "x64")]
@@ -41,7 +41,7 @@ pub(crate) fn relocate_code(
     scratch_gpr: Option<AllRegisters>,
     buf: &mut Vec<u8>,
 ) -> Result<(), CodeRewriterError> {
-    let mut new_isns: SmallVec<[Instruction; 4]> = smallvec![];
+    let mut new_isns: SmallVec<[Instruction; 4]> = Default::default();
     let mut current_new_pc = new_pc;
     let mut needs_rewriting = false;
 
@@ -156,7 +156,7 @@ pub(crate) fn append_if_can_encode_relative(
     // If the branch offset is within 2GiB, do no action
     // because Iced will handle it for us on re-encode.
     let target = instruction.near_branch_target();
-    let delta = (target - *current_new_pc as u64) as i64;
+    let delta = (target.wrapping_sub(*current_new_pc as u64)) as i64;
     if (-0x80000000..=0x7FFFFFFF).contains(&delta) {
         append_instruction_with_new_pc(new_isns, current_new_pc, instruction);
         return true;
@@ -169,7 +169,7 @@ pub(crate) fn can_encode_relative(current_new_pc: &mut usize, instruction: &Inst
     // If the branch offset is within 2GiB, do no action
     // because Iced will handle it for us on re-encode.
     let target = instruction.near_branch_target();
-    let delta = (target - *current_new_pc as u64) as i64;
+    let delta = (target.wrapping_sub(*current_new_pc as u64)) as i64;
     if (-0x80000000..=0x7FFFFFFF).contains(&delta) {
         return true;
     }
@@ -189,6 +189,7 @@ pub(crate) fn append_instruction_with_new_pc(
 }
 
 #[cfg(test)]
+#[cfg(target_pointer_width = "64")]
 mod tests {
     use crate::all_registers::AllRegisters;
     use crate::common::rewriter::code_rewriter::relocate_code;
@@ -197,7 +198,6 @@ mod tests {
     use rstest::rstest;
 
     #[rstest]
-    #[cfg(target_pointer_width = "64")]
     #[case::rip_relative_2gib("488b0508000000", 0x7FFFFFF7, 0, "488b05ffffff7f")] // mov rax, qword ptr [rip + 8] -> mov rax, qword ptr [rip + 0x7fffffff]
     #[case::simple_branch_pad("50eb02", 4096, 0, "50e9ff0f0000")] // push + jmp +2 -> push + jmp +4098
     #[case::simple_branch("eb02", 4096, 0, "e9ff0f0000")] // jmp +2 -> jmp +4098
@@ -287,7 +287,6 @@ mod tests {
         0x8000000000000000,
         "50e102eb05e9f30f0000"
     )] // push rax + loope -3 -> push rax + loope 5 + jmp 0xa + jmp 0x8000000080000ffd
-
     fn relocate_64b_branch(
         #[case] instructions: String,
         #[case] old_address: usize,
@@ -298,7 +297,6 @@ mod tests {
     }
 
     #[rstest]
-    #[cfg(target_pointer_width = "64")]
     #[case::mov_lhs("48891d08000000", 0x100000000, 0, "48b80f00000001000000488918")] // mov [rip + 8], rbx -> mov rax, 0x10000000f + mov [rax], rbx
     #[case::mov_lhs_32("891d08000000", 0x100000000, 0, "48b80e000000010000008918")] // mov [rip + 8], ebx -> mov rax, 0x10000000e + mov [rax], ebx
     #[case::mov_lhs_16("66891d08000000", 0x100000000, 0, "48b80f00000001000000668918")] // mov [rip + 8], bx -> mov rax, 0x10000000f + mov [rax], bx
