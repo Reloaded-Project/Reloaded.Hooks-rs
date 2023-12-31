@@ -92,3 +92,8 @@ pub(crate) mod instructions {
     pub mod stack_alloc;
     pub mod xchg;
 }
+
+/// This namespace contains the code for encoding the JIT instructions
+pub(crate) mod instructions_zd {
+    pub mod push;
+}

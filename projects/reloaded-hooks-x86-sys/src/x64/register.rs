@@ -21,13 +21,13 @@ pub enum Register {
     // General purpose 64-bit registers (16 registers, 16 reserved)
     #[default]
     rax = 0b100000,
-    rbx,
     rcx,
     rdx,
+    rbx,
+    rsp,
+    rbp,
     rsi,
     rdi,
-    rbp,
-    rsp,
     r8,
     r9,
     r10,
@@ -90,6 +90,42 @@ pub enum Register {
     zmm13,
     zmm14,
     zmm15,
+}
+
+impl Register {
+    pub fn is_64(&self) -> bool {
+        *self as usize & 0b100000 != 0
+    }
+
+    pub fn is_xmm(&self) -> bool {
+        *self as usize & 0b1000000 != 0
+    }
+
+    pub fn is_ymm(&self) -> bool {
+        *self as usize & 0b10000000 != 0
+    }
+
+    pub fn is_zmm(&self) -> bool {
+        *self as usize & 0b100000000 != 0
+    }
+
+    pub fn to_zydis(&self) -> zydis::Register {
+        let base = *self as u32;
+
+        if base & 0b10000 != 0 {
+            unsafe { transmute(zydis::Register::ST0 as u32 + (base - Register::st0 as u32)) }
+        } else if base & 0b100000 != 0 {
+            unsafe { transmute(zydis::Register::RAX as u32 + (base - Register::rax as u32)) }
+        } else if base & 0b1000000 != 0 {
+            unsafe { transmute(zydis::Register::XMM0 as u32 + (base - Register::xmm0 as u32)) }
+        } else if base & 0b10000000 != 0 {
+            unsafe { transmute(zydis::Register::YMM0 as u32 + (base - Register::ymm0 as u32)) }
+        } else if base & 0b100000000 != 0 {
+            unsafe { transmute(zydis::Register::ZMM0 as u32 + (base - Register::zmm0 as u32)) }
+        } else {
+            zydis::Register::NONE
+        }
+    }
 }
 
 impl RegisterInfo for Register {
@@ -470,5 +506,82 @@ mod tests {
     #[case(zmm15, zmm15)]
     fn extend_test(#[case] input: Register, #[case] expected: Register) {
         assert_eq!(input.extend(), expected);
+    }
+
+    #[rstest]
+    #[case(Register::st0, zydis::Register::ST0)]
+    #[case(Register::st1, zydis::Register::ST1)]
+    #[case(Register::st2, zydis::Register::ST2)]
+    #[case(Register::st3, zydis::Register::ST3)]
+    #[case(Register::st4, zydis::Register::ST4)]
+    #[case(Register::st5, zydis::Register::ST5)]
+    #[case(Register::st6, zydis::Register::ST6)]
+    #[case(Register::st7, zydis::Register::ST7)]
+    #[case(Register::rax, zydis::Register::RAX)]
+    #[case(Register::rbx, zydis::Register::RBX)]
+    #[case(Register::rcx, zydis::Register::RCX)]
+    #[case(Register::rdx, zydis::Register::RDX)]
+    #[case(Register::rsi, zydis::Register::RSI)]
+    #[case(Register::rdi, zydis::Register::RDI)]
+    #[case(Register::rbp, zydis::Register::RBP)]
+    #[case(Register::rsp, zydis::Register::RSP)]
+    #[case(Register::r8, zydis::Register::R8)]
+    #[case(Register::r9, zydis::Register::R9)]
+    #[case(Register::r10, zydis::Register::R10)]
+    #[case(Register::r11, zydis::Register::R11)]
+    #[case(Register::r12, zydis::Register::R12)]
+    #[case(Register::r13, zydis::Register::R13)]
+    #[case(Register::r14, zydis::Register::R14)]
+    #[case(Register::r15, zydis::Register::R15)]
+    #[case(Register::xmm0, zydis::Register::XMM0)]
+    #[case(Register::xmm1, zydis::Register::XMM1)]
+    #[case(Register::xmm2, zydis::Register::XMM2)]
+    #[case(Register::xmm3, zydis::Register::XMM3)]
+    #[case(Register::xmm4, zydis::Register::XMM4)]
+    #[case(Register::xmm5, zydis::Register::XMM5)]
+    #[case(Register::xmm6, zydis::Register::XMM6)]
+    #[case(Register::xmm7, zydis::Register::XMM7)]
+    #[case(Register::xmm8, zydis::Register::XMM8)]
+    #[case(Register::xmm9, zydis::Register::XMM9)]
+    #[case(Register::xmm10, zydis::Register::XMM10)]
+    #[case(Register::xmm11, zydis::Register::XMM11)]
+    #[case(Register::xmm12, zydis::Register::XMM12)]
+    #[case(Register::xmm13, zydis::Register::XMM13)]
+    #[case(Register::xmm14, zydis::Register::XMM14)]
+    #[case(Register::xmm15, zydis::Register::XMM15)]
+    #[case(Register::ymm0, zydis::Register::YMM0)]
+    #[case(Register::ymm1, zydis::Register::YMM1)]
+    #[case(Register::ymm2, zydis::Register::YMM2)]
+    #[case(Register::ymm3, zydis::Register::YMM3)]
+    #[case(Register::ymm4, zydis::Register::YMM4)]
+    #[case(Register::ymm5, zydis::Register::YMM5)]
+    #[case(Register::ymm6, zydis::Register::YMM6)]
+    #[case(Register::ymm7, zydis::Register::YMM7)]
+    #[case(Register::ymm8, zydis::Register::YMM8)]
+    #[case(Register::ymm9, zydis::Register::YMM9)]
+    #[case(Register::ymm10, zydis::Register::YMM10)]
+    #[case(Register::ymm11, zydis::Register::YMM11)]
+    #[case(Register::ymm12, zydis::Register::YMM12)]
+    #[case(Register::ymm13, zydis::Register::YMM13)]
+    #[case(Register::ymm14, zydis::Register::YMM14)]
+    #[case(Register::ymm15, zydis::Register::YMM15)]
+    #[case(Register::zmm0, zydis::Register::ZMM0)]
+    #[case(Register::zmm1, zydis::Register::ZMM1)]
+    #[case(Register::zmm2, zydis::Register::ZMM2)]
+    #[case(Register::zmm3, zydis::Register::ZMM3)]
+    #[case(Register::zmm4, zydis::Register::ZMM4)]
+    #[case(Register::zmm5, zydis::Register::ZMM5)]
+    #[case(Register::zmm6, zydis::Register::ZMM6)]
+    #[case(Register::zmm7, zydis::Register::ZMM7)]
+    #[case(Register::zmm8, zydis::Register::ZMM8)]
+    #[case(Register::zmm9, zydis::Register::ZMM9)]
+    #[case(Register::zmm10, zydis::Register::ZMM10)]
+    #[case(Register::zmm11, zydis::Register::ZMM11)]
+    #[case(Register::zmm12, zydis::Register::ZMM12)]
+    #[case(Register::zmm13, zydis::Register::ZMM13)]
+    #[case(Register::zmm14, zydis::Register::ZMM14)]
+    #[case(Register::zmm15, zydis::Register::ZMM15)]
+    fn to_zydis_test(#[case] register: Register, #[case] expected_zydis_reg: zydis::Register) {
+        assert_eq!(register.to_zydis(), expected_zydis_reg);
     }
 }
