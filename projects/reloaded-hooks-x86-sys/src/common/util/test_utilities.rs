@@ -8,7 +8,7 @@ pub fn str_to_vec(hex: String) -> Vec<u8> {
         .collect()
 }
 
-use core::{mem::size_of_val, slice};
+use core::mem::size_of_val;
 
 pub fn instruction_buffer_as_hex(buf: &[u8]) -> String {
     hex::encode(buf)

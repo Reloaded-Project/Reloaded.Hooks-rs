@@ -75,7 +75,7 @@ pub(crate) fn encode_stack_alloc_64(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{common::util::test_utilities::assert_encode, x64, x86};
+    use crate::common::util::test_utilities::assert_encode;
     use rstest::rstest;
 
     #[rstest]

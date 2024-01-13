@@ -29,9 +29,3 @@ pub(crate) fn opcode_offset_for_ymm_register_x86(register: x86::Register) -> u8 
 pub(crate) fn opcode_offset_for_zmm_register_x86(register: x86::Register) -> u8 {
     (register as u16).wrapping_sub(x86::Register::zmm0 as u16) as u8
 }
-
-// Helper function to create ModR/M byte
-#[inline]
-pub(crate) fn modrm_byte(mod_bits: u8, reg_bits: u8, rm_bits: u8) -> u8 {
-    (mod_bits << 6) | ((reg_bits & 0b111) << 3) | (rm_bits & 0b111)
-}

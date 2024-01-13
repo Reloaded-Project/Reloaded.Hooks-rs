@@ -5,9 +5,7 @@ use crate::common::jit_instructions::decode_relative_call_target::decode_call_ta
 use crate::instructions::call_absolute::encode_absolute_call_x86;
 use crate::instructions::call_relative::encode_call_relative;
 use crate::instructions::jump_absolute::encode_absolute_jump_x86;
-use crate::instructions::jump_absolute_indirect::{
-    encode_jump_absolute_indirect_x64, encode_jump_absolute_indirect_x86,
-};
+use crate::instructions::jump_absolute_indirect::encode_jump_absolute_indirect_x86;
 use crate::instructions::jump_relative::encode_jump_relative;
 use crate::instructions::mov::encode_mov_x86;
 use crate::instructions::mov_from_stack::encode_mov_from_stack_x86;
