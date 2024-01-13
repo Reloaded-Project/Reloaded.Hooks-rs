@@ -4,6 +4,7 @@ use alloc::string::ToString;
 use iced_x86::{Decoder, DecoderOptions, Instruction};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use smallvec::SmallVec;
+use zydis::{AllOperands, MachineMode, StackWidth};
 
 /// Retrieves the 'stolen' instructions from the provided code region.
 /// The 'stolen' instructions represent a minimum amount of code that needs to be
@@ -107,20 +108,25 @@ pub(crate) fn get_stolen_instructions_lengths(
     code: &[u8],
     ip: usize,
 ) -> Result<(u32, u32), CodeRewriterError> {
-    let mut decoder = Decoder::with_ip(
+    let mut dec = zydis::Decoder::new(
         if is_64bit & cfg!(feature = "x64") {
-            64
+            MachineMode::LONG_64
         } else if cfg!(feature = "x86") {
-            32
+            MachineMode::LONG_COMPAT_32
         } else {
-            0
+            unreachable!();
         },
-        code,
-        ip as u64,
-        DecoderOptions::NONE,
-    );
+        if is_64bit & cfg!(feature = "x64") {
+            StackWidth::_64
+        } else if cfg!(feature = "x86") {
+            StackWidth::_32
+        } else {
+            unreachable!();
+        },
+    )
+    .map_err(|e| CodeRewriterError::ThirdPartyAssemblerError(e.description().into()))?;
 
-    get_stolen_instructions_length_from_decoder(&mut decoder, code, min_bytes)
+    get_stolen_instructions_length_from_decoder(&mut dec, code, min_bytes, ip)
 }
 
 /// Retrieves the length of 'stolen' instructions using the provided decoder.
@@ -135,26 +141,25 @@ pub(crate) fn get_stolen_instructions_lengths(
 /// # Returns
 /// Either a tuple (ins_length_bytes, num_instructions) error or the length of the decoded instructions.
 pub(crate) fn get_stolen_instructions_length_from_decoder(
-    decoder: &mut Decoder,
+    decoder: &mut zydis::Decoder,
     code: &[u8],
     min_bytes: u8,
+    ip: usize,
 ) -> Result<(u32, u32), CodeRewriterError> {
     let required_bytes = min_bytes as u32;
     let mut total_bytes: u32 = 0;
     let mut total_instructions: u32 = 0;
 
-    let mut instr = Instruction::default();
-    while decoder.can_decode() {
-        decoder.decode_out(&mut instr);
-
-        if instr.is_invalid() {
-            return Err(CodeRewriterError::FailedToDisasm(
+    for dec in decoder.decode_all::<AllOperands>(code, ip as u64) {
+        // ip, insn_bytes, isn
+        let ins = dec.map_err(|_| {
+            CodeRewriterError::FailedToDisasm(
                 total_bytes.to_string(),
                 hex::encode(&code[total_bytes as usize..]),
-            ));
-        }
+            )
+        })?;
 
-        total_bytes += instr.len() as u32;
+        total_bytes += ins.1.len() as u32;
         total_instructions += 1;
         if total_bytes >= required_bytes {
             break;
