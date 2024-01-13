@@ -18,9 +18,9 @@ pub enum Register {
     st7,
 
     // 0b100000 - 0b111111
-    // General purpose 64-bit registers (16 registers, 16 reserved)
+    // General purpose 64-bit registers (16 registers, up to 64)
     #[default]
-    rax = 0b100000,
+    rax = 0b1000000,
     rcx,
     rdx,
     rbx,
@@ -37,8 +37,8 @@ pub enum Register {
     r14,
     r15,
 
-    // SSE 128-bit registers (16 registers, 48 reserved)
-    xmm0 = 0b1000000,
+    // SSE 128-bit registers (16 registers, up to 128)
+    xmm0 = 0b10000000,
     xmm1,
     xmm2,
     xmm3,
@@ -55,8 +55,8 @@ pub enum Register {
     xmm14,
     xmm15,
 
-    // AVX 256-bit registers (16 registers, 240 reserved)
-    ymm0 = 0b10000000,
+    // AVX 256-bit registers (16 registers, up to 256)
+    ymm0 = 0b100000000,
     ymm1,
     ymm2,
     ymm3,
@@ -73,8 +73,8 @@ pub enum Register {
     ymm14,
     ymm15,
 
-    // AVX-512 512-bit registers (16 registers, 496 reserved)
-    zmm0 = 0b100000000,
+    // AVX-512 512-bit registers (16 registers, up to 512)
+    zmm0 = 0b1000000000,
     zmm1,
     zmm2,
     zmm3,
@@ -94,19 +94,19 @@ pub enum Register {
 
 impl Register {
     pub fn is_64(&self) -> bool {
-        *self as usize & 0b100000 != 0
-    }
-
-    pub fn is_xmm(&self) -> bool {
         *self as usize & 0b1000000 != 0
     }
 
-    pub fn is_ymm(&self) -> bool {
+    pub fn is_xmm(&self) -> bool {
         *self as usize & 0b10000000 != 0
     }
 
-    pub fn is_zmm(&self) -> bool {
+    pub fn is_ymm(&self) -> bool {
         *self as usize & 0b100000000 != 0
+    }
+
+    pub fn is_zmm(&self) -> bool {
+        *self as usize & 0b1000000000 != 0
     }
 
     pub fn to_zydis(&self) -> zydis::Register {
@@ -114,13 +114,13 @@ impl Register {
 
         if base & 0b10000 != 0 {
             unsafe { transmute(zydis::Register::ST0 as u32 + (base - Register::st0 as u32)) }
-        } else if base & 0b100000 != 0 {
-            unsafe { transmute(zydis::Register::RAX as u32 + (base - Register::rax as u32)) }
         } else if base & 0b1000000 != 0 {
-            unsafe { transmute(zydis::Register::XMM0 as u32 + (base - Register::xmm0 as u32)) }
+            unsafe { transmute(zydis::Register::RAX as u32 + (base - Register::rax as u32)) }
         } else if base & 0b10000000 != 0 {
-            unsafe { transmute(zydis::Register::YMM0 as u32 + (base - Register::ymm0 as u32)) }
+            unsafe { transmute(zydis::Register::XMM0 as u32 + (base - Register::xmm0 as u32)) }
         } else if base & 0b100000000 != 0 {
+            unsafe { transmute(zydis::Register::YMM0 as u32 + (base - Register::ymm0 as u32)) }
+        } else if base & 0b1000000000 != 0 {
             unsafe { transmute(zydis::Register::ZMM0 as u32 + (base - Register::zmm0 as u32)) }
         } else {
             zydis::Register::NONE
@@ -132,11 +132,11 @@ impl RegisterInfo for Register {
     fn size_in_bytes(&self) -> usize {
         let value = *self as usize;
         match value {
-            _ if value & 0b10000 != 0 => 10,     // st0 - st7
-            _ if value & 0b100000 != 0 => 8,     // rax - r15
-            _ if value & 0b1000000 != 0 => 16,   // xmm0 - xmm15
-            _ if value & 0b10000000 != 0 => 32,  // ymm0 - ymm15
-            _ if value & 0b100000000 != 0 => 64, // zmm0 - zmm15
+            _ if value & 0b10000 != 0 => 10,      // st0 - st7
+            _ if value & 0b1000000 != 0 => 8,     // rax - r15
+            _ if value & 0b10000000 != 0 => 16,   // xmm0 - xmm15
+            _ if value & 0b100000000 != 0 => 32,  // ymm0 - ymm15
+            _ if value & 0b1000000000 != 0 => 64, // zmm0 - zmm15
             _ => unreachable!(), // Should never reach here if the enum is well-defined
         }
     }
@@ -149,10 +149,10 @@ impl RegisterInfo for Register {
         let value = *self as usize;
         match value {
             _ if value & 0b10000 != 0 => KnownRegisterType::FloatingPoint, // st0 - st7
-            _ if value & 0b100000 != 0 => KnownRegisterType::GeneralPurpose64, // rax - r15
-            _ if value & 0b1000000 != 0 => KnownRegisterType::Vector128,   // xmm0 - xmm15
-            _ if value & 0b10000000 != 0 => KnownRegisterType::Vector256,  // ymm0 - ymm15
-            _ if value & 0b100000000 != 0 => KnownRegisterType::Vector512, // zmm0 - zmm15
+            _ if value & 0b1000000 != 0 => KnownRegisterType::GeneralPurpose64, // rax - r15
+            _ if value & 0b10000000 != 0 => KnownRegisterType::Vector128,  // xmm0 - xmm15
+            _ if value & 0b100000000 != 0 => KnownRegisterType::Vector256, // ymm0 - ymm15
+            _ if value & 0b1000000000 != 0 => KnownRegisterType::Vector512, // zmm0 - zmm15
             _ => unreachable!(), // Should never reach here if the enum is well-defined
         }
     }
@@ -160,22 +160,22 @@ impl RegisterInfo for Register {
     fn extend(&self) -> Self {
         let mut value = *self as usize;
 
-        if value >= 0b100000000 {
+        if value >= 0b1000000000 {
             // zmm registers are already the largest in their category.
             return *self;
         }
 
-        if value & 0b10000000 != 0 {
+        if value & 0b100000000 != 0 {
             // If the register is a ymm register, extend it to a zmm register.
-            value ^= 0b10000000;
-            value |= 0b100000000;
+            value ^= 0b100000000;
+            value |= 0b1000000000;
             return unsafe { transmute(value as u16) };
         }
 
-        if value & 0b1000000 != 0 {
+        if value & 0b10000000 != 0 {
             // If the register is an xmm register, extend it to a zmm register.
-            value ^= 0b1000000;
-            value |= 0b100000000;
+            value ^= 0b10000000;
+            value |= 0b1000000000;
             return unsafe { transmute(value as u16) };
         }
 

@@ -1,65 +1,68 @@
 extern crate alloc;
 
-use crate::all_registers::AllRegisters;
-use crate::common::jit_common::X86jitError;
-use alloc::string::ToString;
-use iced_x86::code_asm::{qword_ptr, CodeAssembler};
-use reloaded_hooks_portable::api::jit::{compiler::JitError, operation_aliases::CallIpRel};
+use crate::{common::jit_common::X86jitError, x64::Register as x64Register};
+use alloc::vec::Vec;
+use core::ptr::write_unaligned;
+use reloaded_hooks_portable::api::jit::operation_aliases::CallIpRel;
 
 #[cfg(feature = "x64")]
-pub(crate) fn encode_call_ip_relative(
-    a: &mut CodeAssembler,
-    x: &CallIpRel<AllRegisters>,
-    address: usize,
-) -> Result<(), X86jitError<AllRegisters>> {
-    if a.bitness() == 32 {
-        return Err(JitError::ThirdPartyAssemblerError(
-            "Call IP Relative is only Supported on 64-bit!".to_string(),
-        )
-        .into());
+pub(crate) fn encode_call_ip_relative_x64(
+    x: &CallIpRel<x64Register>,
+    pc: &mut usize,
+    buf: &mut Vec<u8>,
+) -> Result<(), X86jitError<x64Register>> {
+    unsafe {
+        buf.reserve(6); // Reserve space for 6-bytes
+        let ptr = buf.as_mut_ptr().add(buf.len());
+
+        // Opcode & ModR/M byte
+        write_unaligned(ptr as *mut u16, 0x15FF_u16.to_le());
+
+        // Calculate relative offset (32-bit, signed)
+        let relative_offset = (x.target_address as i32)
+            .wrapping_sub((*pc + 6) as i32)
+            .to_le();
+
+        // Write the 32-bit relative offset as little-endian
+        write_unaligned(ptr.add(2) as *mut i32, relative_offset);
+
+        buf.set_len(buf.len() + 6); // Update buffer length
+        *pc += 6; // Update program counter by the length of the instruction
     }
 
-    let isns = a.instructions();
-    let current_ip = if !isns.is_empty() {
-        isns.last().unwrap().next_ip()
-    } else {
-        address as u64
-    };
-
-    let relative_offset = x.target_address.wrapping_sub(current_ip as usize);
-    a.call(qword_ptr(iced_x86::Register::RIP) + relative_offset as i32)?;
     Ok(())
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::x64::jit::JitX64;
-    use reloaded_hooks_portable::api::jit::{compiler::Jit, operation_aliases::*};
+    use super::*;
+    use crate::common::util::test_utilities::assert_encode;
+    use crate::common::util::test_utilities::assert_encode_with_initial_pc;
+    use rstest::rstest;
 
-    #[test]
-    fn call_rip_relative_x64() {
-        let operations = vec![Op::CallIpRelative(CallIpRel::new(0x16))];
-        let result = JitX64::compile(0, &operations);
-        assert!(result.is_ok());
-        assert_eq!("ff1510000000", hex::encode(result.unwrap()));
+    #[rstest]
+    #[case(16, "ff150a000000")]
+    fn test_encode_call_ip_relative_forward(
+        #[case] target_address: usize,
+        #[case] expected_encoded: &str,
+    ) {
+        let mut pc = 0;
+        let mut buf = Vec::new();
+        let call = CallIpRel::new(target_address);
+        encode_call_ip_relative_x64(&call, &mut pc, &mut buf).unwrap();
+        assert_encode(expected_encoded, &buf, pc);
     }
 
-    #[test]
-    fn call_rip_relative_backwards_x64() {
-        let operations = vec![Op::CallIpRelative(CallIpRel::new(16))];
-        let result = JitX64::compile(20, &operations);
-        assert!(result.is_ok());
-        assert_eq!("ff15e2ffffff", hex::encode(result.as_ref().unwrap()))
-    }
-
-    #[test]
-    fn call_rip_relative_two_instructions_x64() {
-        let operations = vec![
-            Op::StackAlloc(StackAlloc::new(10)),
-            Op::CallIpRelative(CallIpRel::new(16)),
-        ];
-        let result = JitX64::compile(20, &operations);
-        assert!(result.is_ok());
-        assert_eq!("4883ec0aff15f2ffffff", hex::encode(result.unwrap()));
+    #[rstest]
+    #[case(0, "ff15f0ffffff")]
+    fn test_encode_call_ip_relative_backward(
+        #[case] target_address: usize,
+        #[case] expected_encoded: &str,
+    ) {
+        let mut pc = 10;
+        let mut buf = Vec::new();
+        let call = CallIpRel::new(target_address);
+        encode_call_ip_relative_x64(&call, &mut pc, &mut buf).unwrap();
+        assert_encode_with_initial_pc(expected_encoded, &buf, 10, pc);
     }
 }

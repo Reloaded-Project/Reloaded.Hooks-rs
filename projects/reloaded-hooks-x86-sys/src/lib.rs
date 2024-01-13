@@ -54,9 +54,6 @@ pub(crate) mod common {
 
     pub mod jit_instructions {
         pub mod decode_relative_call_target;
-        pub mod encode_absolute_jump;
-        pub mod encode_relative_call;
-        pub mod encode_relative_jump;
         pub(crate) mod helpers;
     }
 
@@ -76,14 +73,9 @@ pub(crate) mod instructions {
     pub mod jump_absolute_indirect;
     pub mod jump_ip_relative;
     pub mod jump_relative;
-    pub mod macros;
     pub mod mov;
     pub mod mov_from_stack;
     pub mod mov_to_stack;
-    #[cfg(target_feature = "multipushpop")]
-    pub mod multi_pop;
-    #[cfg(target_feature = "multipushpop")]
-    pub mod multi_push;
     pub mod pop;
     pub mod push;
     pub mod push_const;
@@ -91,9 +83,4 @@ pub(crate) mod instructions {
     pub mod ret;
     pub mod stack_alloc;
     pub mod xchg;
-}
-
-/// This namespace contains the code for encoding the JIT instructions
-pub(crate) mod instructions_zd {
-    pub mod push;
 }

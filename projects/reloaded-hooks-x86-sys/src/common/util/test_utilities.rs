@@ -14,21 +14,13 @@ pub fn instruction_buffer_as_hex(buf: &[u8]) -> String {
     hex::encode(buf)
 }
 
-pub fn instruction_buffer_as_hex_u8(buf: &[u8]) -> String {
-    let ptr = buf.as_ptr();
-    unsafe {
-        let as_u8 = slice::from_raw_parts(ptr, size_of_val(buf));
-        hex::encode(as_u8)
-    }
-}
-
 pub fn assert_encode(expected_hex: &str, buf: &[u8], pc: usize) {
     assert_eq!(expected_hex, instruction_buffer_as_hex(buf));
     assert_eq!(buf.len() * size_of_val(&buf[0]), pc);
 }
 
 pub fn assert_encode_with_initial_pc(expected_hex: &str, buf: &[u8], initial_pc: usize, pc: usize) {
-    assert_encode(expected_hex, buf, pc - initial_pc);
+    assert_encode(expected_hex, buf, pc.wrapping_sub(initial_pc));
 }
 
 /// Macro to assert a specific type of error result from a function call.

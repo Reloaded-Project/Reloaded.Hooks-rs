@@ -1,24 +1,33 @@
 // JIT for x64
 extern crate alloc;
 
-use crate::common::jit_common::encode_instruction;
-use crate::common::jit_conversions_common::{
-    map_allregisters_to_x64, map_register_x64_to_allregisters,
-};
 use crate::common::jit_instructions::decode_relative_call_target::decode_call_target;
-use crate::common::jit_instructions::encode_absolute_jump::encode_absolute_jump_x64;
-use crate::common::jit_instructions::encode_relative_call::encode_call_relative;
-use crate::common::jit_instructions::encode_relative_jump::encode_jump_relative;
+use crate::instructions::call_absolute::encode_absolute_call_x64;
+use crate::instructions::call_ip_relative::encode_call_ip_relative_x64;
+use crate::instructions::call_relative::encode_call_relative;
+use crate::instructions::jump_absolute::encode_absolute_jump_x64;
+use crate::instructions::jump_absolute_indirect::encode_jump_absolute_indirect_x64;
+use crate::instructions::jump_ip_relative::encode_jump_ip_relative_x64;
+use crate::instructions::jump_relative::encode_jump_relative;
+use crate::instructions::mov::encode_mov_x64;
+use crate::instructions::mov_from_stack::encode_mov_from_stack_x64;
+use crate::instructions::mov_to_stack::encode_mov_to_stack_x64;
+use crate::instructions::pop::encode_pop_64;
+use crate::instructions::push::encode_push_64;
+use crate::instructions::push_const::encode_push_constant_x64;
+use crate::instructions::push_stack::encode_push_stack_x64;
+use crate::instructions::ret::encode_return;
+use crate::instructions::stack_alloc::encode_stack_alloc_64;
+use crate::instructions::xchg::encode_xchg_x64;
 use crate::x64::register::Register;
-use alloc::{string::ToString, vec::Vec};
-use iced_x86::code_asm::CodeAssembler;
+use alloc::vec::Vec;
 use reloaded_hooks_portable::api::jit::call_relative_operation::CallRelativeOperation;
 use reloaded_hooks_portable::api::jit::compiler::{DecodeCallTargetResult, Jit};
 use reloaded_hooks_portable::api::jit::jump_absolute_operation::JumpAbsoluteOperation;
 use reloaded_hooks_portable::api::jit::jump_relative_operation::JumpRelativeOperation;
 use reloaded_hooks_portable::api::jit::{
-    compiler::{transform_err, JitCapabilities, JitError},
-    operation::{transform_op, Operation},
+    compiler::{JitCapabilities, JitError},
+    operation::Operation,
 };
 
 pub struct JitX64 {}
@@ -29,18 +38,9 @@ impl Jit<Register> for JitX64 {
         address: usize,
         operations: &[Operation<Register>],
     ) -> Result<Vec<u8>, JitError<Register>> {
-        // Initialize Assembler
-        let mut a = CodeAssembler::new(64)
-            .map_err(|x| JitError::CannotInitializeAssembler(x.to_string()))?;
-
-        // Encode every instruction.
-        for operation in operations {
-            encode_instruction_x64(&mut a, operation, address)?;
-        }
-
-        // Assemble those damn instructions
-        a.assemble(address as u64)
-            .map_err(|x| JitError::CannotInitializeAssembler(x.to_string()))
+        let mut vec = Vec::with_capacity(operations.len() * 4);
+        Self::compile_with_buf(address, operations, &mut vec)?;
+        Ok(vec)
     }
 
     fn compile_with_buf(
@@ -48,21 +48,11 @@ impl Jit<Register> for JitX64 {
         operations: &[Operation<Register>],
         buf: &mut Vec<u8>,
     ) -> Result<(), JitError<Register>> {
-        // Initialize Assembler
-        let mut a = CodeAssembler::new(64)
-            .map_err(|x| JitError::CannotInitializeAssembler(x.to_string()))?;
-
         // Encode every instruction.
+        let mut pc = address;
         for operation in operations {
-            encode_instruction_x64(&mut a, operation, address)?;
+            encode_instruction_x64(operation, &mut pc, buf)?;
         }
-
-        // Assemble those damn instructions
-        let result = a
-            .assemble(address as u64)
-            .map_err(|x| JitError::CannotInitializeAssembler(x.to_string()))?;
-
-        buf.extend(result);
         Ok(())
     }
 
@@ -128,10 +118,10 @@ impl Jit<Register> for JitX64 {
 
     fn encode_abs_jump(
         x: &JumpAbsoluteOperation<Register>,
-        _pc: &mut usize,
+        pc: &mut usize,
         buf: &mut Vec<u8>,
     ) -> Result<(), JitError<Register>> {
-        encode_absolute_jump_x64(x, buf)
+        encode_absolute_jump_x64(x, pc, buf)
     }
 
     fn max_standard_relative_call_distance() -> usize {
@@ -147,15 +137,32 @@ impl Jit<Register> for JitX64 {
     }
 }
 
-fn encode_instruction_x64(
-    assembler: &mut CodeAssembler,
+pub(crate) fn encode_instruction_x64(
     operation: &Operation<Register>,
-    address: usize,
+    pc: &mut usize,
+    buf: &mut Vec<u8>,
 ) -> Result<(), JitError<Register>> {
-    let all_register_op = transform_op(operation.clone(), |x: Register| {
-        map_register_x64_to_allregisters(x)
-    });
+    match operation {
+        Operation::Mov(x) => Ok(encode_mov_x64(x, pc, buf)?),
+        Operation::MovFromStack(x) => Ok(encode_mov_from_stack_x64(x, pc, buf)?),
+        Operation::Push(x) => Ok(encode_push_64(x, pc, buf)?),
+        Operation::PushStack(x) => Ok(encode_push_stack_x64(x, pc, buf)?),
+        Operation::StackAlloc(x) => Ok(encode_stack_alloc_64(x, pc, buf)?),
+        Operation::Pop(x) => Ok(encode_pop_64(x, pc, buf)?),
+        Operation::Xchg(x) => Ok(encode_xchg_x64(x, pc, buf)?),
+        Operation::CallRelative(x) => Ok(encode_call_relative(x, pc, buf)?),
+        Operation::CallAbsolute(x) => Ok(encode_absolute_call_x64(x, pc, buf)?),
+        Operation::JumpRelative(x) => Ok(encode_jump_relative(x, pc, buf)?),
+        Operation::JumpAbsolute(x) => Ok(encode_absolute_jump_x64(x, pc, buf)?),
+        Operation::JumpAbsoluteIndirect(x) => Ok(encode_jump_absolute_indirect_x64(x, pc, buf)?),
+        Operation::MovToStack(x) => Ok(encode_mov_to_stack_x64(x, pc, buf)?),
+        Operation::PushConst(x) => Ok(encode_push_constant_x64(x, pc, buf)?),
+        Operation::Return(x) => Ok(encode_return(x, pc, buf)?),
 
-    encode_instruction(assembler, &all_register_op, address)
-        .map_err(|x| transform_err(x, map_allregisters_to_x64))
+        // x64 only
+        Operation::CallIpRelative(x) => Ok(encode_call_ip_relative_x64(x, pc, buf)?),
+        Operation::JumpIpRelative(x) => Ok(encode_jump_ip_relative_x64(x, pc, buf)?),
+
+        _ => unreachable!(),
+    }
 }
