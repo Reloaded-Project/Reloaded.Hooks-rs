@@ -4,7 +4,9 @@ use alloc::string::ToString;
 use iced_x86::{Decoder, DecoderOptions, Instruction};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use smallvec::SmallVec;
-use zydis::{AllOperands, MachineMode, StackWidth};
+use zydis::{MachineMode, StackWidth, VisibleOperands};
+
+pub type ZydisInstruction = zydis::Instruction<VisibleOperands>;
 
 /// Retrieves the 'stolen' instructions from the provided code region.
 /// The 'stolen' instructions represent a minimum amount of code that needs to be
@@ -150,7 +152,7 @@ pub(crate) fn get_stolen_instructions_length_from_decoder(
     let mut total_bytes: u32 = 0;
     let mut total_instructions: u32 = 0;
 
-    for dec in decoder.decode_all::<AllOperands>(code, ip as u64) {
+    for dec in decoder.decode_all::<VisibleOperands>(code, ip as u64) {
         // ip, insn_bytes, isn
         let ins = dec.map_err(|_| {
             CodeRewriterError::FailedToDisasm(

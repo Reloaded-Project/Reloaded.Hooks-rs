@@ -257,6 +257,8 @@ pub(crate) fn encode_mov_from_stack_x64(
     pc: &mut usize,
     buf: &mut Vec<u8>,
 ) -> Result<(), X86jitError<x64Register>> {
+    use crate::common::traits::ToZydis;
+
     let offset = x.stack_offset as i64;
 
     if x.target.is_64() {

@@ -129,6 +129,8 @@ pub(crate) fn encode_pop_64(
     pc: &mut usize,
     buf: &mut Vec<u8>,
 ) -> Result<(), X86jitError<x64::Register>> {
+    use crate::common::traits::ToZydis;
+
     if x.register.is_64() {
         *pc += EncoderRequest::new64(POP)
             .add_operand(x.register.to_zydis())

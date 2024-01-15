@@ -132,6 +132,8 @@ pub(crate) fn encode_mov_x64(
 ) -> Result<(), X86jitError<x64Register>> {
     use reloaded_hooks_portable::api::jit::compiler::JitError;
 
+    use crate::common::traits::ToZydis;
+
     if mov.target.is_64() && mov.source.is_64() {
         *pc += EncoderRequest::new64(MOV)
             .add_operand(mov.target.to_zydis())

@@ -43,6 +43,8 @@ pub(crate) mod common {
 
         #[cfg(test)]
         pub(crate) mod test_utilities;
+
+        pub mod zydis_decoder_result;
     }
 
     pub mod rewriter {
@@ -50,6 +52,20 @@ pub(crate) mod common {
 
         #[cfg(feature = "x64")]
         pub mod patches;
+    }
+
+    pub mod rewriter_zd {
+        pub mod patches {
+            pub mod conditional_branch;
+            pub mod jcxz;
+            pub mod r#loop;
+            pub mod loope;
+            pub mod loopne;
+            pub mod relative_branch;
+
+            #[cfg(feature = "x64")]
+            pub mod rip_relative_instruction;
+        }
     }
 
     pub mod jit_instructions {
@@ -62,6 +78,7 @@ pub(crate) mod common {
     #[allow(dead_code)]
     #[cfg(not(tarpaulin_include))]
     pub mod jit_conversions_common;
+    pub(crate) mod traits;
 }
 
 /// This namespace contains the code for encoding the JIT instructions

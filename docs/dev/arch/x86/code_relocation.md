@@ -126,11 +126,10 @@ The strategy used depends on the original instruction.
 **Original**: (`E2 FA`)  
 - `loop -3`  
 
-**Relocated**: (`50 E2 02 EB 0C 48 B8 FD 0F 00 80 00 00 00 00 FF E0`)  
-- `push rax`  
+**Relocated**: (`E2 02 EB 0C 48 B8 FD 0F 00 80 00 00 00 00 FF E0`)  
 - `loop +2`  
 - `jmp 0x11`  
-- `movabs rax, 0x80000ffd`  
+- `movabs rax, 0x80000ffd`
 - `jmp rax`  
 
 ```rust

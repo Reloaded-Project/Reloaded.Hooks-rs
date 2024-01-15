@@ -177,6 +177,8 @@ pub(crate) fn encode_xchg_x64(
     pc: &mut usize,
     buf: &mut Vec<u8>,
 ) -> Result<(), X86jitError<x64Register>> {
+    use crate::common::traits::ToZydis;
+
     if xchg.register1.is_64() && xchg.register2.is_64() {
         *pc += EncoderRequest::new64(XCHG)
             .add_operand(xchg.register1.to_zydis())

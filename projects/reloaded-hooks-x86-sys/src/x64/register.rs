@@ -2,6 +2,8 @@ use core::mem::transmute;
 use derive_enum_all_values::AllValues;
 use reloaded_hooks_portable::api::traits::register_info::{KnownRegisterType, RegisterInfo};
 
+use crate::common::traits::ToZydis;
+
 /// Defines a full size x64 register, used in specifying custom calling conventions.
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Default, AllValues)]
@@ -108,8 +110,10 @@ impl Register {
     pub fn is_zmm(&self) -> bool {
         *self as usize & 0b1000000000 != 0
     }
+}
 
-    pub fn to_zydis(&self) -> zydis::Register {
+impl ToZydis for Register {
+    fn to_zydis(&self) -> zydis::Register {
         let base = *self as u32;
 
         if base & 0b10000 != 0 {

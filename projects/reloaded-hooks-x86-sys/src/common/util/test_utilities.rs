@@ -8,7 +8,13 @@ pub fn str_to_vec(hex: String) -> Vec<u8> {
         .collect()
 }
 
-use core::mem::size_of_val;
+use super::get_stolen_instructions::ZydisInstruction;
+use core::{mem::size_of_val, ops::Sub};
+use reloaded_hooks_portable::api::{
+    rewriter::code_rewriter::{CodeRewriter, CodeRewriterError},
+    traits::register_info::RegisterInfo,
+};
+use zydis::{Decoder, MachineMode, StackWidth, VisibleOperands};
 
 pub fn instruction_buffer_as_hex(buf: &[u8]) -> String {
     hex::encode(buf)
@@ -85,4 +91,107 @@ macro_rules! assert_error {
         assert_eq!($expected_pc, $pc);
         assert_eq!($expected_buf_len, $buf.len());
     };
+}
+
+pub(crate) fn test_relocate_instruction<TRegister>(
+    instructions: String,
+    old_address: usize,
+    new_address: usize,
+    expected: String,
+    scratch_reg: Option<TRegister>,
+    is_64bit: bool,
+    relocate_func: fn(
+        &ZydisInstruction,
+        &[u8],
+        &mut usize,
+        &mut usize,
+        Option<TRegister>,
+        &mut Vec<u8>,
+    ) -> Result<(), CodeRewriterError>,
+) {
+    // Remove spaces and convert the string to a vector of bytes
+    let dec = Decoder::new(
+        if is_64bit & cfg!(feature = "x64") {
+            MachineMode::LONG_64
+        } else if cfg!(feature = "x86") {
+            MachineMode::LONG_COMPAT_32
+        } else {
+            unreachable!();
+        },
+        if is_64bit & cfg!(feature = "x64") {
+            StackWidth::_64
+        } else if cfg!(feature = "x86") {
+            StackWidth::_32
+        } else {
+            unreachable!();
+        },
+    )
+    .unwrap();
+
+    let hex_bytes: Vec<u8> = str_to_vec(instructions);
+    let ins = dec
+        .decode_all::<VisibleOperands>(&hex_bytes, old_address as u64)
+        .next()
+        .unwrap()
+        .unwrap();
+
+    let mut pc = old_address;
+    let mut dest_address = new_address;
+    let mut result = Vec::new();
+    relocate_func(
+        &ins.2,
+        ins.1,
+        &mut dest_address,
+        &mut pc,
+        scratch_reg,
+        &mut result,
+    )
+    .unwrap();
+
+    // Verify we encoded the correct data.
+    assert_eq!(hex::encode(&result), expected);
+
+    // Check we have advanced destination correctly.
+    assert_eq!(result.len(), dest_address.sub(new_address));
+
+    // Check we have advanced PC correctly.
+    assert_eq!(hex_bytes.len(), pc.sub(old_address));
+}
+
+pub(crate) fn test_rewrite_code_with_buffer<
+    TCodeRewriter: CodeRewriter<TRegister>,
+    TRegister: RegisterInfo,
+>(
+    instructions: String,
+    old_address: usize,
+    new_address: usize,
+    expected: String,
+    scratch_reg: Option<TRegister>,
+) {
+    // Convert the string of instructions to a vector of bytes
+    let hex_bytes: Vec<u8> = str_to_vec(instructions);
+    let old_code_size = hex_bytes.len();
+
+    // Create a buffer for the rewritten code
+    let mut existing_buffer: Vec<u8> = Vec::new();
+
+    // Call rewrite_code_with_buffer
+    let result = unsafe {
+        TCodeRewriter::rewrite_code_with_buffer(
+            hex_bytes.as_ptr(),
+            old_code_size,
+            old_address,
+            new_address,
+            scratch_reg,
+            &mut existing_buffer,
+        )
+    };
+
+    // Assert that the operation was successful
+    assert!(result.is_ok());
+
+    // Verify the rewritten code matches the expected output
+    assert_eq!(hex::encode(&existing_buffer), expected);
+
+    // Additional assertions can be added if necessary
 }

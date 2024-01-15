@@ -19,7 +19,7 @@ pub trait CodeRewriter<TRegister> {
     /// # Parameters
     ///
     /// * `old_code`: A pointer to the start of the original block of code.
-    /// * `old_code_size`: Amount of bytes to rewrite.
+    /// * `old_code_size`: Amount of bytes to rewrite. This must not contain any partial instructions.
     /// * `old_address`: The address to assume as the source location of the old code.
     /// * `new_address`: The new address for the instructions.
     /// * `scratch_register`
