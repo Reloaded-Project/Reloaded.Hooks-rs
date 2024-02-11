@@ -23,7 +23,11 @@ smallvec = { version = "1.11.0", features = ["const_new"] }
 reloaded-hooks-portable = { path = "../reloaded-hooks-portable" }
 hex = "0.4.3"
 derive_more = { version = "0.99.17", default-features = false, features = ["deref", "deref_mut"] }
-zydis = { version = "4.1.0", default-features = false, features = ["encoder"] }
+
+[dependencies.zydis]
+zydis = "4.0.0-beta.4"
+features = ["encoder"]
+path = "../../submodules/zydis-rs"
 
 [dependencies.iced-x86]
 version = "=1.16.0" # due to bug https://github.com/icedland/iced/issues/498
