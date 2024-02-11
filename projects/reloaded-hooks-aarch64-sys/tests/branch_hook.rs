@@ -4,7 +4,7 @@
 
 mod asm;
 
-//#[cfg(target_arch = "aarch64")]
+#[cfg(target_arch = "aarch64")]
 mod tests {
     use crate::asm;
     use crate::asm::calculator::Add;
