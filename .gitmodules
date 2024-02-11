@@ -1,6 +1,3 @@
 [submodule "docs/Reloaded"]
 	path = docs/Reloaded
 	url = https://github.com/Reloaded-Project/Reloaded.MkDocsMaterial.Themes.R2.git
-[submodule "submodules/zydis-rs"]
-	path = submodules/zydis-rs
-	url = https://github.com/Sewer56/zydis-rs.git
