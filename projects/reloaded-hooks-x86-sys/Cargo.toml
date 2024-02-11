@@ -30,7 +30,7 @@ features = ["encoder"]
 path = "../../submodules/zydis-rs"
 
 [dependencies.iced-x86]
-version = "=1.16.0" # due to bug https://github.com/icedland/iced/issues/498
+version = "=1.21.0" # due to bug https://github.com/icedland/iced/issues/498
 default-features = false
 # See below for all features
 features = ["no_std", "code_asm", "decoder"]
