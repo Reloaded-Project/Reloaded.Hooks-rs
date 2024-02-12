@@ -14,6 +14,7 @@ mod tests {
     use crate::asm::calculator::CALL_CALCULATOR_ADD_MSFT_X64_TARGET_FUNCTION_OFFSET;
     use asm::assemble_function::alloc_function;
     use core::mem::transmute;
+    use core::ptr::addr_of_mut;
     use reloaded_hooks_buffers_common::buffer::StaticLinkedBuffer;
     use reloaded_hooks_buffers_common::buffer_factory::BuffersFactory;
     use reloaded_hooks_portable::api::hooks::branch::branch_hook_fast::create_branch_hook_fast_with_pointer;
@@ -43,7 +44,7 @@ mod tests {
                 Some(x64::Register::r8),
             );
 
-            let test_addr_ptr: *mut usize = transmute(&MAIN_TEST_ADDR);
+            let test_addr_ptr = addr_of_mut!(MAIN_TEST_ADDR) as *mut usize;
             create_branch_hook_fast_with_pointer::<
                 JitX64,
                 x64::Register,
@@ -79,7 +80,7 @@ mod tests {
                 Some(x64::Register::r8),
             );
 
-            let test_addr_ptr: *mut usize = transmute(&MAIN_TEST_ADDR);
+            let test_addr_ptr = addr_of_mut!(MAIN_TEST_ADDR) as *mut usize;
             create_branch_hook_fast_with_pointer::<
                 JitX64,
                 x64::Register,
