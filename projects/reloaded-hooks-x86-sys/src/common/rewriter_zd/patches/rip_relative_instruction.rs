@@ -4,6 +4,7 @@ use crate::common::traits::ToZydis;
 use crate::common::util::get_stolen_instructions::ZydisInstruction;
 use crate::x64;
 use alloc::vec::Vec;
+use iced_x86::Register;
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use zydis::ffi::{DecodedOperand, DecodedOperandKind, ImmediateInfo};
 use zydis::Mnemonic::MOV;
@@ -553,11 +554,7 @@ fn patch_op_op_riprel_op<
 }
 
 #[allow(clippy::too_many_arguments)]
-fn patch_op_op_op_riprel<
-    TOperand: Into<EncoderOperand>,
-    TOperand2: Into<EncoderOperand>,
-    TOperand3: Into<EncoderOperand>,
->(
+fn patch_op_op_op_riprel<TOperand: Into<EncoderOperand>, TOperand2: Into<EncoderOperand>>(
     instruction: &ZydisInstruction,
     dest_address: &mut usize,
     source_address: &mut usize, // pc (eip/rip)
@@ -566,7 +563,7 @@ fn patch_op_op_op_riprel<
     riprel: &DecodedOperand,
     op: TOperand,
     op_2: TOperand2,
-    op_3: TOperand3,
+    op_3: zydis::Register,
 ) -> Result<(), ZydisRewriterError> {
     let zydis_reg = patch_common(
         instruction,
@@ -581,7 +578,7 @@ fn patch_op_op_op_riprel<
     *dest_address += EncoderRequest::new64(instruction.mnemonic)
         .add_operand(op)
         .add_operand(op_2)
-        .add_operand(op_3)
+        .add_operand(EncoderOperand::reg_is4(op_3, true))
         .add_operand(make_mem_operand(zydis_reg, riprel))
         .encode_extend(buf)?;
 
@@ -667,7 +664,7 @@ mod tests {
     // 4 Operands:
     // - reg, reg, rip, imm patch_op_op_riprel_op
     #[case::vcmpps("c5ecc20d0800000004", 0x100000000, 0, "48b81100000001000000c5ecc20804")]
-    // vaddpd ymm1, ymm2, [rip + 8] -> mov rax, 0x100000010 + vaddpd ymm1, ymm2, [rax]
+    // vcmpps ymm1, ymm2, ymmword ptr [rip+0x08], 0x04 -> mov rax, 0x100000011 + vcmpps ymm1, ymm2, ymmword ptr ds:[rax], 0x04
     // - reg, reg, reg, rip patch_op_op_op_riprel
     #[case::vfnmaddpd(
         "c4e3e95c0d0800000030",
