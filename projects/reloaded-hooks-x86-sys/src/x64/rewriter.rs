@@ -34,7 +34,7 @@ impl CodeRewriter<Register> for CodeRewriterX64 {
         let mut pc: usize = old_address;
         let mut dest_address = new_address;
 
-        for ins in dec.decode_all::<VisibleOperands>(&hex_bytes, old_address as u64) {
+        for ins in dec.decode_all::<VisibleOperands>(hex_bytes, old_address as u64) {
             // Fail fast on any error
             if ins.is_err() {
                 return Err(fail_fast(hex_bytes, pc, orig_pc));

@@ -56,7 +56,7 @@ pub mod tests {
 
     #[test]
     fn find_pop_for_given_push_basic() {
-        let ops = vec![
+        let ops = [
             Operation::Push(Push { register: R1 }),
             Operation::PushStack(PushStack::with_offset_and_size(4, 4)),
             Operation::Pop(Pop { register: R1 }),
@@ -70,7 +70,7 @@ pub mod tests {
 
     #[test]
     fn find_pop_for_given_push_no_matching_pop() {
-        let ops = vec![
+        let ops = [
             Operation::Push(Push { register: R1 }),
             Operation::PushStack(PushStack::with_offset_and_size(4, 8)),
             Operation::Push(Push { register: R2 }),
@@ -83,7 +83,7 @@ pub mod tests {
 
     #[test]
     fn find_pop_for_given_push_missing_just_one_pop() {
-        let ops = vec![
+        let ops = [
             Operation::Push(Push { register: R1 }),
             Operation::PushStack(PushStack::with_offset_and_size(4, 4)),
             Operation::Pop(Pop { register: R1 }),

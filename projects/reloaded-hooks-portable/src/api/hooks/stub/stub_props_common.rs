@@ -179,7 +179,7 @@ impl StubPackedProps {
     }
 }
 
-/// Allocates memory and copies data from a Vec<u8> into it.
+/// Allocates memory and copies data from a slice into it.
 ///
 /// # Arguments
 ///
@@ -194,7 +194,7 @@ impl StubPackedProps {
 /// The caller is responsible for ensuring that the allocated memory is freed
 /// when no longer needed. This function uses `libc::malloc`, so the memory
 /// must be freed with `libc::free`.
-pub unsafe fn alloc_and_copy_packed_props(data: &Vec<u8>) -> NonNull<StubPackedProps> {
+pub unsafe fn alloc_and_copy_packed_props(data: &[u8]) -> NonNull<StubPackedProps> {
     let size = data.len();
     let ptr = libc::malloc(size) as *mut u8;
 
