@@ -93,6 +93,7 @@ macro_rules! assert_error {
     };
 }
 
+#[allow(clippy::type_complexity)]
 pub(crate) fn test_relocate_instruction<TRegister>(
     instructions: String,
     old_address: usize,

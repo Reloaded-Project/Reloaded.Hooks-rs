@@ -10,10 +10,10 @@ use zydis::Mnemonic::MOV;
 use zydis::Register::RIP;
 use zydis::{EncoderOperand, EncoderRequest, Status};
 
-/// Patch a relative branch instruction from an older address to a new address.
-/// [Docs](https://reloaded-project.github.io/Reloaded.Hooks-rs/dev/arch/x86/code_relocation/#jump-conditional)
+/// Patches any RIP relative operands in the instruction.
+/// If the instruction is not RIP relative, it is copied as is.
 #[cfg(feature = "x64")]
-pub(crate) fn patch_rip_relative_64(
+pub(crate) fn patch_rip_relative_64_or_copyraw(
     instruction: &ZydisInstruction,
     instruction_bytes: &[u8],
     dest_address: &mut usize,
@@ -852,7 +852,7 @@ mod tests {
             expected,
             Some(x64::Register::rax),
             true,
-            patch_rip_relative_64, // the function being tested
+            patch_rip_relative_64_or_copyraw, // the function being tested
         );
     }
 }

@@ -2,9 +2,7 @@ extern crate alloc;
 
 use alloc::string::ToString;
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
-use smallvec::SmallVec;
 use zydis::{MachineMode, StackWidth, VisibleOperands};
-
 pub type ZydisInstruction = zydis::Instruction<VisibleOperands>;
 
 /// Retrieves the length of 'stolen' instructions from the provided code region.

@@ -1,5 +1,3 @@
-use reloaded_hooks_portable::api::jit::compiler::JitError;
-
 /// Defines a full-size register, accommodating both x86 and x64 architectures.
 #[allow(non_camel_case_types)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

@@ -68,6 +68,7 @@ impl CodeRewriter<Register> for CodeRewriterX86 {
                         false,
                     )?;
                 }
+                // Conditional Branch
                 JO | JNO | JB | JNB | JZ | JNZ | JBE | JNBE | JS | JNS | JP | JNP | JL | JNL
                 | JLE | JNLE => {
                     patch_conditional_branch_32(
@@ -119,7 +120,7 @@ impl CodeRewriter<Register> for CodeRewriterX86 {
                         existing_buffer,
                     )?;
                 }
-                // Conditional Branch
+                // Everything else
                 _ => {
                     pc += ins.instruction_bytes.len();
                     dest_address += ins.instruction_bytes.len();

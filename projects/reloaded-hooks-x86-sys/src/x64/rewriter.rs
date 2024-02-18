@@ -6,6 +6,7 @@ use crate::common::{
         conditional_branch::patch_conditional_branch_64, jcxz::patch_jcxz_64,
         loope::patch_loope_64, loopne::patch_loopne_64, r#loop::patch_loop_64,
         relative_branch::patch_relative_branch_64,
+        rip_relative_instruction::patch_rip_relative_64_or_copyraw,
     },
     util::zydis_decoder_result::ZydisDecoderResult,
 };
@@ -68,6 +69,7 @@ impl CodeRewriter<Register> for CodeRewriterX64 {
                         false,
                     )?;
                 }
+                // Conditional Branch
                 JO | JNO | JB | JNB | JZ | JNZ | JBE | JNBE | JS | JNS | JP | JNP | JL | JNL
                 | JLE | JNLE => {
                     patch_conditional_branch_64(
@@ -119,11 +121,16 @@ impl CodeRewriter<Register> for CodeRewriterX64 {
                         existing_buffer,
                     )?;
                 }
-                // Conditional Branch
+                // Everything else
                 _ => {
-                    pc += ins.instruction_bytes.len();
-                    dest_address += ins.instruction_bytes.len();
-                    existing_buffer.extend_from_slice(ins.instruction_bytes);
+                    patch_rip_relative_64_or_copyraw(
+                        &ins.instruction,
+                        ins.instruction_bytes,
+                        &mut dest_address,
+                        &mut pc,
+                        scratch_register,
+                        existing_buffer,
+                    )?;
                 }
             }
         }
