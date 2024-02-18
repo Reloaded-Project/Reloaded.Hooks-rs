@@ -52,12 +52,12 @@ pub(crate) fn patch_rip_relative_64(
     // - reg, rip, reg    patch_op_riprel_op
     //
     // 4 Operands:
-    // - reg, reg, rip, imm patch_op_op_riprel_op
-    // - reg, reg, reg, rip patch_op_op_op_riprel
+    // - reg, reg, rip, imm patch_op_op_riprel_op [XOP Instructions, Deprecated in modern CPUS]
+    // - reg, reg, reg, rip patch_op_op_op_riprel [XOP Instructions, Deprecated in modern CPUS]
     //
     // 5 Operands:
-    // - reg, reg, reg, rip, imm patch_op_op_op_riprel_op
-    // - reg, reg, rip, reg, imm patch_op_op_riprel_op_op
+    // - reg, reg, reg, rip, imm patch_op_op_op_riprel_op [XOP Instructions, Deprecated in modern CPUS]
+    // - reg, reg, rip, reg, imm patch_op_op_riprel_op_op [XOP Instructions, Deprecated in modern CPUS]
 
     // common code: mov [scratch], address
     let scratch = scratch_register.ok_or_else(|| {
@@ -83,7 +83,7 @@ pub(crate) fn patch_rip_relative_64(
                         source_address,
                         scratch?,
                         buf,
-                        &instruction.operands()[0],
+                        op_0,
                         *reg,
                     )?;
                     return Ok(());
@@ -96,7 +96,7 @@ pub(crate) fn patch_rip_relative_64(
                         source_address,
                         scratch?,
                         buf,
-                        &instruction.operands()[0],
+                        op_0,
                         imm.clone().value,
                     )?;
                     return Ok(());
@@ -115,7 +115,7 @@ pub(crate) fn patch_rip_relative_64(
                     source_address,
                     scratch?,
                     buf,
-                    &instruction.operands()[1],
+                    op_1,
                     *reg,
                 )?;
                 return Ok(());
@@ -144,7 +144,7 @@ pub(crate) fn patch_rip_relative_64(
                         source_address,
                         scratch?,
                         buf,
-                        &instruction.operands()[0],
+                        op_0,
                         *reg,
                         imm.clone().value,
                     )?;
@@ -159,7 +159,7 @@ pub(crate) fn patch_rip_relative_64(
                         source_address,
                         scratch?,
                         buf,
-                        &instruction.operands()[0],
+                        op_0,
                         *reg,
                         *reg2,
                     )?;
@@ -179,7 +179,7 @@ pub(crate) fn patch_rip_relative_64(
                         source_address,
                         scratch?,
                         buf,
-                        &instruction.operands()[1],
+                        op_1,
                         *reg,
                         imm.clone().value,
                     )?;
@@ -196,7 +196,7 @@ pub(crate) fn patch_rip_relative_64(
                         source_address,
                         scratch?,
                         buf,
-                        &instruction.operands()[1],
+                        op_1,
                         *reg,
                         *reg2,
                     )?;
@@ -216,7 +216,7 @@ pub(crate) fn patch_rip_relative_64(
                         source_address,
                         scratch?,
                         buf,
-                        &instruction.operands()[2],
+                        op_2,
                         *reg,
                         *reg2,
                     )?;
@@ -246,7 +246,7 @@ pub(crate) fn patch_rip_relative_64(
                             source_address,
                             scratch?,
                             buf,
-                            &instruction.operands()[2],
+                            op_2,
                             *reg,
                             *reg2,
                             imm.value,
@@ -269,12 +269,77 @@ pub(crate) fn patch_rip_relative_64(
                             source_address,
                             scratch?,
                             buf,
-                            &instruction.operands()[3],
+                            op_3,
                             *reg,
                             *reg2,
                             *reg3,
                         )?;
                         return Ok(());
+                    }
+                }
+            }
+        }
+    } else if instruction.operand_count_visible == 5 {
+        // 5 Operands:
+        // - reg, reg, reg, rip, imm patch_op_op_op_riprel_op
+        // - reg, reg, rip, reg, imm patch_op_op_riprel_op_op
+
+        let op_0 = &instruction.operands()[0];
+        let op_1 = &instruction.operands()[1];
+        let op_2 = &instruction.operands()[2];
+        let op_3 = &instruction.operands()[3];
+        let op_4 = &instruction.operands()[4];
+
+        // e.g. `VPERMIL2PS xmm1, xmm2, xmm3, xmm4/m128, imm4`
+        // e.g. `VPERMIL2PS xmm1, xmm2, xmm3/m128, xmm4, imm4`
+
+        let is_fourth_rip = is_rip_operand(op_3);
+        if is_fourth_rip {
+            // reg, reg, reg, rip, imm
+            if let DecodedOperandKind::Reg(reg) = &op_0.kind {
+                if let DecodedOperandKind::Reg(reg2) = &op_1.kind {
+                    if let DecodedOperandKind::Reg(reg3) = &op_2.kind {
+                        if let DecodedOperandKind::Imm(imm) = &op_4.kind {
+                            patch_op_op_op_riprel_op(
+                                instruction,
+                                dest_address,
+                                source_address,
+                                scratch?,
+                                buf,
+                                op_3,
+                                *reg,
+                                *reg2,
+                                *reg3,
+                                imm.value,
+                            )?;
+                            return Ok(());
+                        }
+                    }
+                }
+            }
+        }
+
+        let is_third_rip = is_rip_operand(op_2);
+        if is_third_rip {
+            // reg, reg, rip, reg, imm
+            if let DecodedOperandKind::Reg(reg) = &op_0.kind {
+                if let DecodedOperandKind::Reg(reg2) = &op_1.kind {
+                    if let DecodedOperandKind::Reg(reg3) = &op_3.kind {
+                        if let DecodedOperandKind::Imm(imm) = &op_4.kind {
+                            patch_op_op_riprel_op_op(
+                                instruction,
+                                dest_address,
+                                source_address,
+                                scratch?,
+                                buf,
+                                op_2,
+                                *reg,
+                                *reg2,
+                                *reg3,
+                                imm.value,
+                            )?;
+                            return Ok(());
+                        }
                     }
                 }
             }
@@ -295,9 +360,6 @@ pub(crate) fn patch_rip_relative_64(
     *dest_address += instruction_bytes.len();
     buf.extend_from_slice(instruction_bytes);
 
-    // TODO: Check operands for MEM
-    // ZydisInfo -64 -64 "48891d08000000"
-    // operands[0].kind == MEM && operands[0].mem.base == RIP
     Ok(())
 }
 
@@ -585,6 +647,95 @@ fn patch_op_op_op_riprel<TOperand: Into<EncoderOperand>, TOperand2: Into<Encoder
     Ok(())
 }
 
+/// Example patch:
+///
+/// from:
+///     vpermil2ps xmm1, xmm2, xmm3, xmmword ptr [rip + 8], 0xa
+///
+/// to:
+///     movabs rax, 0x100000012
+///     vpermil2ps xmm1, xmm2, xmm3, xmmword ptr [rax], 0xa
+#[allow(clippy::too_many_arguments)]
+fn patch_op_op_op_riprel_op<
+    TOperand: Into<EncoderOperand>,
+    TOperand2: Into<EncoderOperand>,
+    TOperand4: Into<EncoderOperand>,
+>(
+    instruction: &ZydisInstruction,
+    dest_address: &mut usize,
+    source_address: &mut usize, // pc (eip/rip)
+    scratch_register: x64::Register,
+    buf: &mut Vec<u8>,
+    riprel: &DecodedOperand,
+    op: TOperand,
+    op_2: TOperand2,
+    op_3: zydis::Register,
+    op_4: TOperand4,
+) -> Result<(), ZydisRewriterError> {
+    let zydis_reg = patch_common(
+        instruction,
+        source_address,
+        riprel,
+        scratch_register,
+        dest_address,
+        buf,
+    )?;
+
+    // <orig_opcode> [rax], op
+    *dest_address += EncoderRequest::new64(instruction.mnemonic)
+        .add_operand(op)
+        .add_operand(op_2)
+        .add_operand(EncoderOperand::reg_is4(op_3, true))
+        .add_operand(make_mem_operand(zydis_reg, riprel))
+        .add_operand(op_4)
+        .encode_extend(buf)?;
+    Ok(())
+}
+
+/// Example patch:
+///
+/// from:
+///     vpermil2ps xmm1,xmm2,xmmword ptr [rip + 8],xmm4,0xa
+///
+/// to:
+///     movabs rax, 0x100000012
+///     vpermil2ps xmm1, xmm2, xmmword ptr [rax], xmm4, 0xa
+#[allow(clippy::too_many_arguments)]
+fn patch_op_op_riprel_op_op<
+    TOperand: Into<EncoderOperand>,
+    TOperand2: Into<EncoderOperand>,
+    TOperand4: Into<EncoderOperand>,
+>(
+    instruction: &ZydisInstruction,
+    dest_address: &mut usize,
+    source_address: &mut usize, // pc (eip/rip)
+    scratch_register: x64::Register,
+    buf: &mut Vec<u8>,
+    riprel: &DecodedOperand,
+    op: TOperand,
+    op_2: TOperand2,
+    op_3: zydis::Register,
+    op_4: TOperand4,
+) -> Result<(), ZydisRewriterError> {
+    let zydis_reg = patch_common(
+        instruction,
+        source_address,
+        riprel,
+        scratch_register,
+        dest_address,
+        buf,
+    )?;
+
+    *dest_address += EncoderRequest::new64(instruction.mnemonic)
+        .add_operand(op)
+        .add_operand(op_2)
+        .add_operand(make_mem_operand(zydis_reg, riprel))
+        .add_operand(EncoderOperand::reg_is4(op_3, true))
+        .add_operand(op_4)
+        .encode_extend(buf)?;
+    Ok(())
+}
+
 /// Encodes the common prologue of `mov <scratch>, <address>` instruction,
 /// which is common between all patches.
 fn patch_common(
@@ -671,7 +822,24 @@ mod tests {
         0x100000000,
         0,
         "48b81200000001000000c4e3e95c0830"
-    )] // vfmaddsubps xmm1, xmm2, xmm3, xmmword ptr [rip + 8] -> movabs rax, 0x100000012 + vfmaddsubps xmm1, xmm2, xmm3, xmmword ptr [rax]
+    )]
+    // vfmaddsubps xmm1, xmm2, xmm3, xmmword ptr [rip + 8] -> movabs rax, 0x100000012 + vfmaddsubps xmm1, xmm2, xmm3, xmmword ptr [rax]
+
+    // 5 Operands:
+    #[case::vpermil2ps_2(
+        "c4e3e9480d080000003a",
+        0x100000000,
+        0,
+        "48b81200000001000000c4e3e948083a"
+    )]
+    // vpermil2ps xmm1,xmm2,xmm3,xmmword ptr [rip + 8],0xa -> movabs rax, 0x100000012 + vpermil2ps xmm1,xmm2,xmm3,xmmword ptr [rax],0xa
+    #[case::vpermil2ps_1(
+        "c4e369480d080000004a",
+        0x100000000,
+        0,
+        "48b81200000001000000c4e36948084a"
+    )]
+    // vpermil2ps xmm1,xmm2,xmmword ptr [rip + 8],xmm4,0xa -> movabs rax, 0x100000012 + vpermil2ps xmm1, xmm2, xmmword ptr [rax], xmm4, 0xa
     fn relocate_rip_rel_64(
         #[case] instructions: String,
         #[case] old_address: usize,
