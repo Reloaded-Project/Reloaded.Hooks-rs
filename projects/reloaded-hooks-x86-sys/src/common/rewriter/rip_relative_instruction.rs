@@ -5,6 +5,7 @@ use crate::common::util::get_stolen_instructions::ZydisInstruction;
 use crate::x64;
 use alloc::vec::Vec;
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
+use reloaded_hooks_portable::helpers::relative_branch_range_check::can_direct_branch_with_distance_from_ins_end;
 use zydis::ffi::{DecodedOperand, DecodedOperandKind};
 use zydis::Mnemonic::MOV;
 use zydis::Register::RIP;
@@ -385,6 +386,27 @@ fn patch_riprel(
     buf: &mut Vec<u8>,
     riprel: &DecodedOperand,
 ) -> Result<(), ZydisRewriterError> {
+    // Fast Path
+    let target_addr = get_target_addr(instruction, source_address, riprel);
+    let branch_info = can_direct_branch_with_distance_from_ins_end(
+        *dest_address,
+        target_addr as usize,
+        i32::MAX as usize,
+        instruction.length as usize,
+    );
+
+    if branch_info.0 {
+        *source_address += instruction.length as usize;
+        *dest_address += EncoderRequest::new64(instruction.mnemonic)
+            .add_operand(make_rip_operand_with_disp(
+                riprel.size,
+                branch_info.1 as i64,
+            ))
+            .encode_extend(buf)?;
+        return Ok(());
+    }
+
+    // Slow path: Relocate outside of 2GiB.
     let zydis_reg = patch_common(
         instruction,
         source_address,
@@ -738,17 +760,14 @@ fn patch_op_op_riprel_op_op<
 /// Encodes the common prologue of `mov <scratch>, <address>` instruction,
 /// which is common between all patches.
 fn patch_common(
-    instruction: &zydis::Instruction<zydis::OperandArrayVec<5>>,
+    instruction: &ZydisInstruction,
     source_address: &mut usize,
     riprel: &DecodedOperand,
     scratch_register: x64::Register,
     dest_address: &mut usize,
     buf: &mut Vec<u8>,
 ) -> Result<zydis::Register, ZydisRewriterError> {
-    let target_addr = instruction
-        .calc_absolute_address(*source_address as u64, riprel)
-        .unwrap();
-
+    let target_addr = get_target_addr(instruction, source_address, riprel);
     *source_address += instruction.length as usize;
 
     let zydis_reg = scratch_register.to_zydis();
@@ -760,10 +779,28 @@ fn patch_common(
     Ok(zydis_reg)
 }
 
+fn get_target_addr(
+    instruction: &ZydisInstruction,
+    source_address: &mut usize,
+    riprel: &DecodedOperand,
+) -> u64 {
+    instruction
+        .calc_absolute_address(*source_address as u64, riprel)
+        .unwrap()
+}
+
 fn make_mem_operand(zydis_reg: zydis::Register, op: &DecodedOperand) -> EncoderOperand {
     let mut reg = EncoderOperand::ZERO_MEM.clone();
     reg.base = zydis_reg;
     reg.size = op.size / 8;
+    EncoderOperand::mem_custom(reg)
+}
+
+fn make_rip_operand_with_disp(size: u16, displacement: i64) -> EncoderOperand {
+    let mut reg = EncoderOperand::ZERO_MEM.clone();
+    reg.base = RIP;
+    reg.size = size / 8;
+    reg.displacement = displacement;
     EncoderOperand::mem_custom(reg)
 }
 
@@ -779,6 +816,8 @@ mod tests {
     // - rip              patch_riprel
     #[case::inc_rip_rel_abs("ff0508000000", 0x100000000, 0, "48b80e00000001000000ff00")]
     // inc dword ptr [rip + 8] -> mov rax, 0x10000000e + inc dword ptr [rax]
+    #[case::inc_rip_rel_abs_fast("ff0508000000", 0x100, 0, "ff0508010000")]
+    // inc dword ptr [rip + 8] -> inc dword ptr [rip + 0x108]
 
     // 2 Operands:       [function name]
     // - rip, reg        patch_riprel_op
