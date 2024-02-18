@@ -31,15 +31,7 @@ pub(crate) mod common {
 
     pub(crate) mod util {
 
-        #[cfg(feature = "x64")]
-        pub mod get_instruction_length;
         pub mod get_stolen_instructions;
-
-        #[cfg(feature = "x64")]
-        pub mod iced_extensions;
-
-        #[cfg(feature = "x64")]
-        pub mod invert_branch_condition;
 
         #[cfg(test)]
         pub(crate) mod test_utilities;
@@ -48,24 +40,15 @@ pub(crate) mod common {
     }
 
     pub mod rewriter {
-        pub mod code_rewriter;
+        pub mod conditional_branch;
+        pub mod jcxz;
+        pub mod r#loop;
+        pub mod loope;
+        pub mod loopne;
+        pub mod relative_branch;
 
         #[cfg(feature = "x64")]
-        pub mod patches;
-    }
-
-    pub mod rewriter_zd {
-        pub mod patches {
-            pub mod conditional_branch;
-            pub mod jcxz;
-            pub mod r#loop;
-            pub mod loope;
-            pub mod loopne;
-            pub mod relative_branch;
-
-            #[cfg(feature = "x64")]
-            pub mod rip_relative_instruction;
-        }
+        pub mod rip_relative_instruction;
     }
 
     pub mod jit_instructions {

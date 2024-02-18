@@ -10,7 +10,7 @@ include = ["src/**/*"]
 [features]
 default = ["x86", "x64"]
 x86 = []
-x64 = [ "iced-x86/instr_info" ]
+x64 = []
 
 [lib]
 bench = false
@@ -28,12 +28,6 @@ derive_more = { version = "0.99.17", default-features = false, features = ["dere
 zydis = "4.0.0-beta.4"
 features = ["encoder"]
 path = "../../submodules/zydis-rs"
-
-[dependencies.iced-x86]
-version = "=1.21.0" # due to bug https://github.com/icedland/iced/issues/498
-default-features = false
-# See below for all features
-features = ["no_std", "code_asm", "decoder"]
 
 [dev-dependencies]
 criterion = "0.5.1"

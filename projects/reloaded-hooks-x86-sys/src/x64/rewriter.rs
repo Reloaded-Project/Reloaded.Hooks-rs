@@ -2,7 +2,7 @@ extern crate alloc;
 
 use super::Register;
 use crate::common::{
-    rewriter_zd::patches::{
+    rewriter::{
         conditional_branch::patch_conditional_branch_64, jcxz::patch_jcxz_64,
         loope::patch_loope_64, loopne::patch_loopne_64, r#loop::patch_loop_64,
         relative_branch::patch_relative_branch_64,
