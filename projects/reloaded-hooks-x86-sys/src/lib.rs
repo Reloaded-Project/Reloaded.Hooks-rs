@@ -47,6 +47,7 @@ pub(crate) mod common {
         pub mod loopne;
         pub mod relative_branch;
 
+        pub mod helpers;
         #[cfg(feature = "x64")]
         pub mod rip_relative_instruction;
     }

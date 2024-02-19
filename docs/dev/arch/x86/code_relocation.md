@@ -220,7 +220,9 @@ In general, operands can be broken down to 3 main types:
 Each instruction can have 0-5 operands, where there is at max 1 operand which can be RIP relative.
 
 To handle this, a script `projects/code-generators/x86/generate_enum_ins_combos.py` was used to dump
-all possible operand permutations from `Iced` source. Then I wrote functions to handle each possible permutation.
+all possible operand permutations from [Iced](https://github.com/icedland/iced) disassembler's source.
+
+Then I wrote functions to handle each possible permutation.
 
 **1 Operand**:  
 

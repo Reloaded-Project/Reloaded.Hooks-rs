@@ -3,8 +3,8 @@ extern crate alloc;
 use super::Register;
 use crate::common::{
     rewriter::{
-        conditional_branch::patch_conditional_branch_32, jcxz::patch_jcxz_32,
-        loope::patch_loope_32, loopne::patch_loopne_32, r#loop::patch_loop_32,
+        conditional_branch::patch_conditional_branch_32, helpers::has_single_immediate_operand,
+        jcxz::patch_jcxz_32, loope::patch_loope_32, loopne::patch_loopne_32, r#loop::patch_loop_32,
         relative_branch::patch_relative_branch_32,
     },
     util::zydis_decoder_result::ZydisDecoderResult,
@@ -44,88 +44,94 @@ impl CodeRewriter<Register> for CodeRewriterX86 {
             // .1 : insn_bytes
             // .2 : Instruction
             let ins: ZydisDecoderResult<VisibleOperands> = ins.unwrap().into();
-            match ins.instruction.mnemonic {
-                // Branch & Call
-                CALL => {
-                    patch_relative_branch_32(
-                        &ins.instruction,
-                        ins.instruction_bytes,
-                        &mut dest_address,
-                        &mut pc,
-                        scratch_register,
-                        existing_buffer,
-                        true,
-                    )?;
+            if has_single_immediate_operand(&ins) {
+                match ins.instruction.mnemonic {
+                    // Branch & Call
+                    CALL => {
+                        patch_relative_branch_32(
+                            &ins.instruction,
+                            ins.instruction_bytes,
+                            &mut dest_address,
+                            &mut pc,
+                            scratch_register,
+                            existing_buffer,
+                            true,
+                        )?;
+                    }
+                    JMP => {
+                        patch_relative_branch_32(
+                            &ins.instruction,
+                            ins.instruction_bytes,
+                            &mut dest_address,
+                            &mut pc,
+                            scratch_register,
+                            existing_buffer,
+                            false,
+                        )?;
+                    }
+                    // Conditional Branch
+                    JO | JNO | JB | JNB | JZ | JNZ | JBE | JNBE | JS | JNS | JP | JNP | JL
+                    | JNL | JLE | JNLE => {
+                        patch_conditional_branch_32(
+                            &ins.instruction,
+                            ins.instruction_bytes,
+                            &mut dest_address,
+                            &mut pc,
+                            scratch_register,
+                            existing_buffer,
+                        )?;
+                    }
+                    LOOP => {
+                        patch_loop_32(
+                            &ins.instruction,
+                            ins.instruction_bytes,
+                            &mut dest_address,
+                            &mut pc,
+                            scratch_register,
+                            existing_buffer,
+                        )?;
+                    }
+                    LOOPE => {
+                        patch_loope_32(
+                            &ins.instruction,
+                            ins.instruction_bytes,
+                            &mut dest_address,
+                            &mut pc,
+                            scratch_register,
+                            existing_buffer,
+                        )?;
+                    }
+                    LOOPNE => {
+                        patch_loopne_32(
+                            &ins.instruction,
+                            ins.instruction_bytes,
+                            &mut dest_address,
+                            &mut pc,
+                            scratch_register,
+                            existing_buffer,
+                        )?;
+                    }
+                    JCXZ | JRCXZ | JECXZ => {
+                        patch_jcxz_32(
+                            &ins.instruction,
+                            ins.instruction_bytes,
+                            &mut dest_address,
+                            &mut pc,
+                            scratch_register,
+                            existing_buffer,
+                        )?;
+                    }
+                    // Everything else
+                    _ => {
+                        pc += ins.instruction_bytes.len();
+                        dest_address += ins.instruction_bytes.len();
+                        existing_buffer.extend_from_slice(ins.instruction_bytes);
+                    }
                 }
-                JMP => {
-                    patch_relative_branch_32(
-                        &ins.instruction,
-                        ins.instruction_bytes,
-                        &mut dest_address,
-                        &mut pc,
-                        scratch_register,
-                        existing_buffer,
-                        false,
-                    )?;
-                }
-                // Conditional Branch
-                JO | JNO | JB | JNB | JZ | JNZ | JBE | JNBE | JS | JNS | JP | JNP | JL | JNL
-                | JLE | JNLE => {
-                    patch_conditional_branch_32(
-                        &ins.instruction,
-                        ins.instruction_bytes,
-                        &mut dest_address,
-                        &mut pc,
-                        scratch_register,
-                        existing_buffer,
-                    )?;
-                }
-                LOOP => {
-                    patch_loop_32(
-                        &ins.instruction,
-                        ins.instruction_bytes,
-                        &mut dest_address,
-                        &mut pc,
-                        scratch_register,
-                        existing_buffer,
-                    )?;
-                }
-                LOOPE => {
-                    patch_loope_32(
-                        &ins.instruction,
-                        ins.instruction_bytes,
-                        &mut dest_address,
-                        &mut pc,
-                        scratch_register,
-                        existing_buffer,
-                    )?;
-                }
-                LOOPNE => {
-                    patch_loopne_32(
-                        &ins.instruction,
-                        ins.instruction_bytes,
-                        &mut dest_address,
-                        &mut pc,
-                        scratch_register,
-                        existing_buffer,
-                    )?;
-                }
-                JCXZ | JRCXZ | JECXZ => {
-                    patch_jcxz_32(
-                        &ins.instruction,
-                        ins.instruction_bytes,
-                        &mut dest_address,
-                        &mut pc,
-                        scratch_register,
-                        existing_buffer,
-                    )?;
-                }
-                // Everything else
-                _ => {
-                    pc += ins.instruction_bytes.len();
-                    dest_address += ins.instruction_bytes.len();
-                    existing_buffer.extend_from_slice(ins.instruction_bytes);
-                }
+            } else {
+                pc += ins.instruction_bytes.len();
+                dest_address += ins.instruction_bytes.len();
+                existing_buffer.extend_from_slice(ins.instruction_bytes);
             }
         }
 
