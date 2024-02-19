@@ -14,7 +14,6 @@ use alloc::borrow::ToOwned;
 use alloc::vec::Vec;
 use core::{ops::Sub, slice};
 use reloaded_hooks_portable::api::rewriter::code_rewriter::{CodeRewriter, CodeRewriterError};
-use zydis::ffi::DecodedOperandKind::*;
 use zydis::{Decoder, MachineMode, Mnemonic::*, StackWidth, VisibleOperands};
 
 pub struct CodeRewriterX64;
