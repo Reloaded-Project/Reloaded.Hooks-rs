@@ -355,7 +355,7 @@ fn patch_riprel(
     buf: &mut Vec<u8>,
     riprel: &DecodedOperand,
 ) -> Result<(), ZydisRewriterError> {
-    // Fast Path
+    // Fast Path if within valid +- 2GiB displacement
     let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
     if new_rip.0 {
         *source_address += instruction.length as usize;
@@ -400,6 +400,17 @@ fn patch_riprel_op<TOperand: Into<EncoderOperand>>(
     riprel: &DecodedOperand,
     op: TOperand,
 ) -> Result<(), ZydisRewriterError> {
+    // Fast Path if within valid +- 2GiB displacement
+    let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
+    if new_rip.0 {
+        *source_address += instruction.length as usize;
+        *dest_address += EncoderRequest::new64(instruction.mnemonic)
+            .add_operand(make_rip_operand_with_disp(riprel.size, new_rip.1 as i64))
+            .add_operand(op)
+            .encode_extend(buf)?;
+        return Ok(());
+    }
+
     let zydis_reg = patch_common(
         instruction,
         source_address,
@@ -437,6 +448,18 @@ fn patch_riprel_op_op<TOperand: Into<EncoderOperand>, TOperand2: Into<EncoderOpe
     op: TOperand,
     op_2: TOperand2,
 ) -> Result<(), ZydisRewriterError> {
+    // Fast Path if within valid +- 2GiB displacement
+    let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
+    if new_rip.0 {
+        *source_address += instruction.length as usize;
+        *dest_address += EncoderRequest::new64(instruction.mnemonic)
+            .add_operand(make_rip_operand_with_disp(riprel.size, new_rip.1 as i64))
+            .add_operand(op)
+            .add_operand(op_2)
+            .encode_extend(buf)?;
+        return Ok(());
+    }
+
     let zydis_reg = patch_common(
         instruction,
         source_address,
@@ -475,6 +498,18 @@ fn patch_op_riprel_op<TOperand: Into<EncoderOperand>, TOperand2: Into<EncoderOpe
     op: TOperand,
     op_2: TOperand2,
 ) -> Result<(), ZydisRewriterError> {
+    // Fast Path if within valid +- 2GiB displacement
+    let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
+    if new_rip.0 {
+        *source_address += instruction.length as usize;
+        *dest_address += EncoderRequest::new64(instruction.mnemonic)
+            .add_operand(op)
+            .add_operand(make_rip_operand_with_disp(riprel.size, new_rip.1 as i64))
+            .add_operand(op_2)
+            .encode_extend(buf)?;
+        return Ok(());
+    }
+
     let zydis_reg = patch_common(
         instruction,
         source_address,
@@ -505,6 +540,18 @@ fn patch_op_op_riprel<TOperand: Into<EncoderOperand>, TOperand2: Into<EncoderOpe
     op: TOperand,
     op_2: TOperand2,
 ) -> Result<(), ZydisRewriterError> {
+    // Fast Path if within valid +- 2GiB displacement
+    let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
+    if new_rip.0 {
+        *source_address += instruction.length as usize;
+        *dest_address += EncoderRequest::new64(instruction.mnemonic)
+            .add_operand(op)
+            .add_operand(op_2)
+            .add_operand(make_rip_operand_with_disp(riprel.size, new_rip.1 as i64))
+            .encode_extend(buf)?;
+        return Ok(());
+    }
+
     let zydis_reg = patch_common(
         instruction,
         source_address,
@@ -541,6 +588,17 @@ fn patch_op_riprel<TOperand: Into<EncoderOperand>>(
     riprel: &DecodedOperand,
     op: TOperand,
 ) -> Result<(), ZydisRewriterError> {
+    // Fast Path if within valid +- 2GiB displacement
+    let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
+    if new_rip.0 {
+        *source_address += instruction.length as usize;
+        *dest_address += EncoderRequest::new64(instruction.mnemonic)
+            .add_operand(op)
+            .add_operand(make_rip_operand_with_disp(riprel.size, new_rip.1 as i64))
+            .encode_extend(buf)?;
+        return Ok(());
+    }
+
     let zydis_reg = patch_common(
         instruction,
         source_address,
@@ -575,6 +633,19 @@ fn patch_op_op_riprel_op<
     op_2: TOperand2,
     op_3: TOperand3,
 ) -> Result<(), ZydisRewriterError> {
+    // Fast Path if within valid +- 2GiB displacement
+    let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
+    if new_rip.0 {
+        *source_address += instruction.length as usize;
+        *dest_address += EncoderRequest::new64(instruction.mnemonic)
+            .add_operand(op)
+            .add_operand(op_2)
+            .add_operand(make_rip_operand_with_disp(riprel.size, new_rip.1 as i64))
+            .add_operand(op_3)
+            .encode_extend(buf)?;
+        return Ok(());
+    }
+
     let zydis_reg = patch_common(
         instruction,
         source_address,
@@ -607,6 +678,19 @@ fn patch_op_op_op_riprel<TOperand: Into<EncoderOperand>, TOperand2: Into<Encoder
     op_2: TOperand2,
     op_3: zydis::Register,
 ) -> Result<(), ZydisRewriterError> {
+    // Fast Path if within valid +- 2GiB displacement
+    let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
+    if new_rip.0 {
+        *source_address += instruction.length as usize;
+        *dest_address += EncoderRequest::new64(instruction.mnemonic)
+            .add_operand(op)
+            .add_operand(op_2)
+            .add_operand(EncoderOperand::reg_is4(op_3, true))
+            .add_operand(make_rip_operand_with_disp(riprel.size, new_rip.1 as i64))
+            .encode_extend(buf)?;
+        return Ok(());
+    }
+
     let zydis_reg = patch_common(
         instruction,
         source_address,
@@ -652,6 +736,20 @@ fn patch_op_op_op_riprel_op<
     op_3: zydis::Register,
     op_4: TOperand4,
 ) -> Result<(), ZydisRewriterError> {
+    // Fast Path if within valid +- 2GiB displacement
+    let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
+    if new_rip.0 {
+        *source_address += instruction.length as usize;
+        *dest_address += EncoderRequest::new64(instruction.mnemonic)
+            .add_operand(op)
+            .add_operand(op_2)
+            .add_operand(EncoderOperand::reg_is4(op_3, true))
+            .add_operand(make_rip_operand_with_disp(riprel.size, new_rip.1 as i64))
+            .add_operand(op_4)
+            .encode_extend(buf)?;
+        return Ok(());
+    }
+
     let zydis_reg = patch_common(
         instruction,
         source_address,
@@ -697,6 +795,20 @@ fn patch_op_op_riprel_op_op<
     op_3: zydis::Register,
     op_4: TOperand4,
 ) -> Result<(), ZydisRewriterError> {
+    // Fast Path if within valid +- 2GiB displacement
+    let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
+    if new_rip.0 {
+        *source_address += instruction.length as usize;
+        *dest_address += EncoderRequest::new64(instruction.mnemonic)
+            .add_operand(op)
+            .add_operand(op_2)
+            .add_operand(make_rip_operand_with_disp(riprel.size, new_rip.1 as i64))
+            .add_operand(EncoderOperand::reg_is4(op_3, true))
+            .add_operand(op_4)
+            .encode_extend(buf)?;
+        return Ok(());
+    }
+
     let zydis_reg = patch_common(
         instruction,
         source_address,
@@ -799,17 +911,23 @@ mod tests {
     // - rip, reg        patch_riprel_op
     #[case::mov_lhs("48891d08000000", 0x100000000, 0, "48b80f00000001000000488918")]
     // mov [rip + 8], rbx -> mov rax, 0x10000000f + mov [rax], rbx
+    #[case::mov_lhs_fast("48891d08000000", 0x100, 0, "48891d08010000")]
+    // mov [rip + 8], rbx ->  mov [rip + 0x108], rbx
     // - rip, imm        patch_riprel_op
     #[case::bt_imm8("480fba250800000008", 0x100000000, 0, "48b81100000001000000480fba2008")]
     // bt qword ptr [rip + 8], 8 -> mov rax, 0x100000011 + bt [rax], 8
     // - reg, rip        patch_op_riprel
     #[case::xchg_src("48871d08000000", 0x100000000, 0, "48b80f00000001000000488718")]
     // xchg rbx, [rip + 8] -> mov rax, 0x10000000f + xchg [rax], rbx
+    #[case::xchg_src_fast("48871d08000000", 0x100, 0, "48871d08010000")]
+    // xchg rbx, [rip + 8] -> xchg rbx, [rip + 0x108]
 
     // 3 Operands:       [function name]
     // - rip, reg, imm    patch_riprel_op_op
     #[case::shld_imm8("0fa41d0800000005", 0x100000000, 0, "48b810000000010000000fa41805")]
     // shld [rip + 8], ebx, 5 -> mov rax, 0x100000010 + shld [rax], ebx, 5
+    #[case::shld_imm8_fast("0fa41d0800000005", 0x100, 0, "0fa41d0801000005")]
+    // shld [rip + 8], ebx, 5 -> shld [rip + 0x108], ebx, 5
 
     // - rip, reg, reg    patch_riprel_op_op
     #[case::shld_cl("0fa51d08000000", 0x100000000, 0, "48b80f000000010000000fa518")]
@@ -818,6 +936,8 @@ mod tests {
     // - reg, rip, imm    patch_op_riprel_op
     #[case::imul_reg_mem_imm("486b1d0800000020", 0x100000000, 0, "48b81000000001000000486b1820")]
     // imul rbx, [rip + 8], 32 -> mov rax, 0x100000010 + imul rbx, qword ptr [rax], 0x20
+    #[case::imul_reg_mem_imm_fast("486b1d0800000020", 0x100, 0, "486b1d0801000020")]
+    // imul rbx, [rip + 8], 32 -> imul rbx, [rip + 0x108], 32
 
     // - reg, rip, reg    patch_op_riprel_op
     // Not tested, because covered by already tested patch_op_riprel_op.
@@ -825,11 +945,15 @@ mod tests {
     // - reg, reg, rip    patch_op_op_riprel
     #[case::vaddpd_rhs("c5ed580d08000000", 0x100000000, 0, "48b81000000001000000c5ed5808")]
     // vaddpd ymm1, ymm2, [rip + 8] -> mov rax, 0x100000010 + vaddpd ymm1, ymm2, [rax]
+    #[case::vaddpd_rhs_fast("c5ed580d08000000", 0x100, 0, "c5ed580d08010000")]
+    // vaddpd ymm1, ymm2, [rip + 8] -> vaddpd ymm1, ymm2, [rip + 0x108]
 
     // 4 Operands:
     // - reg, reg, rip, imm patch_op_op_riprel_op
     #[case::vcmpps("c5ecc20d0800000004", 0x100000000, 0, "48b81100000001000000c5ecc20804")]
     // vcmpps ymm1, ymm2, ymmword ptr [rip+0x08], 0x04 -> mov rax, 0x100000011 + vcmpps ymm1, ymm2, ymmword ptr ds:[rax], 0x04
+    #[case::vcmpps_fast("c5ecc20d0800000004", 0x100, 0, "c5ecc20d0801000004")]
+    // vcmpps ymm1, ymm2, ymmword ptr [rip+0x08], 0x04 -> vcmpps ymm1, ymm2, ymmword ptr [rip+0x108], 0x04
     // - reg, reg, reg, rip patch_op_op_op_riprel
     #[case::vfnmaddpd(
         "c4e3e95c0d0800000030",
@@ -838,8 +962,10 @@ mod tests {
         "48b81200000001000000c4e3e95c0830"
     )]
     // vfmaddsubps xmm1, xmm2, xmm3, xmmword ptr [rip + 8] -> movabs rax, 0x100000012 + vfmaddsubps xmm1, xmm2, xmm3, xmmword ptr [rax]
+    #[case::vfnmaddpd_fast("c4e3e95c0d0800000030", 0x100, 0, "c4e3e95c0d0801000030")]
+    // vfmaddsubps xmm1, xmm2, xmm3, xmmword ptr [rip + 8] -> vfmaddsubps xmm1, xmm2, xmm3, xmmword ptr [rip + 0x108]
 
-    // 5 Operands:
+    // 5 Operands: patch_op_op_op_riprel_op
     #[case::vpermil2ps_2(
         "c4e3e9480d080000003a",
         0x100000000,
@@ -847,6 +973,10 @@ mod tests {
         "48b81200000001000000c4e3e948083a"
     )]
     // vpermil2ps xmm1,xmm2,xmm3,xmmword ptr [rip + 8],0xa -> movabs rax, 0x100000012 + vpermil2ps xmm1,xmm2,xmm3,xmmword ptr [rax],0xa
+    #[case::vpermil2ps_2_fast("c4e3e9480d080000003a", 0x100, 0, "c4e3e9480d080100003a")]
+    // vpermil2ps xmm1,xmm2,xmm3,xmmword ptr [rip + 8],0xa -> vpermil2ps xmm1,xmm2,xmm3,xmmword ptr [rip + 0x108],0xa
+
+    // patch_op_op_riprel_op_op
     #[case::vpermil2ps_1(
         "c4e369480d080000004a",
         0x100000000,
@@ -854,6 +984,8 @@ mod tests {
         "48b81200000001000000c4e36948084a"
     )]
     // vpermil2ps xmm1,xmm2,xmmword ptr [rip + 8],xmm4,0xa -> movabs rax, 0x100000012 + vpermil2ps xmm1, xmm2, xmmword ptr [rax], xmm4, 0xa
+    #[case::vpermil2ps_1_fast("c4e369480d080000004a", 0x100, 0, "c4e369480d080100004a")]
+    // vpermil2ps xmm1,xmm2,xmmword ptr [rip + 8],xmm4,0xa -> vpermil2ps xmm1,xmm2,xmmword ptr [rip + 0x108],xmm4,0xa
     fn relocate_rip_rel_64(
         #[case] instructions: String,
         #[case] old_address: usize,
