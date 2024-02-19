@@ -27,8 +27,6 @@ pub(crate) fn patch_relative_branch_64<TRegister: Debug + ToZydis + Default>(
     buf: &mut Vec<u8>,
     is_call: bool,
 ) -> Result<(), CodeRewriterError> {
-    // If the branch offset is within 2GiB, do no action
-    // because Iced will handle it for us on re-encode.
     let target = instruction
         .calc_absolute_address(*source_address as u64, &instruction.operands()[0])
         .unwrap();
@@ -73,8 +71,6 @@ pub(crate) fn patch_relative_branch_32<TRegister: Debug + ToZydis + Default>(
     buf: &mut Vec<u8>,
     is_call: bool,
 ) -> Result<(), CodeRewriterError> {
-    // If the branch offset is within 2GiB, do no action
-    // because Iced will handle it for us on re-encode.
     let target = instruction
         .calc_absolute_address(*source_address as u64, &instruction.operands()[0])
         .unwrap();

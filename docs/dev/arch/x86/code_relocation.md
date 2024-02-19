@@ -9,6 +9,9 @@ relocation process, specifically tailored for the x64 architecture.
 
 !!! tip "If the new relative branch target is within the encodable range, it is left as relative."
 
+    This applies to x64 instructions as well, including those with RIP relative operands.  
+    Rewriter should produce optimal code wherever possible.
+
 ### Example: Within Relative Range
 
 **Original**: (`EB 02`)  
@@ -49,6 +52,8 @@ Scratch register is determined by the following logic:
 Because rewriting a lot of code will lead to register exhaustion, it must be reiterated the rewriter can only be used for small bits of code.
 
 !!! danger "x64 has over 5000 ‼️ instructions that require rewriting. Only a couple hundred are tested currently"
+
+    To the best of my (Sewer) knowledge, it should work with all instructions at time of writing.
 
 ## Relative Branches
 
@@ -172,12 +177,8 @@ Instructions such as `JCXZ`, `JECXZ`, `JRCXZ`.
 
 ## RIP Relative Operand
 
-!!! warning "At time of writing, this covers around 2800 ‼️ instructions"
-
-!!! danger "Only around a 100 are covered by unit tests though."
-
-Covers all instructions which have an IP relative operand, i.e. read/write to a memory address
-which is relative to the address of the next instruction.
+Covers all x86 instructions (at time of writing) which have an IP relative operand, i.e. 
+read/write to a memory address which is relative to the address of the next instruction.
 
 **Behaviour**:  
 
@@ -203,10 +204,10 @@ Replace RIP relative operand with a scratch register with the originally intende
 
 ### How this is Done
 
-`reloaded-hooks-rs` uses the [iced](https://github.com/icedland/iced) library under the hood for
+`reloaded-hooks-rs` uses the [zydis](https://zydis.re/) library under the hood for
 assembly and disassembly. 
 
-In iced, operands can be broken down to 3 main types:  
+In general, operands can be broken down to 3 main types:  
 
 | Name     | Note                       |
 | -------- | -------------------------- |
