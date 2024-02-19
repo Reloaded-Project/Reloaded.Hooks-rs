@@ -6,7 +6,7 @@ use crate::x64;
 use alloc::vec::Vec;
 use reloaded_hooks_portable::api::rewriter::code_rewriter::CodeRewriterError;
 use reloaded_hooks_portable::helpers::relative_branch_range_check::can_direct_branch_with_distance_from_ins_end;
-use zydis::ffi::{DecodedOperand, DecodedOperandKind};
+use zydis::ffi::{DecodedOperand, DecodedOperandKind, DecodedOperandKind::*};
 use zydis::Mnemonic::MOV;
 use zydis::Register::RIP;
 use zydis::{EncoderOperand, EncoderRequest, Status};
@@ -76,7 +76,7 @@ pub(crate) fn patch_rip_relative_64_or_copyraw(
         if is_first_rip {
             match &op_1.kind {
                 // rip, reg
-                DecodedOperandKind::Reg(reg) => {
+                Reg(reg) => {
                     patch_riprel_op(
                         instruction,
                         dest_address,
@@ -89,7 +89,7 @@ pub(crate) fn patch_rip_relative_64_or_copyraw(
                     return Ok(());
                 }
                 // rip, imm
-                DecodedOperandKind::Imm(imm) => {
+                Imm(imm) => {
                     patch_riprel_op(
                         instruction,
                         dest_address,
@@ -108,7 +108,7 @@ pub(crate) fn patch_rip_relative_64_or_copyraw(
         let is_second_rip = is_rip_operand(op_0);
         if is_second_rip {
             // reg, rip
-            if let DecodedOperandKind::Reg(reg) = &op_0.kind {
+            if let Reg(reg) = &op_0.kind {
                 patch_op_riprel(
                     instruction,
                     dest_address,
@@ -135,9 +135,9 @@ pub(crate) fn patch_rip_relative_64_or_copyraw(
 
         let is_first_rip = is_rip_operand(op_0);
         if is_first_rip {
-            if let DecodedOperandKind::Reg(reg) = &op_1.kind {
+            if let Reg(reg) = &op_1.kind {
                 // rip, reg, imm
-                if let DecodedOperandKind::Imm(imm) = &op_2.kind {
+                if let Imm(imm) = &op_2.kind {
                     patch_riprel_op_op(
                         instruction,
                         dest_address,
@@ -152,7 +152,7 @@ pub(crate) fn patch_rip_relative_64_or_copyraw(
                 }
 
                 // rip, reg, reg
-                if let DecodedOperandKind::Reg(reg2) = &op_2.kind {
+                if let Reg(reg2) = &op_2.kind {
                     patch_riprel_op_op(
                         instruction,
                         dest_address,
@@ -170,58 +170,47 @@ pub(crate) fn patch_rip_relative_64_or_copyraw(
 
         let is_second_rip = is_rip_operand(op_1);
         if is_second_rip {
-            // reg, rip, imm
-            if let DecodedOperandKind::Reg(reg) = &op_0.kind {
-                if let DecodedOperandKind::Imm(imm) = &op_2.kind {
-                    patch_op_riprel_op(
-                        instruction,
-                        dest_address,
-                        source_address,
-                        scratch?,
-                        buf,
-                        op_1,
-                        *reg,
-                        imm.clone().value,
-                    )?;
-                    return Ok(());
-                }
+            if let (Reg(reg), Imm(imm)) = (&op_0.kind, &op_2.kind) {
+                return Ok(patch_op_riprel_op(
+                    instruction,
+                    dest_address,
+                    source_address,
+                    scratch?,
+                    buf,
+                    op_1,
+                    *reg,
+                    imm.clone().value,
+                )?);
             }
 
-            // reg, rip, reg
-            if let DecodedOperandKind::Reg(reg) = &op_0.kind {
-                if let DecodedOperandKind::Reg(reg2) = &op_2.kind {
-                    patch_op_riprel_op(
-                        instruction,
-                        dest_address,
-                        source_address,
-                        scratch?,
-                        buf,
-                        op_1,
-                        *reg,
-                        *reg2,
-                    )?;
-                    return Ok(());
-                }
+            if let (Reg(reg), Reg(reg2)) = (&op_0.kind, &op_2.kind) {
+                return Ok(patch_op_riprel_op(
+                    instruction,
+                    dest_address,
+                    source_address,
+                    scratch?,
+                    buf,
+                    op_1,
+                    *reg,
+                    *reg2,
+                )?);
             }
         }
 
         let is_third_rip = is_rip_operand(op_2);
         // reg, reg, rip
         if is_third_rip {
-            if let DecodedOperandKind::Reg(reg) = &op_0.kind {
-                if let DecodedOperandKind::Reg(reg2) = &op_1.kind {
-                    patch_op_op_riprel(
-                        instruction,
-                        dest_address,
-                        source_address,
-                        scratch?,
-                        buf,
-                        op_2,
-                        *reg,
-                        *reg2,
-                    )?;
-                    return Ok(());
-                }
+            if let (Reg(reg), Reg(reg2)) = (&op_0.kind, &op_1.kind) {
+                return Ok(patch_op_op_riprel(
+                    instruction,
+                    dest_address,
+                    source_address,
+                    scratch?,
+                    buf,
+                    op_2,
+                    *reg,
+                    *reg2,
+                )?);
             }
         }
     } else if instruction.operand_count_visible == 4 {
@@ -237,46 +226,36 @@ pub(crate) fn patch_rip_relative_64_or_copyraw(
         let is_third_rip = is_rip_operand(op_2);
         if is_third_rip {
             // reg, reg, rip, imm
-            if let DecodedOperandKind::Reg(reg) = &op_0.kind {
-                if let DecodedOperandKind::Reg(reg2) = &op_1.kind {
-                    if let DecodedOperandKind::Imm(imm) = &op_3.kind {
-                        patch_op_op_riprel_op(
-                            instruction,
-                            dest_address,
-                            source_address,
-                            scratch?,
-                            buf,
-                            op_2,
-                            *reg,
-                            *reg2,
-                            imm.value,
-                        )?;
-                        return Ok(());
-                    }
-                }
+            if let (Reg(reg), Reg(reg2), Imm(imm)) = (&op_0.kind, &op_1.kind, &op_3.kind) {
+                return Ok(patch_op_op_riprel_op(
+                    instruction,
+                    dest_address,
+                    source_address,
+                    scratch?,
+                    buf,
+                    op_2,
+                    *reg,
+                    *reg2,
+                    imm.value,
+                )?);
             }
         }
 
         let is_fourth_rip = is_rip_operand(op_3);
         if is_fourth_rip {
             // reg, reg, reg, rip
-            if let DecodedOperandKind::Reg(reg) = &op_0.kind {
-                if let DecodedOperandKind::Reg(reg2) = &op_1.kind {
-                    if let DecodedOperandKind::Reg(reg3) = &op_2.kind {
-                        patch_op_op_op_riprel(
-                            instruction,
-                            dest_address,
-                            source_address,
-                            scratch?,
-                            buf,
-                            op_3,
-                            *reg,
-                            *reg2,
-                            *reg3,
-                        )?;
-                        return Ok(());
-                    }
-                }
+            if let (Reg(reg), Reg(reg2), Reg(reg3)) = (&op_0.kind, &op_1.kind, &op_2.kind) {
+                return Ok(patch_op_op_op_riprel(
+                    instruction,
+                    dest_address,
+                    source_address,
+                    scratch?,
+                    buf,
+                    op_3,
+                    *reg,
+                    *reg2,
+                    *reg3,
+                )?);
             }
         }
     } else if instruction.operand_count_visible == 5 {
@@ -296,52 +275,42 @@ pub(crate) fn patch_rip_relative_64_or_copyraw(
         let is_fourth_rip = is_rip_operand(op_3);
         if is_fourth_rip {
             // reg, reg, reg, rip, imm
-            if let DecodedOperandKind::Reg(reg) = &op_0.kind {
-                if let DecodedOperandKind::Reg(reg2) = &op_1.kind {
-                    if let DecodedOperandKind::Reg(reg3) = &op_2.kind {
-                        if let DecodedOperandKind::Imm(imm) = &op_4.kind {
-                            patch_op_op_op_riprel_op(
-                                instruction,
-                                dest_address,
-                                source_address,
-                                scratch?,
-                                buf,
-                                op_3,
-                                *reg,
-                                *reg2,
-                                *reg3,
-                                imm.value,
-                            )?;
-                            return Ok(());
-                        }
-                    }
-                }
+            if let (Reg(reg), Reg(reg2), Reg(reg3), Imm(imm)) =
+                (&op_0.kind, &op_1.kind, &op_2.kind, &op_4.kind)
+            {
+                return Ok(patch_op_op_op_riprel_op(
+                    instruction,
+                    dest_address,
+                    source_address,
+                    scratch?,
+                    buf,
+                    op_3,
+                    *reg,
+                    *reg2,
+                    *reg3,
+                    imm.value,
+                )?);
             }
         }
 
         let is_third_rip = is_rip_operand(op_2);
         if is_third_rip {
             // reg, reg, rip, reg, imm
-            if let DecodedOperandKind::Reg(reg) = &op_0.kind {
-                if let DecodedOperandKind::Reg(reg2) = &op_1.kind {
-                    if let DecodedOperandKind::Reg(reg3) = &op_3.kind {
-                        if let DecodedOperandKind::Imm(imm) = &op_4.kind {
-                            patch_op_op_riprel_op_op(
-                                instruction,
-                                dest_address,
-                                source_address,
-                                scratch?,
-                                buf,
-                                op_2,
-                                *reg,
-                                *reg2,
-                                *reg3,
-                                imm.value,
-                            )?;
-                            return Ok(());
-                        }
-                    }
-                }
+            if let (Reg(reg), Reg(reg2), Reg(reg3), Imm(imm)) =
+                (&op_0.kind, &op_1.kind, &op_3.kind, &op_4.kind)
+            {
+                return Ok(patch_op_op_riprel_op_op(
+                    instruction,
+                    dest_address,
+                    source_address,
+                    scratch?,
+                    buf,
+                    op_2,
+                    *reg,
+                    *reg2,
+                    *reg3,
+                    imm.value,
+                )?);
             }
         }
     } else if instruction.operand_count_visible == 1 && is_rip_operand(&instruction.operands()[0]) {
@@ -387,21 +356,11 @@ fn patch_riprel(
     riprel: &DecodedOperand,
 ) -> Result<(), ZydisRewriterError> {
     // Fast Path
-    let target_addr = get_target_addr(instruction, source_address, riprel);
-    let branch_info = can_direct_branch_with_distance_from_ins_end(
-        *dest_address,
-        target_addr as usize,
-        i32::MAX as usize,
-        instruction.length as usize,
-    );
-
-    if branch_info.0 {
+    let new_rip = can_rewrite_rip_fast(instruction, source_address, riprel, dest_address);
+    if new_rip.0 {
         *source_address += instruction.length as usize;
         *dest_address += EncoderRequest::new64(instruction.mnemonic)
-            .add_operand(make_rip_operand_with_disp(
-                riprel.size,
-                branch_info.1 as i64,
-            ))
+            .add_operand(make_rip_operand_with_disp(riprel.size, new_rip.1 as i64))
             .encode_extend(buf)?;
         return Ok(());
     }
@@ -802,6 +761,23 @@ fn make_rip_operand_with_disp(size: u16, displacement: i64) -> EncoderOperand {
     reg.size = size / 8;
     reg.displacement = displacement;
     EncoderOperand::mem_custom(reg)
+}
+
+/// Determines if the RIP relative instruction can be rewritten with a fast path.
+/// Returns a bool if it can, and new RIP relative offset.
+fn can_rewrite_rip_fast(
+    instruction: &ZydisInstruction,
+    source_address: &mut usize,
+    riprel: &DecodedOperand,
+    dest_address: &mut usize,
+) -> (bool, isize) {
+    let target_addr = get_target_addr(instruction, source_address, riprel);
+    can_direct_branch_with_distance_from_ins_end(
+        *dest_address,
+        target_addr as usize,
+        i32::MAX as usize,
+        instruction.length as usize,
+    )
 }
 
 #[cfg(test)]
