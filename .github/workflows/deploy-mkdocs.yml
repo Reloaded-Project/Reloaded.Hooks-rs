@@ -1,16 +1,27 @@
-name: Deploy MkDocs
+name: MkDocs Build and Deploy
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
-  workflow_dispatch:
+    paths:
+      - "mkdocs.yml"
+      - "docs/**"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "mkdocs.yml"
+      - "docs/**"
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     steps:
       - name: Deploy MkDocs
-        uses: Reloaded-Project/reloaded-templates-rust/.github/actions/deploy-mkdocs-documentation@v1
+        uses: Reloaded-Project/reloaded-project-configurations-rust/.github/actions/deploy-mkdocs-documentation@v1
         with:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REQUIREMENTS: ./docs/requirements.txt
